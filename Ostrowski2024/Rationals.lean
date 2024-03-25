@@ -43,7 +43,10 @@ def mulRingNorm_real : MulRingNorm ℚ :=
     exact_mod_cast abs_mul
 }
 
-@[simp] lemma mul_ring_norm_eq_abs (r : ℚ) : mulRingNorm_real r = |r| := sorry --rfl
+@[simp] lemma mul_ring_norm_eq_abs (r : ℚ) : mulRingNorm_real r = |r| := by
+  simp only [Rat.cast_abs]
+  rfl
+
 
 end Real
 
