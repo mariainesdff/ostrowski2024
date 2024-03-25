@@ -26,9 +26,10 @@ lemma equiv_symm {R : Type*} [Ring R] (f g : MulRingNorm R) (hfg : equiv f g) :
   simp only [h1, mul_inv_cancel, ne.def, not_false_iff, real.rpow_one],
 end -/
 
-lemma equiv_trans {R : Type*} [ring R] (f g k : MulRingNorm R) (hfg : equiv f g) (hgk : equiv g k) :
+lemma equiv_trans {R : Type*} [Ring R] (f g k : MulRingNorm R) (hfg : equiv f g) (hgk : equiv g k) :
   equiv f k :=
-begin
+  sorry
+/-begin
   rcases hfg with ⟨c, hfg1, hfg2⟩,
   rcases hgk with ⟨d, hgk1, hgk2⟩,
   refine ⟨c * d, by simp only [hfg1, hgk1, zero_lt_mul_right], _⟩,
@@ -36,6 +37,6 @@ begin
   rw ← hfg2,
   ext,
   exact real.rpow_mul (map_nonneg f x) c d,
-end
+end -/
 
 end MulRingNorm
