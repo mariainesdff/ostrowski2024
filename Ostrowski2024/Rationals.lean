@@ -796,7 +796,8 @@ end
 
 end Archimedean
 
-lemma bdd_implies_nonarchimedean : ∀ z : ℕ, f z ≤ 1 →
+lemma bdd_implies_equiv_padic (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
+∀ z : ℕ, f z ≤ 1 →
 ∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
   by sorry
 
