@@ -793,6 +793,10 @@ end
 
 end Archimedean
 
+lemma bdd_implies_nonarchimedean : ∀ z : ℕ, f z ≤ 1 →
+∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
+  by sorry
+
 /-- Ostrowski's Theorem -/
 theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
     (MulRingNorm.equiv f mulRingNorm_real) ∨
