@@ -78,7 +78,7 @@ lemma mul_ring_norm.padic_is_nonarchimedean (p : ℕ) [hp : Fact (Nat.Prime p)] 
 
 end Padic
 
-variable {f : mul_ring_norm ℚ}
+variable {f : MulRingNorm ℚ}
 
 section Nonarchimedean
 
@@ -250,6 +250,9 @@ end
 end Nonarchimedean
 
 section Archimedean
+#check f
+
+lemma notbdd_implies_equiv_real (notbdd: ¬ ∀(z : ℕ), f ↑z ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := by sorry
 
 /-
 
@@ -813,7 +816,8 @@ theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
     ∃ (p : ℕ) (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (@mulRingNorm_padic p hp) := by
   by_cases bdd : ∀ z : ℕ, f z ≤ 1
   · sorry -- p-adic case
-  · sorry -- Euclidean case
+  · left
+    apply notbdd_implies_equiv_real bdd hf_nontriv
     /- { right, /- p-adic case -/
       rw [non_archimedean_iff_nat_norm_bound] at bdd
       exact f_equiv_padic bdd hf_nontriv }
