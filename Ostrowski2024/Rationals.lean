@@ -1,18 +1,7 @@
 
 import Ostrowski2024.Basic
 import Ostrowski2024.MulRingNormRat
---import Ostrowski2024.Nonarchimedean
---import function_field
---import number_theory.padics.padic_norm
---import order.filter.basic
---import analysis.special_functions.log.base
---import analysis.normed.ring.seminorm
---import data.nat.digits
---import ring_theory.power_series.basic
---import analysis.specific_limits.normed
---import topology.algebra.order.basic
 
---open_locale big_operators
 
 /-!
 # Ostrowski's theorem for ℚ
