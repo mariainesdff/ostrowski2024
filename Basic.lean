@@ -29,7 +29,7 @@ lemma equiv_symm {R : Type*} [Ring R] (f g : MulRingNorm R) (hfg : equiv f g) :
         exact hx
         linarith
       apply this
-      exact map_nonneg f.toMulRingSeminorm x
+      exact apply_nonneg f x
       exact hcpos
     done
 

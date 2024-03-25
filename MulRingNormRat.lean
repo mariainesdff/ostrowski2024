@@ -1,12 +1,12 @@
 --copy-pasted from mul_ring_norm in lean3
 
 
-import number_theory.padics.padic_norm
-import basic
-import order.filter.basic
-import analysis.special_functions.log.base
-import analysis.normed.ring.seminorm
-import data.nat.digits
+import Mathlib.NumberTheory.Padics.PadicNorm
+-- import Mathlib.Basic
+import Mathlib.Order.Filter.Basic
+import Mathlib.Analysis.SpecialFunctions.Log.Base
+import Mathlib.Analysis.Normed.Ring.Seminorm
+import Mathlib.Data.Nat.Digits
 
 open_locale big_operators
 
