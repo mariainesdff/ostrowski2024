@@ -33,16 +33,20 @@ section Real
 /-- The usual absolute value on ℚ. -/
 def mulRingNorm_real : MulRingNorm ℚ :=
 { toFun    := λ x : ℚ => |x|
-  map_zero' := sorry --by simp only [rat.cast_zero, abs_zero],
+  map_zero' := by simp only [Rat.cast_zero, abs_zero]
   add_le'   := norm_add_le
   neg'      := norm_neg
-  eq_zero_of_map_eq_zero' := sorry
-  --by simp only [abs_eq_zero, rat.cast_eq_zero, imp_self, forall_const],
-  map_one' := sorry --by simp only [algebra_map.coe_one, abs_one],
-  map_mul' := sorry --by exact_mod_cast abs_mul,
+  eq_zero_of_map_eq_zero' := by simp only [abs_eq_zero, Rat.cast_eq_zero, imp_self, forall_const]
+  map_one' := by simp only [Rat.cast_one, abs_one]
+  map_mul' := by
+    simp only [Rat.cast_mul]
+    exact_mod_cast abs_mul
 }
 
-@[simp] lemma mul_ring_norm_eq_abs (r : ℚ) : mulRingNorm_real r = |r| := sorry --rfl
+@[simp] lemma mul_ring_norm_eq_abs (r : ℚ) : mulRingNorm_real r = |r| := by
+  simp only [Rat.cast_abs]
+  rfl
+
 
 end Real
 
@@ -797,6 +801,10 @@ end
 -/
 
 end Archimedean
+
+lemma bdd_implies_nonarchimedean : ∀ z : ℕ, f z ≤ 1 →
+∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
+  by sorry
 
 /-- Ostrowski's Theorem -/
 theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
