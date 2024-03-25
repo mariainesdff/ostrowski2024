@@ -27,16 +27,15 @@ lemma equiv_symm {R : Type*} [Ring R] (f g : MulRingNorm R) (hfg : equiv f g) :
 end -/
 
 lemma equiv_trans {R : Type*} [Ring R] (f g k : MulRingNorm R) (hfg : equiv f g) (hgk : equiv g k) :
-  equiv f k :=
-  sorry
-/-begin
-  rcases hfg with ⟨c, hfg1, hfg2⟩,
-  rcases hgk with ⟨d, hgk1, hgk2⟩,
-  refine ⟨c * d, by simp only [hfg1, hgk1, zero_lt_mul_right], _⟩,
-  rw ← hgk2,
-  rw ← hfg2,
-  ext,
-  exact real.rpow_mul (map_nonneg f x) c d,
-end -/
+  equiv f k := by
+  rcases hfg with ⟨c, hcPos, hfg⟩
+  rcases hgk with ⟨d, hdPos, hgk⟩
+  use c * d
+  constructor
+  simp only [gt_iff_lt, hcPos, mul_pos_iff_of_pos_left, hdPos]
+  ext x
+  replace hfg := congr_fun hfg x
+  replace hgk := congr_fun hgk x
+  rw [Real.rpow_mul (apply_nonneg f x),hfg,hgk]
 
 end MulRingNorm
