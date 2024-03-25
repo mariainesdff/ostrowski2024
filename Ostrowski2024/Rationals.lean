@@ -33,16 +33,20 @@ section Real
 /-- The usual absolute value on ℚ. -/
 def mulRingNorm_real : MulRingNorm ℚ :=
 { toFun    := λ x : ℚ => |x|
-  map_zero' := sorry --by simp only [rat.cast_zero, abs_zero],
+  map_zero' := by simp only [Rat.cast_zero, abs_zero]
   add_le'   := norm_add_le
   neg'      := norm_neg
-  eq_zero_of_map_eq_zero' := sorry
-  --by simp only [abs_eq_zero, rat.cast_eq_zero, imp_self, forall_const],
-  map_one' := sorry --by simp only [algebra_map.coe_one, abs_one],
-  map_mul' := sorry --by exact_mod_cast abs_mul,
+  eq_zero_of_map_eq_zero' := by simp only [abs_eq_zero, Rat.cast_eq_zero, imp_self, forall_const]
+  map_one' := by simp only [Rat.cast_one, abs_one]
+  map_mul' := by
+    simp only [Rat.cast_mul]
+    exact_mod_cast abs_mul
 }
 
-@[simp] lemma mul_ring_norm_eq_abs (r : ℚ) : mulRingNorm_real r = |r| := sorry --rfl
+@[simp] lemma mul_ring_norm_eq_abs (r : ℚ) : mulRingNorm_real r = |r| := by
+  simp only [Rat.cast_abs]
+  rfl
+
 
 end Real
 
@@ -50,13 +54,14 @@ section Padic
 
 /-- The p-adic norm on ℚ. -/
 def mulRingNorm_padic (p : ℕ) [hp : Fact (Nat.Prime p)] : MulRingNorm ℚ :=
-{ toFun     := λ x : ℚ => (padicNorm p x: ℝ),
-  map_zero' := sorry --by simp only [padic_norm.zero, rat.cast_zero],
-  add_le'   := sorry --by norm_cast; exact padic_norm.triangle_ineq,
-  neg'      := sorry --by simp only [padic_norm.neg, eq_self_iff_true, forall_const],
-  eq_zero_of_map_eq_zero' := sorry --by norm_cast; exact @padic_norm.zero_of_padic_norm_eq_zero p _,
-  map_one' := sorry --by exact_mod_cast padic_norm.one,
-  map_mul' := sorry --by simp only [padic_norm.mul, rat.cast_mul, eq_self_iff_true, forall_const],
+{ toFun     := λ x : ℚ => (padicNorm p x : ℝ),
+  map_zero' := by simp only [padicNorm.zero, Rat.cast_zero]
+  add_le'   := by simp only; norm_cast; exact fun r s => padicNorm.triangle_ineq r s
+  neg'      := by simp only [eq_self_iff_true, forall_const, padicNorm.neg];
+  eq_zero_of_map_eq_zero' := by simp only [Rat.cast_eq_zero]; apply padicNorm.zero_of_padicNorm_eq_zero
+  map_one' := by simp only [ne_eq, one_ne_zero, not_false_eq_true, padicNorm.eq_zpow_of_nonzero,
+    padicValRat.one, neg_zero, zpow_zero, Rat.cast_one]
+  map_mul' := by simp only [padicNorm.mul, Rat.cast_mul, forall_const]
 }
 
 @[simp] lemma mul_ring_norm_eq_padic_norm (p : ℕ) [Fact (Nat.Prime p)] (r : ℚ) :
@@ -64,7 +69,12 @@ def mulRingNorm_padic (p : ℕ) [hp : Fact (Nat.Prime p)] : MulRingNorm ℚ :=
 
 lemma mul_ring_norm.padic_is_nonarchimedean (p : ℕ) [hp : Fact (Nat.Prime p)] (a b : ℚ) :
     mulRingNorm_padic p (a + b) ≤ max (mulRingNorm_padic p a) (mulRingNorm_padic p b) := by
-  sorry
+  rw [mul_ring_norm_eq_padic_norm]
+  rw [mul_ring_norm_eq_padic_norm]
+  rw [mul_ring_norm_eq_padic_norm]
+  norm_cast
+  exact padicNorm.nonarchimedean
+  done
 
 end Padic
 
@@ -794,6 +804,10 @@ end
 -/
 
 end Archimedean
+
+lemma bdd_implies_nonarchimedean : ∀ z : ℕ, f z ≤ 1 →
+∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
+  by sorry
 
 /-- Ostrowski's Theorem -/
 theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
