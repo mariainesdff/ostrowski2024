@@ -2,7 +2,9 @@
 
 
 import Mathlib.NumberTheory.Padics.PadicNorm
--- import Mathlib.Basic
+import Ostrowski2024.Basic
+
+#exit
 import Mathlib.Order.Filter.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.Normed.Ring.Seminorm
