@@ -2,7 +2,8 @@
 import Ostrowski2024.Basic
 import Ostrowski2024.MulRingNormRat
 import Mathlib.Analysis.SpecialFunctions.Log.Base
-
+import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+-- import Mathlib.Algebra.Order.Monoid.Lemmas
 
 /-!
 # Ostrowski's theorem for ℚ
@@ -104,9 +105,61 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
 
 -- ## step 2
 -- given m,n \geq 2 and |m|=m^s, |n|=n^t for s,t >0, prove t \leq s
+section Step2
 
-lemma compare_exponents (m n : ℕ) (s t : ℝ) (hs : s > 0) (ht : t > 0) (hmge : m ≥ 2) (hnge : n ≥ 2) (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
+open Real
 
+variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
+
+
+-- lemma limit1 {N : ℝ} (hN : 0 < N) : filter.tendsto (λ n : ℕ, N ^ (1 / (n : ℝ))) filter.at_top (nhds 1) :=
+-- begin
+--   rw ←real.exp_log hN,
+--   simp_rw [←real.exp_mul],
+--   refine real.tendsto_exp_nhds_0_nhds_1.comp _,
+--   simp_rw [mul_one_div],
+--   apply tendsto_const_div_at_top_nhds_0_nat
+-- end
+
+
+/-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
+lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
+ (fun k : ℕ ↦ (C ^ (1 / (k : ℝ)))) Filter.atTop (nhds 1) := by
+  rw [← Real.exp_log hC]
+  simp_rw [← Real.exp_mul]
+  refine Real.tendsto_exp_nhds_zero_nhds_one.comp ?_
+  simp_rw [mul_one_div]
+  apply tendsto_const_div_atTop_nhds_zero_nat
+
+-- if A < C_k * B for all k then A ≤ C * B, where C is the limit of C_k
+-- Here we state it for the particular sequence C_k := C ^ (1/k)
+lemma one_le_of_param_upperbound {A B C : ℝ}
+  (hC : 1 < C) (hub : ∀ (k : ℕ), A < C ^ (1 / k) * B) : A ≤ B := by sorry
+
+lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
+  set A := m * (f m) / ((f m) - 1) with hA
+
+  have : f m - 1 < m * (f m) := calc
+    f m - 1 < f m := by linarith
+    _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast)) (by trivial) (by simp only [apply_nonneg])
+
+  have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
+    rw [one_lt_div_iff]
+    left
+    constructor
+    · linarith [notbdd_implies_all_gt_one notbdd m hmge]
+    · linarith
+
+  have param_upperbound :
+    ∀ (k : ℕ), f n < ((m * (f m) / ((f m) - 1)) ^ (1 / k)) * ((f m) ^ (logb m n)) :=
+    by sorry
+
+  exact one_le_of_param_upperbound one_lt_A param_upperbound
+
+lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
+  (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
+
+end Step2
 
 -- ## final step
 -- finish the proof by symmetry (exchanging m,n and proving s \leq t) TODO
@@ -132,7 +185,7 @@ lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
     exact hf
   · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
 
---can we adapt this for our needs?
+
 lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
   obtain ⟨n,rfl|rfl⟩ := Int.eq_nat_or_neg x
   · simp only [Int.natAbs_ofNat, Int.cast_ofNat]
@@ -181,6 +234,7 @@ lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) �
         rw [num_denom, hf]
         simp only [div_one]
         rw [← h, f_of_abs_eq_f]
+        assumption
   obtain ⟨n,hn1,hn2⟩ := hn
   have hnlt1 : f n < 1 := by
     exact lt_of_le_of_ne (bdd n) hn2
@@ -201,7 +255,7 @@ lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) �
     exact Nat.sInf_le this
   done
 
-
+section steps_2_3
 -- ## Non-archimedean case: Step 2. p is prime
 
 variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
@@ -308,14 +362,51 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
           sorry
         -- USARE Int.Prime.dvd_pow
     sorry
+  sorry
+
+-- ## Non-archimedean case: step 4
+
+lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
+  have : Prime p := by
+    exact p_is_prime p hp0 hp1 hmin
+  have pprime := Prime.nat_prime this
+  have ppos := Nat.Prime.pos pprime
+  have pposR : 0 < (p : ℝ) := by simp only [Nat.cast_pos, ppos]
+  have pneone := Nat.Prime.ne_one pprime
+  have pneoneR : (p : ℝ) ≠ 1 := by simp only [ne_eq, Nat.cast_eq_one, pneone]; trivial
+  use - Real.logb p (f p)
+  constructor
+  · simp only [Left.neg_pos_iff]
+    apply Real.logb_neg
+    · simp only [Nat.one_lt_cast]
+      exact Nat.Prime.one_lt pprime
+    · exact hp0
+    · exact hp1
+  · simp only [neg_neg]
+    exact (Real.rpow_logb pposR pneoneR hp0).symm
+
+end steps_2_3
 -- ## Non-archimedean case: end goal
 /--
   If `f` is bounded and not trivial, then it is equivalent to a p-adic absolute value.
 -/
 theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) :
 ∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
-
-  by sorry
+  by
+  obtain ⟨p,hfp,hmin⟩ := p_exists bdd hf_nontriv
+  have hprime : Prime p := p_is_prime p hfp.1 hfp.2 hmin
+  use p
+  have hp : Fact (Nat.Prime p) := by
+    rw [fact_iff]
+    exact Prime.nat_prime hprime
+  use hp
+  obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
+  use (1/t)
+  constructor
+  · simp only [one_div, inv_pos, h.1]
+  · ext x
+    simp only [one_div, mul_ring_norm_eq_padic_norm]
+    sorry
 
 end Nonarchimedean
 
