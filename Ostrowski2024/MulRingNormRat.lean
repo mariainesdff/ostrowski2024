@@ -64,6 +64,18 @@ lemma int_norm_bound_iff_nat_norm_bound :
 lemma mul_eq_pow {a : ℚ} {n : ℕ} : f (a ^ n) = (f a) ^ n := by
   exact map_pow f a n
 
+
+
+lemma NormRat_eq_on_Int_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ (∀ n : ℤ , f n = g n) := by
+  constructor
+  · intro h z
+    obtain ⟨n,rfl | rfl ⟩ := Int.eq_nat_or_neg z
+    exact h n
+    simp only [Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
+    exact h n
+  · exact fun a n => a ↑n
+
+
 lemma NormRat_eq_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ f = g := by
   constructor
   · intro h
@@ -72,6 +84,9 @@ lemma NormRat_eq_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ f = g := by
       refine Rat.exists.mp ?_
       use z
     obtain ⟨ n , m, rfl⟩ := this
-    sorry
+    rw [ring_norm.div_eq]
+    rw [ring_norm.div_eq]
+    rw [NormRat_eq_on_Int_iff_eq_on_Nat] at h
+    rw [h,h]
   · intro h n
     exact congrFun (congrArg DFunLike.coe h) ↑n
