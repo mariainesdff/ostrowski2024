@@ -203,7 +203,7 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
     exact Nat.sInf_le this
   done
 
-
+section steps_2_3
 -- ## Non-archimedean case: Step 2. p is prime
 
 variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
@@ -296,7 +296,7 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
 
 -- ## Non-archimedean case: step 4
 
-lemma abs_p_eq_p_minus_t (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
+lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
   have : Prime p := by
     exact p_is_prime p hp0 hp1 hmin
   have pprime := Prime.nat_prime this
@@ -315,13 +315,28 @@ lemma abs_p_eq_p_minus_t (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : 
   · simp only [neg_neg]
     exact (Real.rpow_logb pposR pneoneR hp0).symm
 
+end steps_2_3
 -- ## Non-archimedean case: end goal
 /--
   If `f` is bounded and not trivial, then it is equivalent to a p-adic absolute value.
 -/
 theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) :
 ∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
-  by sorry
+  by
+  obtain ⟨p,hfp,hmin⟩ := p_exists bdd hf_nontriv
+  have hprime : Prime p := p_is_prime p hfp.1 hfp.2 hmin
+  use p
+  have hp : Fact (Nat.Prime p) := by
+    rw [fact_iff]
+    exact Prime.nat_prime hprime
+  use hp
+  obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
+  use (1/t)
+  constructor
+  · simp only [one_div, inv_pos, h.1]
+  · ext x
+    simp only [one_div, mul_ring_norm_eq_padic_norm]
+    sorry
 
 end Nonarchimedean
 
