@@ -2,7 +2,8 @@
 import Ostrowski2024.Basic
 import Ostrowski2024.MulRingNormRat
 import Mathlib.Analysis.SpecialFunctions.Log.Base
-
+import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+-- import Mathlib.Algebra.Order.Monoid.Lemmas
 
 /-!
 # Ostrowski's theorem for ℚ
@@ -104,9 +105,61 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
 
 -- ## step 2
 -- given m,n \geq 2 and |m|=m^s, |n|=n^t for s,t >0, prove t \leq s
+section Step2
 
-lemma compare_exponents (m n : ℕ) (s t : ℝ) (hs : s > 0) (ht : t > 0) (hmge : m ≥ 2) (hnge : n ≥ 2) (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
+open Real
 
+variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
+
+
+-- lemma limit1 {N : ℝ} (hN : 0 < N) : filter.tendsto (λ n : ℕ, N ^ (1 / (n : ℝ))) filter.at_top (nhds 1) :=
+-- begin
+--   rw ←real.exp_log hN,
+--   simp_rw [←real.exp_mul],
+--   refine real.tendsto_exp_nhds_0_nhds_1.comp _,
+--   simp_rw [mul_one_div],
+--   apply tendsto_const_div_at_top_nhds_0_nat
+-- end
+
+
+/-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
+lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
+ (fun k : ℕ ↦ (C ^ (1 / (k : ℝ)))) Filter.atTop (nhds 1) := by
+  rw [← Real.exp_log hC]
+  simp_rw [← Real.exp_mul]
+  refine Real.tendsto_exp_nhds_zero_nhds_one.comp ?_
+  simp_rw [mul_one_div]
+  apply tendsto_const_div_atTop_nhds_zero_nat
+
+-- if A < C_k * B for all k then A ≤ C * B, where C is the limit of C_k
+-- Here we state it for the particular sequence C_k := C ^ (1/k)
+lemma one_le_of_param_upperbound {A B C : ℝ}
+  (hC : 1 < C) (hub : ∀ (k : ℕ), A < C ^ (1 / k) * B) : A ≤ B := by sorry
+
+lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
+  set A := m * (f m) / ((f m) - 1) with hA
+
+  have : f m - 1 < m * (f m) := calc
+    f m - 1 < f m := by linarith
+    _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast)) (by trivial) (by simp only [apply_nonneg])
+
+  have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
+    rw [one_lt_div_iff]
+    left
+    constructor
+    · linarith [notbdd_implies_all_gt_one notbdd m hmge]
+    · linarith
+
+  have param_upperbound :
+    ∀ (k : ℕ), f n < ((m * (f m) / ((f m) - 1)) ^ (1 / k)) * ((f m) ^ (logb m n)) :=
+    by sorry
+
+  exact one_le_of_param_upperbound one_lt_A param_upperbound
+
+lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
+  (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
+
+end Step2
 
 -- ## final step
 -- finish the proof by symmetry (exchanging m,n and proving s \leq t) TODO
