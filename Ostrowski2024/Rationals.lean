@@ -119,6 +119,88 @@ end Archimedean
 
 section Nonarchimedean
 
+-- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
+
+--this lemma should be at the beginning
+lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
+  refine (eq_div_iff ?hb).mpr ?_
+  · intro hf
+    apply x.den_nz
+    apply_mod_cast f.eq_zero_of_map_eq_zero' (x.den : ℚ)
+    exact hf
+  · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
+
+
+lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
+  sorry
+  /--by_cases h : x ≥ 0
+  · congr
+    have : Int.natAbs x = x := by
+      rw [Int.natAbs_of_nonneg]
+      exact h
+    nth_rw 2 [← this]
+    congr
+  · simp only [ge_iff_le, not_le] at h
+    have : -Int.natAbs x = x := by
+      rw [Int.ofNat_natAbs_of_nonpos (le_of_lt h)]
+      simp only [neg_neg]
+    nth_rw 2 [← this]
+    push_cast
+    have :  f (-|↑x|) = f (|x|) := by rw [f.neg']
+    sorry
+  sorry-/
+
+
+lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
+  have hx : ∃ (x : ℚ), x ≠ 0 ∧ f x ≠ 1 := by
+    by_contra h
+    push_neg at h
+    apply hf_nontriv
+    ext x
+    simp
+    by_cases hzero : x = 0
+    · simp only [hzero, map_zero, ↓reduceIte]
+    · simp only [hzero, ↓reduceIte]
+      apply h
+      assumption
+  obtain ⟨x,hx⟩ := hx
+  rcases hx with ⟨hxne0, hfxne1⟩
+  have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
+    by_cases h : f x < 1
+    · use Int.natAbs x.num
+      constructor
+      · simp only [ne_eq, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0, not_false_eq_true]
+      · have : f ↑(Int.natAbs x.num) < 1 := by
+          calc f ↑(Int.natAbs x.num) = f x.num := f_of_abs_eq_f x.num
+            _ < f x.den := by
+              rw [num_denom] at h
+              have : f ↑x.num / f ↑x.den * f ↑x.den  < 1 * f ↑x.den := by
+                sorry
+              sorry
+            _ ≤ 1 := bdd x.den
+        linarith
+    sorry
+  sorry
+  done
+
+
+
+-- ## Non-archimedean case: Step 2. p is prime
+
+lemma p_is_prime (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
+    (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m) : (Prime p) := by
+  rw [← irreducible_iff_prime]
+  constructor
+
+ /-  have: p ≠ 0 := by
+    apply?
+  have:  ∃ (a b : Nat) , p = a * b := by
+    apply?  -/
+  sorry
+
+
+
+
 
 -- ## Non-archimedean case: end goal
 /--
