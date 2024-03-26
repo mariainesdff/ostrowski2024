@@ -1,6 +1,7 @@
 
 import Ostrowski2024.Basic
 import Ostrowski2024.MulRingNormRat
+import Mathlib.Analysis.SpecialFunctions.Log.Base
 
 
 /-!
@@ -79,7 +80,24 @@ section Archimedean
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
-lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ), f n > 1 := sorry
+-- auxilia
+
+lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
+  contrapose! notbdd
+  rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
+  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * ((k * Real.log n) / (Real.log n0) + 1)) := by
+    set L := Nat.digits n0 (n^k)
+    set d := L.length - 1 with hd
+    have hd_natlog : d = Nat.log n0 (n^k) := by
+      rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
+    have hd_log : d ≤ Real.logb n0 (n^k) := by
+      rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℚ, ← Real.floor_logb_nat_cast]
+      -- Real.floor_logb_nat_cast
+
+
+
+  sorry
+
 
 
 -- ## step 2
