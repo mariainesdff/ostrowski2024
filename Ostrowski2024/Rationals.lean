@@ -86,19 +86,30 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
   have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * ((Real.logb n0 n)^k  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
-    set L := Nat.digits n0 (n^k)
+    set L := Nat.digits n0 (n^k) with hL
     /- d is the number of digits (starting at 0)-/
     set d := L.length - 1 with hd
     have hd_natlog : d = Nat.log n0 (n^k) := by
       rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
     have hnk : 0 ≤ ((n ^ k) :ℝ ) := by positivity
-    have hd_log : d ≤ Real.logb n0 (n^k) := by
-      rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
-      · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
-      · rw [← Nat.cast_pow] at hnk
-        assumption
-    sorry
-
+    have hd_log : d ≤ Real.logb n0 (n^k) := by sorry
+      -- rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
+      -- · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
+      -- · rw [← Nat.cast_pow] at hnk
+      --   assumption
+    have hcoeff (c : ℕ) (hc: c ∈ Nat.digits n0 (n^k)) : f c < n0 := by sorry
+      -- apply lt_of_le_of_lt (MulRingNorm_nat_le_nat c f)
+      -- norm_cast
+      -- exact Nat.digits_lt_base hn0_ge2 hc
+    calc
+    (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
+        rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
+      _ = f ((List.foldr (fun (x : ℕ) (y : ℕ) => x + n0 * y) 0 L : ℕ) : ℚ) := by
+        rw [Nat.ofDigits_eq_foldr]; rfl
+      _ ≤ List.foldr (fun (x : ℕ) (y : ℝ) => f x + f n0 * y) (f 0) L := by
+        sorry
+--      _ ≤ List.sum (List.mapIdx (fun (i a : ℕ) => f a * f n0 ^ i) L) := by
+      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by sorry
   sorry
 
 
@@ -176,83 +187,35 @@ section Nonarchimedean
 
 -- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
 
---this lemma should be at the beginning
-lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
-  refine (eq_div_iff ?hb).mpr ?_
-  · intro hf
-    apply x.den_nz
-    apply_mod_cast f.eq_zero_of_map_eq_zero' (x.den : ℚ)
-    exact hf
-  · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
-
-
-lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
-  obtain ⟨n,rfl|rfl⟩ := Int.eq_nat_or_neg x
-  · simp only [Int.natAbs_ofNat, Int.cast_ofNat]
-  · simp only [Int.natAbs_neg, Int.natAbs_ofNat, Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
-  done
-
 variable (bdd: ∀ n : ℕ, f n ≤ 1)
 
 lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
-  have hx : ∃ (x : ℚ), x ≠ 0 ∧ f x ≠ 1 := by
-    by_contra h
-    push_neg at h
-    apply hf_nontriv
-    ext x
-    simp
-    by_cases hzero : x = 0
-    · simp only [hzero, map_zero, ↓reduceIte]
-    · simp only [hzero, ↓reduceIte]
-      apply h
-      assumption
-  obtain ⟨x,hx⟩ := hx
-  rcases hx with ⟨hxne0, hfxne1⟩
   have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
-    have hxnum_den : f x.num ≠ f x.den := by
-      intro h
-      apply hfxne1
-      rw [num_denom, h]
-      apply div_self
-      have := f.eq_zero_of_map_eq_zero' (x.den)
-      intro h'
-      have := this h'
-      apply x.den_nz
-      exact_mod_cast this
-    by_cases hf : f x.den ≠ 1
-    · use x.den
-      constructor
-      · exact x.den_nz
-      · assumption
-    · use Int.natAbs x.num
-      constructor
-      · simp only [ne_eq, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0]
-        trivial
-      · push_neg at hf
-        intro h
-        apply hfxne1
-        rw [num_denom, hf]
-        simp only [div_one]
-        rw [← h, f_of_abs_eq_f]
-        assumption
+    by_contra h
+    apply hf_nontriv
+    push_neg at h
+    apply NormRat_eq_iff_eq_on_Nat.1
+    intro n
+    by_cases hn0 : n=0
+    · rw [hn0]
+      simp only [CharP.cast_eq_zero, map_zero]
+    · push_neg at hn0
+      simp only [MulRingNorm.apply_one, Nat.cast_eq_zero, hn0, ↓reduceIte]
+      exact h n hn0
   obtain ⟨n,hn1,hn2⟩ := hn
   have hnlt1 : f n < 1 := by
     exact lt_of_le_of_ne (bdd n) hn2
   have hngt0 : 0 < f n := by
-    apply norm_pos_of_ne_zero
-    exact_mod_cast hn1
+    apply map_pos_of_ne_zero
+    exact Nat.cast_ne_zero.mpr hn1
   set P := {m : ℕ | 0 < f ↑m ∧ f ↑m < 1}
   have hPnonempty : Set.Nonempty P := by
     use n
-    constructor
-    exact hngt0
-    exact hnlt1
+    refine ⟨hngt0,hnlt1 ⟩
   use sInf P
-  constructor
-  · exact Nat.sInf_mem hPnonempty
-  · intro m hm
-    have : m ∈ P := hm
-    exact Nat.sInf_le this
+  refine ⟨Nat.sInf_mem hPnonempty,?_⟩
+  intro m hm
+  exact Nat.sInf_le hm
   done
 
 section steps_2_3
@@ -392,23 +355,20 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
 -- ## Non-archimedean case: step 4
 
 lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
-  have : Prime p := by
-    exact p_is_prime p hp0 hp1 hmin
-  have pprime := Prime.nat_prime this
-  have ppos := Nat.Prime.pos pprime
-  have pposR : 0 < (p : ℝ) := by simp only [Nat.cast_pos, ppos]
-  have pneone := Nat.Prime.ne_one pprime
-  have pneoneR : (p : ℝ) ≠ 1 := by simp only [ne_eq, Nat.cast_eq_one, pneone]; trivial
   use - Real.logb p (f p)
+  have pprime : Nat.Prime p := (Prime.nat_prime (p_is_prime p hp0 hp1 hmin))
   constructor
   · simp only [Left.neg_pos_iff]
-    apply Real.logb_neg
-    · simp only [Nat.one_lt_cast]
-      exact Nat.Prime.one_lt pprime
-    · exact hp0
-    · exact hp1
+    apply Real.logb_neg _ hp0 hp1
+    simp only [Nat.one_lt_cast]
+    exact Nat.Prime.one_lt pprime
   · simp only [neg_neg]
-    exact (Real.rpow_logb pposR pneoneR hp0).symm
+    apply (Real.rpow_logb _ _ hp0).symm
+    exact_mod_cast Nat.Prime.pos pprime
+    simp only [ne_eq, Nat.cast_eq_one,Nat.Prime.ne_one pprime]
+    trivial
+
+
 
 end steps_2_3
 -- ## Non-archimedean case: end goal
