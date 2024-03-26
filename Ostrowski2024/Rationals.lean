@@ -139,10 +139,9 @@ lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
   · simp only [Int.natAbs_neg, Int.natAbs_ofNat, Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
   done
 
+variable (bdd: ∀ n : ℕ, f n ≤ 1)
 
-
-
-lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
+lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
   have hx : ∃ (x : ℚ), x ≠ 0 ∧ f x ≠ 1 := by
     by_contra h
     push_neg at h
@@ -289,18 +288,33 @@ lemma p_is_prime : (Prime p) := by
     rw [← one_mul 1]
     gcongr
 
-
+-- ## Step 3
 lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
-  sorry
-
-
-
+  rw [le_antisymm_iff]
+  constructor
+  · exact bdd m
+  · by_contra cm
+    apply lt_of_not_le at cm
+    have copr (k : ℕ ) :  (IsCoprime (p^k : ℤ) (m^k: ℤ )) := by
+      apply isCoprime_of_prime_dvd
+      · intro ⟨pnot0, mnot0 ⟩
+        apply pow_ne_zero k _ pnot0
+        intro p0
+        rw_mod_cast [p0] at hp0
+        rw_mod_cast [map_zero] at hp0
+        linarith
+      · intro z hz zdiv
+        have zisppow: ∃ i≤ k , z=(p^i) := by
+          sorry
+        -- USARE Int.Prime.dvd_pow
+    sorry
 -- ## Non-archimedean case: end goal
 /--
   If `f` is bounded and not trivial, then it is equivalent to a p-adic absolute value.
 -/
 theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) :
 ∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
+
   by sorry
 
 end Nonarchimedean
