@@ -85,19 +85,30 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
   have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * ((Real.logb n0 n)^k  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
-    set L := Nat.digits n0 (n^k)
+    set L := Nat.digits n0 (n^k) with hL
     /- d is the number of digits (starting at 0)-/
     set d := L.length - 1 with hd
     have hd_natlog : d = Nat.log n0 (n^k) := by
       rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
     have hnk : 0 ≤ ((n ^ k) :ℝ ) := by positivity
-    have hd_log : d ≤ Real.logb n0 (n^k) := by
-      rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
-      · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
-      · rw [← Nat.cast_pow] at hnk
-        assumption
-    sorry
-
+    have hd_log : d ≤ Real.logb n0 (n^k) := by sorry
+      -- rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
+      -- · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
+      -- · rw [← Nat.cast_pow] at hnk
+      --   assumption
+    have hcoeff (c : ℕ) (hc: c ∈ Nat.digits n0 (n^k)) : f c < n0 := by sorry
+      -- apply lt_of_le_of_lt (MulRingNorm_nat_le_nat c f)
+      -- norm_cast
+      -- exact Nat.digits_lt_base hn0_ge2 hc
+    calc
+    (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
+        rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
+      _ = f ((List.foldr (fun (x : ℕ) (y : ℕ) => x + n0 * y) 0 L : ℕ) : ℚ) := by
+        rw [Nat.ofDigits_eq_foldr]; rfl
+      _ ≤ List.foldr (fun (x : ℕ) (y : ℝ) => f x + f n0 * y) (f 0) L := by
+        sorry
+--      _ ≤ List.sum (List.mapIdx (fun (i a : ℕ) => f a * f n0 ^ i) L) := by
+      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by sorry
   sorry
 
 
