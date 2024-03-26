@@ -123,7 +123,7 @@ section Nonarchimedean
 -- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
 
 --this lemma should be at the beginning
-lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
+lemma num_denom (x : ℚ) : f x = f x.num / f x.den := by
   refine (eq_div_iff ?hb).mpr ?_
   · intro hf
     apply x.den_nz
@@ -132,24 +132,16 @@ lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
   · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
 
 
-lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
-  sorry
-  /--by_cases h : x ≥ 0
+lemma f_of_abs_eq_f (x : ℤ) : f (|x|) = f x := by
+  by_cases h : x ≥ 0
   · congr
-    have : Int.natAbs x = x := by
-      rw [Int.natAbs_of_nonneg]
-      exact h
-    nth_rw 2 [← this]
-    congr
-  · simp only [ge_iff_le, not_le] at h
-    have : -Int.natAbs x = x := by
-      rw [Int.ofNat_natAbs_of_nonpos (le_of_lt h)]
-      simp only [neg_neg]
-    nth_rw 2 [← this]
-    push_cast
-    have :  f (-|↑x|) = f (|x|) := by rw [f.neg']
-    sorry
-  sorry-/
+    apply abs_of_nonneg
+    exact_mod_cast h
+  · push_neg at h
+    rw [abs_of_neg]
+    simp only [map_neg_eq_map]
+    exact_mod_cast h
+  done
 
 
 lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
@@ -158,7 +150,7 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
     push_neg at h
     apply hf_nontriv
     ext x
-    simp
+    simp only [MulRingNorm.apply_one]
     by_cases hzero : x = 0
     · simp only [hzero, map_zero, ↓reduceIte]
     · simp only [hzero, ↓reduceIte]
@@ -176,10 +168,23 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
             _ < f x.den := by
               rw [num_denom] at h
               have : f ↑x.num / f ↑x.den * f ↑x.den  < 1 * f ↑x.den := by
-                sorry
-              sorry
+                gcongr
+                have := x.den_nz
+                apply norm_pos_of_ne_zero
+                exact_mod_cast this
+              rw [one_mul] at this
+              have : f ↑x.num / f ↑x.den * f ↑x.den = f ↑x.num := by
+                ring_nf
+                rw [mul_assoc]
+                have : f ↑x.den * (f ↑x.den)⁻¹ = 1 := by sorry
+                rw [this]
+                simp only [mul_one]
+              rw [← this]
+              assumption
+              assumption
             _ ≤ 1 := bdd x.den
         linarith
+    push_neg at h
     sorry
   sorry
   done
