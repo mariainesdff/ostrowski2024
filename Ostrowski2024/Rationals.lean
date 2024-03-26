@@ -128,6 +128,7 @@ section Nonarchimedean
 
 -- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
 
+
 --this lemma should be at the beginning
 lemma num_denom (x : ℚ) : f x = f x.num / f x.den := by
   refine (eq_div_iff ?hb).mpr ?_
@@ -137,7 +138,7 @@ lemma num_denom (x : ℚ) : f x = f x.num / f x.den := by
     exact hf
   · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
 
-
+--can we adapt this for our needs?
 lemma f_of_abs_eq_f (x : ℤ) : f (|x|) = f x := by
   by_cases h : x ≥ 0
   · congr
@@ -165,35 +166,19 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
   obtain ⟨x,hx⟩ := hx
   rcases hx with ⟨hxne0, hfxne1⟩
   have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
-    by_cases h : f x < 1
-    · use Int.natAbs x.num
-      constructor
-      · simp only [ne_eq, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0, not_false_eq_true]
-      · have : f ↑(Int.natAbs x.num) < 1 := by
-          calc f ↑(Int.natAbs x.num) = f x.num := f_of_abs_eq_f x.num
-            _ < f x.den := by
-              rw [num_denom] at h
-              have : f ↑x.num / f ↑x.den * f ↑x.den  < 1 * f ↑x.den := by
-                gcongr
-                have := x.den_nz
-                apply norm_pos_of_ne_zero
-                exact_mod_cast this
-              rw [one_mul] at this
-              have : f ↑x.num / f ↑x.den * f ↑x.den = f ↑x.num := by
-                ring_nf
-                rw [mul_assoc]
-                have : f ↑x.den * (f ↑x.den)⁻¹ = 1 := by sorry
-                rw [this]
-                simp only [mul_one]
-              rw [← this]
-              assumption
-              assumption
-            _ ≤ 1 := bdd x.den
-        linarith
-    push_neg at h
-    sorry
+    --have hxnum_den : f x.num ≠ f x.den := by sorry
+    use min (Int.natAbs x.num) x.den
+    constructor
+    · simp only [ne_eq, Nat.min_eq_zero_iff, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0, false_or, x.den_nz]
+      trivial
+    · intro h
+      apply hfxne1
+      rw [num_denom]
+      have h1 : f (Int.natAbs x.num) = f x.den := by sorry
+      have h2 : f (Int.natAbs x.num) = f x.num := by sorry
+      rw [← h1, ← h2]
+      sorry --is there a lemma I can use here?
   sorry
-  done
 
 
 
