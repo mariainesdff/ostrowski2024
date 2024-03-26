@@ -189,16 +189,85 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
 
 lemma p_is_prime (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
     (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m) : (Prime p) := by
+  have pneq0 : p≠ 0 := by
+    intro p0
+    rw [p0] at hp0
+    rw_mod_cast [map_zero] at hp0
+    linarith
   rw [← irreducible_iff_prime]
   constructor
-
- /-  have: p ≠ 0 := by
-    apply?
-  have:  ∃ (a b : Nat) , p = a * b := by
-    apply?  -/
-  sorry
-
-
+  · simp only [Nat.isUnit_iff]
+    intro p1
+    have fpIs1 : f p = 1 := by
+      rw [p1]
+      simp
+    rw [← fpIs1] at hp1
+    rw [fpIs1] at hp1
+    linarith
+  · intro a b hab
+    simp only [Nat.isUnit_iff]
+    have aneq0: a>0 := by
+      simp only [pos_iff_ne_zero]
+      by_contra na
+      rw [na] at hab
+      simp at hab
+      contradiction
+    have bneq0: b>0 := by
+      simp only [pos_iff_ne_zero]
+      by_contra nb
+      rw [nb] at hab
+      simp at hab
+      contradiction
+    have fagr0 : f a > 0 := by
+      apply map_pos_of_ne_zero
+      norm_cast
+      linarith
+    have fbgr0 : f b > 0 := by
+      apply map_pos_of_ne_zero
+      norm_cast
+      linarith
+    by_contra con
+    replace con : a ≠ 1 ∧ b ≠ 1 := by
+      tauto
+    obtain ⟨ ha0,hb0⟩ := con
+    apply not_le_of_lt hp1
+    rw [hab]
+    simp
+    have alep : a < p  := by
+      rw [hab]
+      nth_rw 1 [← mul_one a]
+      apply Nat.mul_lt_mul_of_pos_left
+      · rcases b with _ | b
+        linarith
+        rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at hb0
+        linarith
+      · exact aneq0
+    have blep : b < p  := by
+      rw [hab]
+      nth_rw 1 [← one_mul b]
+      apply Nat.mul_lt_mul_of_pos_right
+      · rcases a with _ | a
+        linarith
+        rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ha0
+        linarith
+      · exact bneq0
+    have fage1 : f a ≥ 1 := by
+      by_contra ca
+      apply lt_of_not_ge at ca
+      apply not_le_of_gt at alep
+      apply alep
+      apply hmin
+      tauto
+    have fbge1 : f b ≥ 1 := by
+      by_contra cb
+      apply lt_of_not_ge at cb
+      apply not_le_of_gt at blep
+      apply blep
+      apply hmin
+      tauto
+    simp at fage1 fbge1
+    rw [← one_mul 1]
+    gcongr
 
 
 
