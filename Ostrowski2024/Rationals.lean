@@ -139,16 +139,13 @@ lemma num_denom (x : ℚ) : f x = f x.num / f x.den := by
   · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
 
 --can we adapt this for our needs?
-lemma f_of_abs_eq_f (x : ℤ) : f (|x|) = f x := by
-  by_cases h : x ≥ 0
-  · congr
-    apply abs_of_nonneg
-    exact_mod_cast h
-  · push_neg at h
-    rw [abs_of_neg]
-    simp only [map_neg_eq_map]
-    exact_mod_cast h
+lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
+  obtain ⟨n,rfl|rfl⟩ := Int.eq_nat_or_neg x
+  · simp only [Int.natAbs_ofNat, Int.cast_ofNat]
+  · simp only [Int.natAbs_neg, Int.natAbs_ofNat, Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
   done
+
+
 
 
 lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
@@ -166,20 +163,50 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
   obtain ⟨x,hx⟩ := hx
   rcases hx with ⟨hxne0, hfxne1⟩
   have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
-    --have hxnum_den : f x.num ≠ f x.den := by sorry
-    use min (Int.natAbs x.num) x.den
-    constructor
-    · simp only [ne_eq, Nat.min_eq_zero_iff, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0, false_or, x.den_nz]
-      trivial
-    · intro h
+    have hxnum_den : f x.num ≠ f x.den := by
+      intro h
       apply hfxne1
-      rw [num_denom]
-      have h1 : f (Int.natAbs x.num) = f x.den := by sorry
-      have h2 : f (Int.natAbs x.num) = f x.num := by sorry
-      rw [← h1, ← h2]
-      sorry --is there a lemma I can use here?
-  sorry
-
+      rw [num_denom, h]
+      apply div_self
+      have := f.eq_zero_of_map_eq_zero' (x.den)
+      intro h'
+      have := this h'
+      apply x.den_nz
+      exact_mod_cast this
+    by_cases hf : f x.den ≠ 1
+    · use x.den
+      constructor
+      · exact x.den_nz
+      · assumption
+    · use Int.natAbs x.num
+      constructor
+      · simp only [ne_eq, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0]
+        trivial
+      · push_neg at hf
+        intro h
+        apply hfxne1
+        rw [num_denom, hf]
+        simp only [div_one]
+        rw [← h, f_of_abs_eq_f]
+  obtain ⟨n,hn1,hn2⟩ := hn
+  have hnlt1 : f n < 1 := by
+    exact lt_of_le_of_ne (bdd n) hn2
+  have hngt0 : 0 < f n := by
+    apply norm_pos_of_ne_zero
+    exact_mod_cast hn1
+  set P := {m : ℕ | 0 < f ↑m ∧ f ↑m < 1}
+  have hPnonempty : Set.Nonempty P := by
+    use n
+    constructor
+    exact hngt0
+    exact hnlt1
+  use sInf P
+  constructor
+  · exact Nat.sInf_mem hPnonempty
+  · intro m hm
+    have : m ∈ P := hm
+    exact Nat.sInf_le this
+  done
 
 
 -- ## Non-archimedean case: Step 2. p is prime
