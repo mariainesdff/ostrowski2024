@@ -187,22 +187,6 @@ section Nonarchimedean
 
 -- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
 
---this lemma should be at the beginning
-lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
-  refine (eq_div_iff ?hb).mpr ?_
-  · intro hf
-    apply x.den_nz
-    apply_mod_cast f.eq_zero_of_map_eq_zero' (x.den : ℚ)
-    exact hf
-  · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
-
-
-lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
-  obtain ⟨n,rfl|rfl⟩ := Int.eq_nat_or_neg x
-  · simp only [Int.natAbs_ofNat, Int.cast_ofNat]
-  · simp only [Int.natAbs_neg, Int.natAbs_ofNat, Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
-  done
-
 variable (bdd: ∀ n : ℕ, f n ≤ 1)
 
 lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
