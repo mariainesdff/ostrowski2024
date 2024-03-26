@@ -90,7 +90,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     set d := L.length - 1 with hd
     have hd_natlog : d = Nat.log n0 (n^k) := by
       rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
-    have hnk : 0 ≤ ((n ^ k) :ℝ ) := by sorry
+    have hnk : 0 ≤ ((n ^ k) :ℝ ) := by positivity
     have hd_log : d ≤ Real.logb n0 (n^k) := by
       rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
       · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
@@ -98,11 +98,6 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         assumption
     sorry
 
-    /- Need the following lemma maybe add to basic?
-    lemma MulRingNorm_le (n : ℕ) (f : MulRingNorm ℚ) : f n ≤ n :=
-    probably by induction on n
-    f 0 = 0
-    f (n + 1) ≤ f n + f 1 ≤ n + 1 -/
   sorry
 
 
@@ -128,9 +123,8 @@ section Nonarchimedean
 
 -- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
 
-
 --this lemma should be at the beginning
-lemma num_denom (x : ℚ) : f x = f x.num / f x.den := by
+lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
   refine (eq_div_iff ?hb).mpr ?_
   · intro hf
     apply x.den_nz
@@ -138,17 +132,25 @@ lemma num_denom (x : ℚ) : f x = f x.num / f x.den := by
     exact hf
   · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
 
---can we adapt this for our needs?
-lemma f_of_abs_eq_f (x : ℤ) : f (|x|) = f x := by
-  by_cases h : x ≥ 0
+
+lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
+  sorry
+  /--by_cases h : x ≥ 0
   · congr
-    apply abs_of_nonneg
-    exact_mod_cast h
-  · push_neg at h
-    rw [abs_of_neg]
-    simp only [map_neg_eq_map]
-    exact_mod_cast h
-  done
+    have : Int.natAbs x = x := by
+      rw [Int.natAbs_of_nonneg]
+      exact h
+    nth_rw 2 [← this]
+    congr
+  · simp only [ge_iff_le, not_le] at h
+    have : -Int.natAbs x = x := by
+      rw [Int.ofNat_natAbs_of_nonpos (le_of_lt h)]
+      simp only [neg_neg]
+    nth_rw 2 [← this]
+    push_cast
+    have :  f (-|↑x|) = f (|x|) := by rw [f.neg']
+    sorry
+  sorry-/
 
 
 lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
@@ -157,7 +159,7 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
     push_neg at h
     apply hf_nontriv
     ext x
-    simp only [MulRingNorm.apply_one]
+    simp
     by_cases hzero : x = 0
     · simp only [hzero, map_zero, ↓reduceIte]
     · simp only [hzero, ↓reduceIte]
@@ -166,19 +168,22 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
   obtain ⟨x,hx⟩ := hx
   rcases hx with ⟨hxne0, hfxne1⟩
   have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
-    --have hxnum_den : f x.num ≠ f x.den := by sorry
-    use min (Int.natAbs x.num) x.den
-    constructor
-    · simp only [ne_eq, Nat.min_eq_zero_iff, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0, false_or, x.den_nz]
-      trivial
-    · intro h
-      apply hfxne1
-      rw [num_denom]
-      have h1 : f (Int.natAbs x.num) = f x.den := by sorry
-      have h2 : f (Int.natAbs x.num) = f x.num := by sorry
-      rw [← h1, ← h2]
-      sorry --is there a lemma I can use here?
+    by_cases h : f x < 1
+    · use Int.natAbs x.num
+      constructor
+      · simp only [ne_eq, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0, not_false_eq_true]
+      · have : f ↑(Int.natAbs x.num) < 1 := by
+          calc f ↑(Int.natAbs x.num) = f x.num := f_of_abs_eq_f x.num
+            _ < f x.den := by
+              rw [num_denom] at h
+              have : f ↑x.num / f ↑x.den * f ↑x.den  < 1 * f ↑x.den := by
+                sorry
+              sorry
+            _ ≤ 1 := bdd x.den
+        linarith
+    sorry
   sorry
+  done
 
 
 
