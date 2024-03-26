@@ -145,6 +145,25 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
   sorry
   done
 
+
+
+-- ## Non-archimedean case: Step 2. p is prime
+
+lemma p_is_prime (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
+    (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m) : (Prime p) := by
+  rw [← irreducible_iff_prime]
+  constructor
+
+ /-  have: p ≠ 0 := by
+    apply?
+  have:  ∃ (a b : Nat) , p = a * b := by
+    apply?  -/
+  sorry
+
+
+
+
+
 -- ## Non-archimedean case: end goal
 /--
   If `f` is bounded and not trivial, then it is equivalent to a p-adic absolute value.
