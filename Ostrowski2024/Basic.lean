@@ -14,7 +14,6 @@ lemma equiv_refl {R : Type*} [Ring R] (f : MulRingNorm R) :
 
 lemma equiv_symm {R : Type*} [Ring R] (f g : MulRingNorm R) (hfg : equiv f g) :
     equiv g f := by
--- this proof looks terrible, I know.
     rcases hfg with ⟨c,hcpos,h⟩
     use 1/c
     constructor
@@ -24,13 +23,9 @@ lemma equiv_symm {R : Type*} [Ring R] (f g : MulRingNorm R) (hfg : equiv f g) :
       specialize this x
       rw [← this]
       simp only [AddGroupSeminorm.toFun_eq_coe, MulRingSeminorm.toFun_eq_coe, one_div, map_nonneg]
-      have (x c : ℝ) (hx : 0 ≤ x) (h : 0 < c) : (x^c)^(c⁻¹) = x := by
-        refine Real.rpow_rpow_inv ?hx ?hy
-        exact hx
-        linarith
-      apply this
+      refine Real.rpow_rpow_inv ?hx ?hy
       exact apply_nonneg f x
-      exact hcpos
+      linarith
     done
 
 lemma equiv_trans {R : Type*} [Ring R] (f g k : MulRingNorm R) (hfg : equiv f g) (hgk : equiv g k) :
