@@ -7,11 +7,19 @@ import Ostrowski2024.MulRingNormRat
 # Ostrowski's theorem for ℚ
 
 ## References
+* https://kconrad.math.uconn.edu/blurbs/gradnumthy/ostrowskiQ.pdf
 * https://kconrad.math.uconn.edu/blurbs/gradnumthy/ostrowskinumbfield.pdf
 
 ## Tags
 ring_norm, ostrowski
 -/
+
+set_option autoImplicit false
+
+/-!
+Throughout this file, `f` is an arbitrary absolute value.
+-/
+variable {f : MulRingNorm ℚ}
 
 noncomputable section
 
@@ -35,7 +43,6 @@ def mulRingNorm_real : MulRingNorm ℚ :=
 @[simp] lemma mul_ring_norm_eq_abs (r : ℚ) : mulRingNorm_real r = |r| := by
   simp only [Rat.cast_abs]
   rfl
-
 
 end Real
 
@@ -67,37 +74,51 @@ lemma mul_ring_norm.padic_is_nonarchimedean (p : ℕ) [hp : Fact (Nat.Prime p)] 
 
 end Padic
 
-variable {f : MulRingNorm ℚ}
-
-section Nonarchimedean
-
-end Nonarchimedean
-
 section Archimedean
 
-lemma notbdd_implies_equiv_real (notbdd: ¬ ∀(z : ℕ), f ↑z ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := by sorry
+-- ## step 1
+-- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
+
+lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ), f n > 1 := sorry
+
+
+-- ## step 2
+-- given m,n \geq 2 and |m|=m^s, |n|=n^t for s,t >0, prove t \leq s
+
+lemma compare_exponents (m n : ℕ) (s t : ℝ) (hs : s > 0) (ht : t > 0) (hmge : m ≥ 2) (hnge : n ≥ 2) (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
+
+
+-- ## final step
+-- finish the proof by symmetry (exchanging m,n and proving s \leq t) TODO
+
+-- ## Archimedean case: end goal
+/--
+   If `f` is not bounded and not trivial, then it is equivalent to the usual absolute value on ℚ.
+-/
+theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := sorry
 
 end Archimedean
 
-lemma bdd_implies_equiv_padic (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
-∀ z : ℕ, f z ≤ 1 →
+section Nonarchimedean
+
+
+-- ## Non-archimedean case: end goal
+/--
+  If `f` is bounded and not trivial, then it is equivalent to a p-adic absolute value.
+-/
+theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) :
 ∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
   by sorry
+
+end Nonarchimedean
 
 /-- Ostrowski's Theorem -/
 theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
     (MulRingNorm.equiv f mulRingNorm_real) ∨
     ∃ (p : ℕ) (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (@mulRingNorm_padic p hp) := by
-  by_cases bdd : ∀ z : ℕ, f z ≤ 1
+  by_cases bdd : ∀ n : ℕ, f n ≤ 1
   · right
-    sorry
-    -- p-adic case
+    apply bdd_implies_equiv_padic bdd hf_nontriv
   · left
     apply notbdd_implies_equiv_real bdd hf_nontriv
-    /- { right, /- p-adic case -/
-      rw [non_archimedean_iff_nat_norm_bound] at bdd
-      exact f_equiv_padic bdd hf_nontriv }
-    { left,
-      rw non_archimedean_iff_nat_norm_bound at bdd,
-      exact archimedean_case bdd, /- Euclidean case -/ } -/
 end Rational
