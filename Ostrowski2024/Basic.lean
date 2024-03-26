@@ -41,3 +41,8 @@ lemma equiv_trans {R : Type*} [Ring R] (f g k : MulRingNorm R) (hfg : equiv f g)
   rw [Real.rpow_mul (apply_nonneg f x),hfg,hgk]
 
 end MulRingNorm
+
+lemma MulRingNorm_nat_le_nat (n : ℕ) (f : MulRingNorm ℚ) : f n ≤ n := by
+  induction' n with n hn
+  · rw[f.map_zero']
+  · sorry

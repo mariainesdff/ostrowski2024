@@ -83,7 +83,7 @@ section Archimedean
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
-  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * ((k * Real.log n) / (Real.log n0) + 1)) := by
+  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * ((Real.logb n0 n)^k  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
     set L := Nat.digits n0 (n^k)
     /- d is the number of digits (starting at 0)-/
@@ -97,6 +97,12 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       · rw [← Nat.cast_pow] at hnk
         assumption
     sorry
+
+    /- Need the following lemma maybe add to basic?
+    lemma MulRingNorm_le (n : ℕ) (f : MulRingNorm ℚ) : f n ≤ n :=
+    probably by induction on n
+    f 0 = 0
+    f (n + 1) ≤ f n + f 1 ≤ n + 1 -/
   sorry
 
 
