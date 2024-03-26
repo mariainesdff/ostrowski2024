@@ -306,13 +306,14 @@ lemma abs_p_eq_p_minus_t (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : 
   have pneoneR : (p : ℝ) ≠ 1 := by simp only [ne_eq, Nat.cast_eq_one, pneone]; trivial
   use - Real.logb p (f p)
   constructor
-  · sorry
+  · simp only [Left.neg_pos_iff]
+    apply Real.logb_neg
+    · simp only [Nat.one_lt_cast]
+      exact Nat.Prime.one_lt pprime
+    · exact hp0
+    · exact hp1
   · simp only [neg_neg]
     exact (Real.rpow_logb pposR pneoneR hp0).symm
-
-
-
-
 
 -- ## Non-archimedean case: end goal
 /--
