@@ -182,6 +182,7 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
         rw [num_denom, hf]
         simp only [div_one]
         rw [← h, f_of_abs_eq_f]
+        assumption
   obtain ⟨n,hn1,hn2⟩ := hn
   have hnlt1 : f n < 1 := by
     exact lt_of_le_of_ne (bdd n) hn2
