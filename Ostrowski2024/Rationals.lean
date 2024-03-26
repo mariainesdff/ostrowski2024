@@ -90,7 +90,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     set d := L.length - 1 with hd
     have hd_natlog : d = Nat.log n0 (n^k) := by
       rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
-    have hnk : 0 ≤ ((n ^ k) :ℝ ) := by sorry
+    have hnk : 0 ≤ ((n ^ k) :ℝ ) := by positivity
     have hd_log : d ≤ Real.logb n0 (n^k) := by
       rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
       · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
@@ -98,11 +98,6 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         assumption
     sorry
 
-    /- Need the following lemma maybe add to basic?
-    lemma MulRingNorm_le (n : ℕ) (f : MulRingNorm ℚ) : f n ≤ n :=
-    probably by induction on n
-    f 0 = 0
-    f (n + 1) ≤ f n + f 1 ≤ n + 1 -/
   sorry
 
 
@@ -128,9 +123,8 @@ section Nonarchimedean
 
 -- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
 
-
 --this lemma should be at the beginning
-lemma num_denom (x : ℚ) : f x = f x.num / f x.den := by
+lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
   refine (eq_div_iff ?hb).mpr ?_
   · intro hf
     apply x.den_nz
@@ -154,7 +148,7 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
     push_neg at h
     apply hf_nontriv
     ext x
-    simp only [MulRingNorm.apply_one]
+    simp
     by_cases hzero : x = 0
     · simp only [hzero, map_zero, ↓reduceIte]
     · simp only [hzero, ↓reduceIte]
@@ -213,16 +207,85 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
 
 lemma p_is_prime (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
     (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m) : (Prime p) := by
+  have pneq0 : p≠ 0 := by
+    intro p0
+    rw [p0] at hp0
+    rw_mod_cast [map_zero] at hp0
+    linarith
   rw [← irreducible_iff_prime]
   constructor
-
- /-  have: p ≠ 0 := by
-    apply?
-  have:  ∃ (a b : Nat) , p = a * b := by
-    apply?  -/
-  sorry
-
-
+  · simp only [Nat.isUnit_iff]
+    intro p1
+    have fpIs1 : f p = 1 := by
+      rw [p1]
+      simp
+    rw [← fpIs1] at hp1
+    rw [fpIs1] at hp1
+    linarith
+  · intro a b hab
+    simp only [Nat.isUnit_iff]
+    have aneq0: a>0 := by
+      simp only [pos_iff_ne_zero]
+      by_contra na
+      rw [na] at hab
+      simp at hab
+      contradiction
+    have bneq0: b>0 := by
+      simp only [pos_iff_ne_zero]
+      by_contra nb
+      rw [nb] at hab
+      simp at hab
+      contradiction
+    have fagr0 : f a > 0 := by
+      apply map_pos_of_ne_zero
+      norm_cast
+      linarith
+    have fbgr0 : f b > 0 := by
+      apply map_pos_of_ne_zero
+      norm_cast
+      linarith
+    by_contra con
+    replace con : a ≠ 1 ∧ b ≠ 1 := by
+      tauto
+    obtain ⟨ ha0,hb0⟩ := con
+    apply not_le_of_lt hp1
+    rw [hab]
+    simp
+    have alep : a < p  := by
+      rw [hab]
+      nth_rw 1 [← mul_one a]
+      apply Nat.mul_lt_mul_of_pos_left
+      · rcases b with _ | b
+        linarith
+        rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at hb0
+        linarith
+      · exact aneq0
+    have blep : b < p  := by
+      rw [hab]
+      nth_rw 1 [← one_mul b]
+      apply Nat.mul_lt_mul_of_pos_right
+      · rcases a with _ | a
+        linarith
+        rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ha0
+        linarith
+      · exact bneq0
+    have fage1 : f a ≥ 1 := by
+      by_contra ca
+      apply lt_of_not_ge at ca
+      apply not_le_of_gt at alep
+      apply alep
+      apply hmin
+      tauto
+    have fbge1 : f b ≥ 1 := by
+      by_contra cb
+      apply lt_of_not_ge at cb
+      apply not_le_of_gt at blep
+      apply blep
+      apply hmin
+      tauto
+    simp at fage1 fbge1
+    rw [← one_mul 1]
+    gcongr
 
 
 
