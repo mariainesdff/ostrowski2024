@@ -132,7 +132,7 @@ lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
     exact hf
   · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
 
---can we adapt this for our needs?
+
 lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
   obtain ⟨n,rfl|rfl⟩ := Int.eq_nat_or_neg x
   · simp only [Int.natAbs_ofNat, Int.cast_ofNat]
@@ -293,6 +293,24 @@ lemma p_is_prime : (Prime p) := by
 
 lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
   sorry
+
+-- ## Non-archimedean case: step 4
+
+lemma abs_p_eq_p_minus_t (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
+  have : Prime p := by
+    exact p_is_prime p hp0 hp1 hmin
+  have pprime := Prime.nat_prime this
+  have ppos := Nat.Prime.pos pprime
+  have pposR : 0 < (p : ℝ) := by simp only [Nat.cast_pos, ppos]
+  have pneone := Nat.Prime.ne_one pprime
+  have pneoneR : (p : ℝ) ≠ 1 := by simp only [ne_eq, Nat.cast_eq_one, pneone]; trivial
+  use - Real.logb p (f p)
+  constructor
+  · sorry
+  · simp only [neg_neg]
+    exact (Real.rpow_logb pposR pneoneR hp0).symm
+
+
 
 
 
