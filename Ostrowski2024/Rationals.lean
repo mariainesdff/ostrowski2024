@@ -206,8 +206,10 @@ lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : �
 
 -- ## Non-archimedean case: Step 2. p is prime
 
-lemma p_is_prime (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
-    (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m) : (Prime p) := by
+variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
+    (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
+
+lemma p_is_prime : (Prime p) := by
   have pneq0 : p≠ 0 := by
     intro p0
     rw [p0] at hp0
@@ -287,6 +289,10 @@ lemma p_is_prime (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
     simp at fage1 fbge1
     rw [← one_mul 1]
     gcongr
+
+
+lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
+  sorry
 
 
 
