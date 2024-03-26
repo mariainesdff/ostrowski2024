@@ -113,7 +113,25 @@ lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
   · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
 
 
-lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
+lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
+  by_cases h : x ≥ 0
+  · congr
+    have : Int.natAbs x = x := by
+      rw [Int.natAbs_of_nonneg]
+      exact h
+    nth_rw 2 [← this]
+    congr
+  · simp only [ge_iff_le, not_le] at h
+    have : -Int.natAbs x = x := by
+      rw [Int.ofNat_natAbs_of_nonpos (le_of_lt h)]
+      simp only [neg_neg]
+    nth_rw 2 [← this]
+    push_cast
+
+    sorry
+  sorry
+
+lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
   have hx : ∃ (x : ℚ), x ≠ 0 ∧ f x ≠ 1 := by
     by_contra h
     push_neg at h
