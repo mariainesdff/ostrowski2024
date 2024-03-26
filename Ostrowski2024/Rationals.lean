@@ -344,6 +344,14 @@ lemma p_is_prime : (Prime p) := by
 
 -- ## Step 3
 lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
+  have pnatprime : Prime p := by
+    apply p_is_prime
+    · exact hp0
+    · exact hp1
+    · exact fun m a => hmin m a
+  have pprime : Prime (p : ℤ)  := by
+    rw [← Nat.prime_iff_prime_int]
+    exact Prime.nat_prime pnatprime
   rw [le_antisymm_iff]
   constructor
   · exact bdd m
@@ -358,11 +366,28 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
         rw_mod_cast [map_zero] at hp0
         linarith
       · intro z hz zdiv
-        have zisppow: ∃ i≤ k , z=(p^i) := by
-          sorry
-        -- USARE Int.Prime.dvd_pow
+        have kneq0 : k ≠ 0 := by
+          by_contra ck
+          rw [ck, pow_zero] at zdiv
+          apply Prime.not_dvd_one hz
+          exact zdiv
+        rw [Prime.dvd_pow_iff_dvd hz kneq0] at zdiv
+        rw [Prime.dvd_prime_iff_associated hz pprime] at zdiv
+        intro zdivmk
+        rw [Prime.dvd_pow_iff_dvd hz kneq0]  at zdivmk
+        rw [Int.associated_iff] at zdiv
+        rcases zdiv with zp | zmp
+        · rw [zp] at zdivmk
+          norm_cast at zdivmk
+        · rw [zmp] at zdivmk
+          rw [Int.neg_dvd] at zdivmk
+          norm_cast at zdivmk
     sorry
-  sorry
+
+
+
+
+
 
 -- ## Non-archimedean case: step 4
 
