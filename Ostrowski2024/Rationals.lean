@@ -101,6 +101,49 @@ end Archimedean
 
 section Nonarchimedean
 
+-- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
+
+--this lemma should be at the beginning
+lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
+  refine (eq_div_iff ?hb).mpr ?_
+  · intro hf
+    apply x.den_nz
+    apply_mod_cast f.eq_zero_of_map_eq_zero' (x.den : ℚ)
+    exact hf
+  · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
+
+
+lemma p_exists (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
+  have hx : ∃ (x : ℚ), x ≠ 0 ∧ f x ≠ 1 := by
+    by_contra h
+    push_neg at h
+    apply hf_nontriv
+    ext x
+    simp
+    by_cases hzero : x = 0
+    · simp only [hzero, map_zero, ↓reduceIte]
+    · simp only [hzero, ↓reduceIte]
+      apply h
+      assumption
+  obtain ⟨x,hx⟩ := hx
+  rcases hx with ⟨hxne0, hfxne1⟩
+  have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
+    by_cases h : f x < 1
+    · use Int.natAbs x.num
+      constructor
+      · simp only [ne_eq, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0, not_false_eq_true]
+      · have : f ↑(Int.natAbs x.num) < 1 := by
+          calc f ↑(Int.natAbs x.num) = f x.num := by
+                by_cases h : x.num < 0
+                · have : Int.natAbs x.num = -x.num := by sorry
+                  sorry
+                sorry
+            _ < f x.den := by sorry
+            _ ≤ 1 := bdd x.den
+        linarith
+    sorry
+  sorry
+  done
 
 -- ## Non-archimedean case: end goal
 /--
