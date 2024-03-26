@@ -44,5 +44,12 @@ end MulRingNorm
 
 lemma MulRingNorm_nat_le_nat (n : ℕ) (f : MulRingNorm ℚ) : f n ≤ n := by
   induction' n with n hn
-  · rw[f.map_zero']
-  · sorry
+  · push_cast
+    rw [le_iff_lt_or_eq]
+    right
+    exact f.map_zero'
+  · push_cast
+    calc
+      f (↑n + 1) ≤ f (↑n) + f 1 := by exact f.add_le' ↑n 1
+      _ = f (↑n) + 1 := by rw[map_one]
+      _ ≤ ↑n + 1 := by exact add_le_add_right hn 1
