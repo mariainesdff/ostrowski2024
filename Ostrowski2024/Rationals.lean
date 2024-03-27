@@ -122,19 +122,12 @@ open Real
 
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
-
--- lemma limit1 {N : ℝ} (hN : 0 < N) : filter.tendsto (λ n : ℕ, N ^ (1 / (n : ℝ))) filter.at_top (nhds 1) :=
--- begin
---   rw ←real.exp_log hN,
---   simp_rw [←real.exp_mul],
---   refine real.tendsto_exp_nhds_0_nhds_1.comp _,
---   simp_rw [mul_one_div],
---   apply tendsto_const_div_at_top_nhds_0_nat
--- end
-
+lemma param_upperbound :
+    ∀ (k : ℕ), f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) :=
+    by sorry
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
-lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
+lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
  (fun k : ℕ ↦ (C ^ (1 / (k : ℝ)))) Filter.atTop (nhds 1) := by
   rw [← Real.exp_log hC]
   simp_rw [← Real.exp_mul]
@@ -142,18 +135,30 @@ lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
   simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
 
--- if A < C_k * B for all k then A ≤ C * B, where C is the limit of C_k
--- Here we state it for the particular sequence C_k := C ^ (1/k)
-lemma one_le_of_param_upperbound {A B C : ℝ}
-  (hC : 1 < C) (hub : ∀ (k : ℕ), A < C ^ (1 / k) * B) : A ≤ B := by sorry
+/-- If A ≤ (C k) * B for all k, then A ≤ limC * B, where limC is the limit of the sequence C.
+-- TODO: can be generalized but we only need it here for sequences of reals.
+-/
+lemma ge_of_tendsto_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter ℕ} [Filter.NeBot x]
+  (lim : Filter.Tendsto C x (nhds limC)) (h : ∀ k, A ≤ (C k) * B) : A ≤ limC * B := by
+    have limCB : Filter.Tendsto (fun k ↦ (C k) * B) x (nhds (limC * B)) := by
+      refine Filter.Tendsto.mul_const B lim
+    refine (ge_of_tendsto' limCB h)
+
+lemma le_of_param_upperbound {A B C : ℝ}
+  (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) : A ≤ B := by
+  rw [← one_mul B]
+  refine ge_of_tendsto_mul' (one_lim_of_roots C hC) hub
 
 lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
-  set A := m * (f m) / ((f m) - 1) with hA
+  set A := m * (f m) / ((f m) - 1)
 
   have : f m - 1 < m * (f m) := calc
-    f m - 1 < f m := by linarith
-    _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast)) (by trivial) (by simp only [apply_nonneg])
+         f m - 1 < f m       := by linarith
+         _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast))
+                                  (by trivial) (by simp only [apply_nonneg])
 
+-- TODO: I proved something too strong, we actually only need 0 < A,
+--       but I leave it here in case it's useful later.
   have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
     rw [one_lt_div_iff]
     left
@@ -161,11 +166,10 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
     · linarith [notbdd_implies_all_gt_one notbdd m hmge]
     · linarith
 
-  have param_upperbound :
-    ∀ (k : ℕ), f n < ((m * (f m) / ((f m) - 1)) ^ (1 / k)) * ((f m) ^ (logb m n)) :=
-    by sorry
+  have zero_lt_A : 0 < A := by linarith
+  refine le_of_param_upperbound zero_lt_A ?_
+  apply param_upperbound
 
-  exact one_le_of_param_upperbound one_lt_A param_upperbound
 
 lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
   (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
