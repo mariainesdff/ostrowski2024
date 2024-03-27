@@ -222,14 +222,64 @@ section steps_2_3
 -- ## Non-archimedean case: Step 2. p is prime
 
 variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
-    (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
+  (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
+
+lemma b_neq_0 {a b : ℕ} (hab : p = a * b) : b ≠ 0 := by
+  apply a_neq_0 hp0
+  rw [mul_comm]
+  exact hab
+
+lemma a_gt_1 {a b : ℕ} (a_neq_0 : a≠ 0) (a_neq_1 : a ≠ 1) :
+    1 < a := by
+  rcases a with _ | a
+  · exact (a_neq_0 rfl).elim
+  · rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at a_neq_1
+    exact Nat.succ_lt_succ a_neq_1
+
+lemma a_lt_p {a b : ℕ} (hab : p = a * b) (b_neq_1 : b ≠ 1) : a < p := by
+    rw [hab]
+    nth_rw 1 [← mul_one a]
+    apply Nat.mul_lt_mul_of_pos_left
+    · apply b_gt_1 hab
+      apply b_neq_0 hp0 hab
+      exact b_neq_1
+    · #check (a_gt_1 hab)
+      linarith [a_gt_1 hab]
+
+lemma fa_positive (a b : ℕ) (hab : p = a * b) : 1 ≤ f a := by
+  by_contra ca
+  apply lt_of_not_ge at ca
+  apply not_le_of_gt (a_lt_p hab)
+  apply hmin
+  constructor
+  · apply map_pos_of_ne_zero
+    norm_cast
+    exact a_neq_0 hp0 hab
+  · exact ca
 
 lemma p_is_prime : (Prime p) := by
-  have pneq0 : p≠ 0 := by
-    intro p0
-    rw [p0] at hp0
+  have a_neq_0 {a b : ℕ} (hab : p = a * b) : a ≠ 0 := by
+    intro an0
+    rw [an0] at hab
+    simp at hab
+    rw [hab] at hp0
     rw_mod_cast [map_zero] at hp0
-    linarith
+    simp at hp0
+
+  have fa_positive (a b : ℕ) (hab : p = a * b) : 1 ≤ f a := by
+    by_contra ca
+    apply lt_of_not_ge at ca
+
+    apply not_le_of_gt
+
+    apply hmin
+    constructor
+    · apply map_pos_of_ne_zero
+      norm_cast
+      exact a_neq_0 hp0 hab
+    · exact ca
+
+
   rw [← irreducible_iff_prime]
   constructor
   · simp only [Nat.isUnit_iff]
@@ -237,11 +287,32 @@ lemma p_is_prime : (Prime p) := by
     have fpIs1 : f p = 1 := by
       rw [p1]
       simp
-    rw [← fpIs1] at hp1
     rw [fpIs1] at hp1
-    linarith
+    exact (hp1 rfl).elim
   · intro a b hab
     simp only [Nat.isUnit_iff]
+    by_contra con
+    push_neg at con
+    obtain ⟨a_neq_1,b_neq_1⟩ := con
+    apply not_le_of_lt hp1
+    rw [hab]
+    simp only [Nat.cast_mul, map_mul]
+    rw [← one_mul 1]
+    gcongr
+
+
+
+
+
+
+  have pneq0 : p≠ 0 := by
+    intro p0
+    rw [p0] at hp0
+    rw_mod_cast [map_zero] at hp0
+    linarith
+
+  ·
+  ·
     have aneq0: a>0 := by
       simp only [pos_iff_ne_zero]
       by_contra na
@@ -262,14 +333,8 @@ lemma p_is_prime : (Prime p) := by
       apply map_pos_of_ne_zero
       norm_cast
       linarith
-    by_contra con
-    replace con : a ≠ 1 ∧ b ≠ 1 := by
-      tauto
-    obtain ⟨ ha0,hb0⟩ := con
-    apply not_le_of_lt hp1
-    rw [hab]
-    simp
-    have alep : a < p  := by
+
+        have alep : a < p  := by
       rw [hab]
       nth_rw 1 [← mul_one a]
       apply Nat.mul_lt_mul_of_pos_left
@@ -302,8 +367,7 @@ lemma p_is_prime : (Prime p) := by
       apply hmin
       tauto
     simp at fage1 fbge1
-    rw [← one_mul 1]
-    gcongr
+
 
 -- ## Step 3
 lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
