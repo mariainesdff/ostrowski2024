@@ -163,19 +163,28 @@ open Real
 
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
+lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
+   sorry
 
--- lemma limit1 {N : ℝ} (hN : 0 < N) : filter.tendsto (λ n : ℕ, N ^ (1 / (n : ℝ))) filter.at_top (nhds 1) :=
--- begin
---   rw ←real.exp_log hN,
---   simp_rw [←real.exp_mul],
---   refine real.tendsto_exp_nhds_0_nhds_1.comp _,
---   simp_rw [mul_one_div],
---   apply tendsto_const_div_at_top_nhds_0_nat
--- end
+lemma param_upperbound : ∀ (k : ℕ),
+ f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
+  intro k
+  -- the "power trick"
+  have easylog : logb m (n ^ k) = k * logb m n := by sorry
+  have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) := calc
+    (f n) ^ k = f (↑(n ^ k)) := by sorry
+    _         ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
+      by exact main_inequality m (n ^ k)
+    _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
+      by { push_cast; rw [easylog]}
+  sorry
+
+
+  -- TODO: take kth root on both sides
 
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
-lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
+lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
  (fun k : ℕ ↦ (C ^ (1 / (k : ℝ)))) Filter.atTop (nhds 1) := by
   rw [← Real.exp_log hC]
   simp_rw [← Real.exp_mul]
@@ -183,18 +192,30 @@ lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
   simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
 
--- if A < C_k * B for all k then A ≤ C * B, where C is the limit of C_k
--- Here we state it for the particular sequence C_k := C ^ (1/k)
-lemma one_le_of_param_upperbound {A B C : ℝ}
-  (hC : 1 < C) (hub : ∀ (k : ℕ), A < C ^ (1 / k) * B) : A ≤ B := by sorry
+/-- If A ≤ (C k) * B for all k, then A ≤ limC * B, where limC is the limit of the sequence C.
+-- TODO: can be generalized but we only need it here for sequences of reals.
+-/
+lemma ge_of_tendsto_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter ℕ} [Filter.NeBot x]
+  (lim : Filter.Tendsto C x (nhds limC)) (h : ∀ k, A ≤ (C k) * B) : A ≤ limC * B := by
+    have limCB : Filter.Tendsto (fun k ↦ (C k) * B) x (nhds (limC * B)) := by
+      refine Filter.Tendsto.mul_const B lim
+    refine (ge_of_tendsto' limCB h)
+
+lemma le_of_param_upperbound {A B C : ℝ}
+  (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) : A ≤ B := by
+  rw [← one_mul B]
+  refine ge_of_tendsto_mul' (one_lim_of_roots C hC) hub
 
 lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
-  set A := m * (f m) / ((f m) - 1) with hA
+  set A := m * (f m) / ((f m) - 1)
 
   have : f m - 1 < m * (f m) := calc
-    f m - 1 < f m := by linarith
-    _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast)) (by trivial) (by simp only [apply_nonneg])
+         f m - 1 < f m       := by linarith
+         _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast))
+                                  (by trivial) (by simp only [apply_nonneg])
 
+-- TODO: I proved something too strong, we actually only need 0 < A,
+--       but I leave it here in case it's useful later.
   have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
     rw [one_lt_div_iff]
     left
@@ -202,11 +223,10 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
     · linarith [notbdd_implies_all_gt_one notbdd m hmge]
     · linarith
 
-  have param_upperbound :
-    ∀ (k : ℕ), f n < ((m * (f m) / ((f m) - 1)) ^ (1 / k)) * ((f m) ^ (logb m n)) :=
-    by sorry
+  have zero_lt_A : 0 < A := by linarith
+  refine le_of_param_upperbound zero_lt_A ?_
+  apply param_upperbound
 
-  exact one_le_of_param_upperbound one_lt_A param_upperbound
 
 lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
   (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
@@ -228,83 +248,35 @@ section Nonarchimedean
 
 -- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
 
---this lemma should be at the beginning
-lemma num_denom (x : ℚ) (hnz : x ≠ 0) : f x = f x.num / f x.den := by
-  refine (eq_div_iff ?hb).mpr ?_
-  · intro hf
-    apply x.den_nz
-    apply_mod_cast f.eq_zero_of_map_eq_zero' (x.den : ℚ)
-    exact hf
-  · rw [(MulHomClass.map_mul f x ↑x.den).symm, Rat.mul_den_eq_num]
-
-
-lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
-  obtain ⟨n,rfl|rfl⟩ := Int.eq_nat_or_neg x
-  · simp only [Int.natAbs_ofNat, Int.cast_ofNat]
-  · simp only [Int.natAbs_neg, Int.natAbs_ofNat, Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
-  done
-
 variable (bdd: ∀ n : ℕ, f n ≤ 1)
 
 lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
-  have hx : ∃ (x : ℚ), x ≠ 0 ∧ f x ≠ 1 := by
-    by_contra h
-    push_neg at h
-    apply hf_nontriv
-    ext x
-    simp
-    by_cases hzero : x = 0
-    · simp only [hzero, map_zero, ↓reduceIte]
-    · simp only [hzero, ↓reduceIte]
-      apply h
-      assumption
-  obtain ⟨x,hx⟩ := hx
-  rcases hx with ⟨hxne0, hfxne1⟩
   have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
-    have hxnum_den : f x.num ≠ f x.den := by
-      intro h
-      apply hfxne1
-      rw [num_denom, h]
-      apply div_self
-      have := f.eq_zero_of_map_eq_zero' (x.den)
-      intro h'
-      have := this h'
-      apply x.den_nz
-      exact_mod_cast this
-    by_cases hf : f x.den ≠ 1
-    · use x.den
-      constructor
-      · exact x.den_nz
-      · assumption
-    · use Int.natAbs x.num
-      constructor
-      · simp only [ne_eq, Int.natAbs_eq_zero, Rat.num_eq_zero, hxne0]
-        trivial
-      · push_neg at hf
-        intro h
-        apply hfxne1
-        rw [num_denom, hf]
-        simp only [div_one]
-        rw [← h, f_of_abs_eq_f]
-        assumption
+    by_contra h
+    apply hf_nontriv
+    push_neg at h
+    apply NormRat_eq_iff_eq_on_Nat.1
+    intro n
+    by_cases hn0 : n=0
+    · rw [hn0]
+      simp only [CharP.cast_eq_zero, map_zero]
+    · push_neg at hn0
+      simp only [MulRingNorm.apply_one, Nat.cast_eq_zero, hn0, ↓reduceIte]
+      exact h n hn0
   obtain ⟨n,hn1,hn2⟩ := hn
   have hnlt1 : f n < 1 := by
     exact lt_of_le_of_ne (bdd n) hn2
   have hngt0 : 0 < f n := by
-    apply norm_pos_of_ne_zero
-    exact_mod_cast hn1
+    apply map_pos_of_ne_zero
+    exact Nat.cast_ne_zero.mpr hn1
   set P := {m : ℕ | 0 < f ↑m ∧ f ↑m < 1}
   have hPnonempty : Set.Nonempty P := by
     use n
-    constructor
-    exact hngt0
-    exact hnlt1
+    refine ⟨hngt0,hnlt1 ⟩
   use sInf P
-  constructor
-  · exact Nat.sInf_mem hPnonempty
-  · intro m hm
-    have : m ∈ P := hm
-    exact Nat.sInf_le this
+  refine ⟨Nat.sInf_mem hPnonempty,?_⟩
+  intro m hm
+  exact Nat.sInf_le hm
   done
 
 section steps_2_3
@@ -396,6 +368,14 @@ lemma p_is_prime : (Prime p) := by
 
 -- ## Step 3
 lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
+  have pnatprime : Prime p := by
+    apply p_is_prime
+    · exact hp0
+    · exact hp1
+    · exact fun m a => hmin m a
+  have pprime : Prime (p : ℤ)  := by
+    rw [← Nat.prime_iff_prime_int]
+    exact Prime.nat_prime pnatprime
   rw [le_antisymm_iff]
   constructor
   · exact bdd m
@@ -410,32 +390,46 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
         rw_mod_cast [map_zero] at hp0
         linarith
       · intro z hz zdiv
-        have zisppow: ∃ i≤ k , z=(p^i) := by
-          sorry
-        -- USARE Int.Prime.dvd_pow
+        have kneq0 : k ≠ 0 := by
+          by_contra ck
+          rw [ck, pow_zero] at zdiv
+          apply Prime.not_dvd_one hz
+          exact zdiv
+        rw [Prime.dvd_pow_iff_dvd hz kneq0] at zdiv
+        rw [Prime.dvd_prime_iff_associated hz pprime] at zdiv
+        intro zdivmk
+        rw [Prime.dvd_pow_iff_dvd hz kneq0]  at zdivmk
+        rw [Int.associated_iff] at zdiv
+        rcases zdiv with zp | zmp
+        · rw [zp] at zdivmk
+          norm_cast at zdivmk
+        · rw [zmp] at zdivmk
+          rw [Int.neg_dvd] at zdivmk
+          norm_cast at zdivmk
     sorry
-  sorry
+
+
+
+
+
 
 -- ## Non-archimedean case: step 4
 
 lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
-  have : Prime p := by
-    exact p_is_prime p hp0 hp1 hmin
-  have pprime := Prime.nat_prime this
-  have ppos := Nat.Prime.pos pprime
-  have pposR : 0 < (p : ℝ) := by simp only [Nat.cast_pos, ppos]
-  have pneone := Nat.Prime.ne_one pprime
-  have pneoneR : (p : ℝ) ≠ 1 := by simp only [ne_eq, Nat.cast_eq_one, pneone]; trivial
   use - Real.logb p (f p)
+  have pprime : Nat.Prime p := (Prime.nat_prime (p_is_prime p hp0 hp1 hmin))
   constructor
   · simp only [Left.neg_pos_iff]
-    apply Real.logb_neg
-    · simp only [Nat.one_lt_cast]
-      exact Nat.Prime.one_lt pprime
-    · exact hp0
-    · exact hp1
+    apply Real.logb_neg _ hp0 hp1
+    simp only [Nat.one_lt_cast]
+    exact Nat.Prime.one_lt pprime
   · simp only [neg_neg]
-    exact (Real.rpow_logb pposR pneoneR hp0).symm
+    apply (Real.rpow_logb _ _ hp0).symm
+    exact_mod_cast Nat.Prime.pos pprime
+    simp only [ne_eq, Nat.cast_eq_one,Nat.Prime.ne_one pprime]
+    trivial
+
+
 
 end steps_2_3
 -- ## Non-archimedean case: end goal
@@ -453,14 +447,19 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     exact Prime.nat_prime hprime
   use hp
   obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
-  use (1/t)
+  use (t⁻¹)
+  --have tnezero : t ≠ 0 := by linarith [h.1]
+  --have oneovertnezero : t⁻¹ ≠ 0 := by simp only [one_div, ne_eq, inv_eq_zero, tnezero,  not_false_eq_true]
   constructor
   · simp only [one_div, inv_pos, h.1]
   · ext x
-    simp only [one_div, mul_ring_norm_eq_padic_norm]
+    apply (Norm_Rat_equiv_iff_equiv_on_Nat t).1
+    intro n
     sorry
-
 end Nonarchimedean
+
+
+
 
 /-- Ostrowski's Theorem -/
 theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
