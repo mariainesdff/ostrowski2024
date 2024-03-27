@@ -78,16 +78,6 @@ end Padic
 
 section Archimedean
 
-lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).sum := by
-  induction l with
-  | nil => simp
-  | cons head tail ih =>
-    simp only [List.sum_cons, List.map_cons]
-    calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by
-          apply f.add_le'
-      _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
-
-
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
@@ -111,49 +101,18 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       -- apply lt_of_le_of_lt (MulRingNorm_nat_le_nat c f)
       -- norm_cast
       -- exact Nat.digits_lt_base hn0_ge2 hc
-    set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a => (a * n0 ^ i)) with hL'
     calc
     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
         rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
-      _ = f (L'.sum) := by
-        rw [Nat.ofDigits_eq_sum_mapIdx, hL']
-        norm_cast
-      _ ≤ (L'.map f).sum := flist_triang _ _
-      _ ≤ (L.mapIdx fun i a => (n0 : ℝ)).sum := by
-        simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
-        apply List.sum_le_sum
-        rintro ⟨i,a⟩ hia
-        dsimp [Function.uncurry]
-        replace hia := List.mem_enumFrom _ hia
-        have ha := hcoeff _ hia.2.2
-        push_cast
-        rw[map_mul, map_pow]
-        calc f a * f n0 ^ i ≤ n0 * 1 := by
-              refine mul_le_mul ha.le ?_ ?_ ?_
-              · apply pow_le_one _ _ hfn0
-                · sorry
-              · sorry
-              · linarith
-          _ = n0 := mul_one _
-      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by
-        rw [List.mapIdx_eq_enum_map,
-          List.eq_replicate_of_mem (a := (n0:ℝ))
-            (l := List.map (Function.uncurry fun i a => ↑n0) (List.enum L)),
-          List.sum_replicate, List.length_map, List.enum_length,
-          nsmul_eq_mul, mul_comm]
-        refine mul_le_mul le_rfl ?_ ?_ ?_
-        · linarith
-        · simp
-        · linarith
+      _ = f ((List.foldr (fun (x : ℕ) (y : ℕ) => x + n0 * y) 0 L : ℕ) : ℚ) := by
+        rw [Nat.ofDigits_eq_foldr]; rfl
+      _ ≤ List.foldr (fun (x : ℕ) (y : ℝ) => f x + f n0 * y) (f 0) L := by
+        sorry
+--      _ ≤ List.sum (List.mapIdx (fun (i a : ℕ) => f a * f n0 ^ i) L) := by
+      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by sorry
   sorry
-/- |a_i| |n0|^i <= n0 |n0|^i <=  -/
 
--- lemma list.map_with_index_sum_to_finset_sum {β A : Type*} [add_comm_monoid A] {f : ℕ → β → A} {L : List β}  [inhabited β] : (L.map_with_index f).sum = ∑ i in finset.range L.length, f i ((L.nth i).get_or_else default) := by sorry
 
-lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).sum := by
-  induction l with
-  | nil => simp
-  | cons head tail ih => sorry
 
 -- ## step 2
 -- given m,n \geq 2 and |m|=m^s, |n|=n^t for s,t >0, prove t \leq s
@@ -166,8 +125,6 @@ variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
    sorry
 
--- example (a ^ k ≤ b) :
-
 lemma param_upperbound : ∀ (k : ℕ),
  f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
   intro k
@@ -178,11 +135,11 @@ lemma param_upperbound : ∀ (k : ℕ),
     _         ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
       by exact main_inequality m (n ^ k)
     _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
-      by { push_cast; rw [easylog] }
-  -- TODO: take kth root on both sides
+      by { push_cast; rw [easylog]}
   sorry
 
 
+  -- TODO: take kth root on both sides
 
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
@@ -450,14 +407,37 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
   use hp
   obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
   use (t⁻¹)
-  --have tnezero : t ≠ 0 := by linarith [h.1]
-  --have oneovertnezero : t⁻¹ ≠ 0 := by simp only [one_div, ne_eq, inv_eq_zero, tnezero,  not_false_eq_true]
+  have tnezero : t ≠ 0 := by linarith [h.1]
+  have oneovertnezero : t⁻¹ ≠ 0 := by
+    simp only [ne_eq, inv_eq_zero]
+    linarith [h.1]
   constructor
   · simp only [one_div, inv_pos, h.1]
   · ext x
     apply (Norm_Rat_equiv_iff_equiv_on_Nat t).1
     intro n
-    sorry
+    by_cases hn : n=0
+    · rw [hn]
+      simp only [CharP.cast_eq_zero, map_zero, ne_eq, oneovertnezero, not_false_eq_true,
+        Real.zero_rpow]
+    · push_neg at hn
+      rcases Nat.exists_eq_pow_mul_and_not_dvd hn p (Nat.Prime.ne_one (Prime.nat_prime hprime)) with ⟨ e, m, hpm, hnpm⟩
+      rw [hnpm]
+      simp only [Nat.cast_mul, Nat.cast_pow, map_mul, map_pow, mul_ring_norm_eq_padic_norm,
+        padicNorm.padicNorm_p_of_prime, Rat.cast_inv, Rat.cast_natCast, inv_pow]
+      rw [not_divisible_norm_one bdd p hfp.1 hfp.2 hmin m hpm]
+      rw [←padicNorm.nat_eq_one_iff] at hpm
+      rw [hpm,h.2]
+      simp only [mul_one, Rat.cast_one]
+      rw [← Real.rpow_natCast_mul]
+      swap; apply (Real.rpow_nonneg (Nat.cast_nonneg p))
+      rw [← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
+      simp only [neg_mul]
+      rw [Real.instLinearOrderedFieldReal.proof_10 t tnezero]
+      simp only [one_mul]
+      rw [Real.rpow_neg]
+      simp only [Real.rpow_nat_cast]
+      exact Nat.cast_nonneg p
 end Nonarchimedean
 
 
