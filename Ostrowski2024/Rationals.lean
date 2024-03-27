@@ -244,72 +244,46 @@ section steps_2_3
 variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
   (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
 
-lemma b_neq_0 {a b : ℕ} (hab : p = a * b) : b ≠ 0 := by
-  apply a_neq_0 hp0
-  rw [mul_comm]
-  exact hab
-
-lemma a_gt_1 {a b : ℕ} (a_neq_0 : a≠ 0) (a_neq_1 : a ≠ 1) :
+lemma ne01_gt_1 {a : ℕ} (ne_0 : a≠ 0) (ne_1 : a ≠ 1) :
     1 < a := by
   rcases a with _ | a
-  · exact (a_neq_0 rfl).elim
-  · rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at a_neq_1
-    exact Nat.succ_lt_succ a_neq_1
-
-lemma a_lt_p {a b : ℕ} (hab : p = a * b) (b_neq_1 : b ≠ 1) : a < p := by
-    rw [hab]
-    nth_rw 1 [← mul_one a]
-    apply Nat.mul_lt_mul_of_pos_left
-    · apply b_gt_1 hab
-      apply b_neq_0 hp0 hab
-      exact b_neq_1
-    · #check (a_gt_1 hab)
-      linarith [a_gt_1 hab]
-
-lemma fa_positive (a b : ℕ) (hab : p = a * b) : 1 ≤ f a := by
-  by_contra ca
-  apply lt_of_not_ge at ca
-  apply not_le_of_gt (a_lt_p hab)
-  apply hmin
-  constructor
-  · apply map_pos_of_ne_zero
-    norm_cast
-    exact a_neq_0 hp0 hab
-  · exact ca
+  · exact (ne_0 rfl).elim
+  · rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ne_1
+    exact Nat.succ_lt_succ ne_1
 
 lemma p_is_prime : (Prime p) := by
-  have a_neq_0 {a b : ℕ} (hab : p = a * b) : a ≠ 0 := by
+  have neq_0 {a b : ℕ} (hab : p = a * b) : a ≠ 0 := by
     intro an0
     rw [an0] at hab
     simp at hab
     rw [hab] at hp0
     rw_mod_cast [map_zero] at hp0
     simp at hp0
-
-  have fa_positive (a b : ℕ) (hab : p = a * b) : 1 ≤ f a := by
+  have f_positive (a b : ℕ) (hab : p = a * b) (one_lt_b : 1 < b) : 1 ≤ f a := by
     by_contra ca
     apply lt_of_not_ge at ca
-
-    apply not_le_of_gt
-
-    apply hmin
-    constructor
-    · apply map_pos_of_ne_zero
-      norm_cast
-      exact a_neq_0 hp0 hab
-    · exact ca
-
-
+    apply (@not_le_of_gt _ _ p a)
+    · rw [hab]
+      nth_rw 2 [← mul_one a]
+      apply Nat.mul_lt_mul_of_pos_left
+      · exact one_lt_b
+      · simp only [pos_iff_ne_zero]
+        apply neq_0 hab
+    · apply hmin
+      constructor
+      · apply map_pos_of_ne_zero
+        exact_mod_cast (neq_0 hab)
+      · exact ca
   rw [← irreducible_iff_prime]
   constructor
   · simp only [Nat.isUnit_iff]
     intro p1
-    have fpIs1 : f p = 1 := by
-      rw [p1]
-      simp
-    rw [fpIs1] at hp1
-    exact (hp1 rfl).elim
+    rw [p1] at hp1
+    simp at hp1
   · intro a b hab
+    have hba : p = b * a := by
+      rw [mul_comm]
+      exact hab
     simp only [Nat.isUnit_iff]
     by_contra con
     push_neg at con
@@ -319,74 +293,8 @@ lemma p_is_prime : (Prime p) := by
     simp only [Nat.cast_mul, map_mul]
     rw [← one_mul 1]
     gcongr
-
-
-
-
-
-
-  have pneq0 : p≠ 0 := by
-    intro p0
-    rw [p0] at hp0
-    rw_mod_cast [map_zero] at hp0
-    linarith
-
-  ·
-  ·
-    have aneq0: a>0 := by
-      simp only [pos_iff_ne_zero]
-      by_contra na
-      rw [na] at hab
-      simp at hab
-      contradiction
-    have bneq0: b>0 := by
-      simp only [pos_iff_ne_zero]
-      by_contra nb
-      rw [nb] at hab
-      simp at hab
-      contradiction
-    have fagr0 : f a > 0 := by
-      apply map_pos_of_ne_zero
-      norm_cast
-      linarith
-    have fbgr0 : f b > 0 := by
-      apply map_pos_of_ne_zero
-      norm_cast
-      linarith
-
-        have alep : a < p  := by
-      rw [hab]
-      nth_rw 1 [← mul_one a]
-      apply Nat.mul_lt_mul_of_pos_left
-      · rcases b with _ | b
-        linarith
-        rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at hb0
-        linarith
-      · exact aneq0
-    have blep : b < p  := by
-      rw [hab]
-      nth_rw 1 [← one_mul b]
-      apply Nat.mul_lt_mul_of_pos_right
-      · rcases a with _ | a
-        linarith
-        rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ha0
-        linarith
-      · exact bneq0
-    have fage1 : f a ≥ 1 := by
-      by_contra ca
-      apply lt_of_not_ge at ca
-      apply not_le_of_gt at alep
-      apply alep
-      apply hmin
-      tauto
-    have fbge1 : f b ≥ 1 := by
-      by_contra cb
-      apply lt_of_not_ge at cb
-      apply not_le_of_gt at blep
-      apply blep
-      apply hmin
-      tauto
-    simp at fage1 fbge1
+    · exact f_positive a b hab (ne01_gt_1 (neq_0 hba) b_neq_1)
+    · exact f_positive b a hba (ne01_gt_1 (neq_0 hab) a_neq_1)
 
 
 -- ## Step 3
