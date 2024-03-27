@@ -5,7 +5,7 @@ namespace MulRingNorm
 
 /-- Two multiplicative ring norms `f, g` on `R` are equivalent if there exists a positive constant
   `c` such that for all `x ∈ R`, `(f x)^c = g x`.
-  This could be generalised to ring_norm, but MulRingNorm does not extend this. -/
+  This could be generalised to RingNorm, but MulRingNorm does not extend this. -/
 def equiv {R : Type*} [Ring R] (f : MulRingNorm R) (g : MulRingNorm R) :=
   ∃ c : ℝ, 0 < c ∧ (λ x : R => (f x) ^ c) = g
 

@@ -122,19 +122,28 @@ open Real
 
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
+lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
+   sorry
 
--- lemma limit1 {N : ℝ} (hN : 0 < N) : filter.tendsto (λ n : ℕ, N ^ (1 / (n : ℝ))) filter.at_top (nhds 1) :=
--- begin
---   rw ←real.exp_log hN,
---   simp_rw [←real.exp_mul],
---   refine real.tendsto_exp_nhds_0_nhds_1.comp _,
---   simp_rw [mul_one_div],
---   apply tendsto_const_div_at_top_nhds_0_nat
--- end
+lemma param_upperbound : ∀ (k : ℕ),
+ f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
+  intro k
+  -- the "power trick"
+  have easylog : logb m (n ^ k) = k * logb m n := by sorry
+  have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) := calc
+    (f n) ^ k = f (↑(n ^ k)) := by sorry
+    _         ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
+      by exact main_inequality m (n ^ k)
+    _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
+      by { push_cast; rw [easylog]}
+  sorry
+
+
+  -- TODO: take kth root on both sides
 
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
-lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
+lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
  (fun k : ℕ ↦ (C ^ (1 / (k : ℝ)))) Filter.atTop (nhds 1) := by
   rw [← Real.exp_log hC]
   simp_rw [← Real.exp_mul]
@@ -142,18 +151,30 @@ lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
   simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
 
--- if A < C_k * B for all k then A ≤ C * B, where C is the limit of C_k
--- Here we state it for the particular sequence C_k := C ^ (1/k)
-lemma one_le_of_param_upperbound {A B C : ℝ}
-  (hC : 1 < C) (hub : ∀ (k : ℕ), A < C ^ (1 / k) * B) : A ≤ B := by sorry
+/-- If A ≤ (C k) * B for all k, then A ≤ limC * B, where limC is the limit of the sequence C.
+-- TODO: can be generalized but we only need it here for sequences of reals.
+-/
+lemma ge_of_tendsto_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter ℕ} [Filter.NeBot x]
+  (lim : Filter.Tendsto C x (nhds limC)) (h : ∀ k, A ≤ (C k) * B) : A ≤ limC * B := by
+    have limCB : Filter.Tendsto (fun k ↦ (C k) * B) x (nhds (limC * B)) := by
+      refine Filter.Tendsto.mul_const B lim
+    refine (ge_of_tendsto' limCB h)
+
+lemma le_of_param_upperbound {A B C : ℝ}
+  (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) : A ≤ B := by
+  rw [← one_mul B]
+  refine ge_of_tendsto_mul' (one_lim_of_roots C hC) hub
 
 lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
-  set A := m * (f m) / ((f m) - 1) with hA
+  set A := m * (f m) / ((f m) - 1)
 
   have : f m - 1 < m * (f m) := calc
-    f m - 1 < f m := by linarith
-    _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast)) (by trivial) (by simp only [apply_nonneg])
+         f m - 1 < f m       := by linarith
+         _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast))
+                                  (by trivial) (by simp only [apply_nonneg])
 
+-- TODO: I proved something too strong, we actually only need 0 < A,
+--       but I leave it here in case it's useful later.
   have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
     rw [one_lt_div_iff]
     left
@@ -161,11 +182,10 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
     · linarith [notbdd_implies_all_gt_one notbdd m hmge]
     · linarith
 
-  have param_upperbound :
-    ∀ (k : ℕ), f n < ((m * (f m) / ((f m) - 1)) ^ (1 / k)) * ((f m) ^ (logb m n)) :=
-    by sorry
+  have zero_lt_A : 0 < A := by linarith
+  refine le_of_param_upperbound zero_lt_A ?_
+  apply param_upperbound
 
-  exact one_le_of_param_upperbound one_lt_A param_upperbound
 
 lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
   (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
@@ -450,14 +470,42 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     exact Prime.nat_prime hprime
   use hp
   obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
-  use (1/t)
+  use (t⁻¹)
+  have tnezero : t ≠ 0 := by linarith [h.1]
+  have oneovertnezero : t⁻¹ ≠ 0 := by
+    simp only [ne_eq, inv_eq_zero]
+    linarith [h.1]
   constructor
   · simp only [one_div, inv_pos, h.1]
   · ext x
-    simp only [one_div, mul_ring_norm_eq_padic_norm]
-    sorry
-
+    apply (Norm_Rat_equiv_iff_equiv_on_Nat t).1
+    intro n
+    by_cases hn : n=0
+    · rw [hn]
+      simp only [CharP.cast_eq_zero, map_zero, ne_eq, oneovertnezero, not_false_eq_true,
+        Real.zero_rpow]
+    · push_neg at hn
+      rcases Nat.exists_eq_pow_mul_and_not_dvd hn p (Nat.Prime.ne_one (Prime.nat_prime hprime)) with ⟨ e, m, hpm, hnpm⟩
+      rw [hnpm]
+      simp only [Nat.cast_mul, Nat.cast_pow, map_mul, map_pow, mul_ring_norm_eq_padic_norm,
+        padicNorm.padicNorm_p_of_prime, Rat.cast_inv, Rat.cast_natCast, inv_pow]
+      rw [not_divisible_norm_one bdd p hfp.1 hfp.2 hmin m hpm]
+      rw [←padicNorm.nat_eq_one_iff] at hpm
+      rw [hpm,h.2]
+      simp only [mul_one, Rat.cast_one]
+      rw [← Real.rpow_natCast_mul]
+      swap; apply (Real.rpow_nonneg (Nat.cast_nonneg p))
+      rw [← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
+      simp only [neg_mul]
+      rw [Real.instLinearOrderedFieldReal.proof_10 t tnezero]
+      simp only [one_mul]
+      rw [Real.rpow_neg]
+      simp only [Real.rpow_nat_cast]
+      exact Nat.cast_nonneg p
 end Nonarchimedean
+
+
+
 
 /-- Ostrowski's Theorem -/
 theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
