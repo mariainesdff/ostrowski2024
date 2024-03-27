@@ -345,7 +345,51 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
         · rw [zmp] at zdivmk
           rw [Int.neg_dvd] at zdivmk
           norm_cast at zdivmk
+    unfold IsCoprime at copr
+    have ineq1 : ∀ (k : ℕ), ∃ (a b: ℤ ), 1 = f ( a *  p ^ k + b * m ^ k)  := by
+      intro k
+      rcases (copr k) with ⟨ a, b , hab⟩
+      use a
+      use b
+      rw_mod_cast [hab]
+      simp
+    have ineq2 : ∀ (k : ℕ), ∃ (a b: ℤ ), 1 ≤  f ( a) *  (f p) ^ k + (f b) * (f m) ^ k  := by
+      intro k
+      rcases (copr k) with ⟨ a, b , hab⟩
+      use a
+      use b
+      rw [← map_pow ]
+      rw [← map_pow ]
+      rw [← map_mul ]
+      rw [← map_mul ]
+      calc 1 = f 1 :=  by simp only [map_one]
+        _ ≤ f (↑a * ↑p ^ k + ↑b * ↑m ^ k) := by
+          rw_mod_cast [hab]
+          simp only [map_one, Int.cast_one, le_refl]
+        _ ≤ f (↑a * ↑p ^ k) + f (↑b * ↑m ^ k) := by
+          exact f.add_le' _ _
+    set k0 := Nat.ceil ( (-Real.log (2))/Real.log (( (f p) ⊔ (f m)))) with hk
+    have fpkle12 : (f p)^k0 < 1/2 := by
+      sorry
+    have fmkle12 : (f m)^k0 < 1/2 := by
+      sorry
+    have ineq3 : ∃ (a b: ℤ ), 1 ≤ f a * f ↑p ^ k0 + f b * f ↑m ^ k0 := by
+      exact ineq2 k0
+    rcases ineq3 with ⟨ a, b ,hab⟩
+    have last_one  : (1:ℝ ) < 1 := by
+      apply lt_of_le_of_lt (b :=  (f ↑p )^ k0 + (f ↑m) ^ k0)
+      · apply le_trans (b := 1 * (f ↑p )^ k0 + (f b) * (f ↑m) ^ k0)
+        · apply le_trans hab
+          gcongr
+          sorry
+        · sorry
+      · linarith
     sorry
+
+
+
+
+
 
 
 
