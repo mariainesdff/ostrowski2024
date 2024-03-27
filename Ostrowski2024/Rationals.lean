@@ -390,14 +390,19 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     exact Prime.nat_prime hprime
   use hp
   obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
-  use (1/t)
+  use (t⁻¹)
+  --have tnezero : t ≠ 0 := by linarith [h.1]
+  --have oneovertnezero : t⁻¹ ≠ 0 := by simp only [one_div, ne_eq, inv_eq_zero, tnezero,  not_false_eq_true]
   constructor
   · simp only [one_div, inv_pos, h.1]
   · ext x
-    simp only [one_div, mul_ring_norm_eq_padic_norm]
+    apply (Norm_Rat_equiv_iff_equiv_on_Nat t).1
+    intro n
     sorry
-
 end Nonarchimedean
+
+
+
 
 /-- Ostrowski's Theorem -/
 theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :

@@ -59,7 +59,7 @@ lemma NormRat_eq_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ f = g := by
   simp only [map_div₀]
   rw [h, NormRat_eq_on_Int_iff_eq_on_Nat.mp h]
 
-lemma Norm_Rat_equiv_iff_equiv_on_Nat (t : ℝ) (htpos : t > 0) : (∀ n : ℕ , (f n)^(t⁻¹) = g n) ↔ (∀ x : ℚ, (f x)^(t⁻¹) = g x) := by
+lemma Norm_Rat_equiv_iff_equiv_on_Nat (t : ℝ) : (∀ n : ℕ , (f n)^(t⁻¹) = g n) ↔ (∀ x : ℚ, (f x)^(t⁻¹) = g x) := by
   constructor
   · intro h x
     rw [← Rat.num_div_den x]
