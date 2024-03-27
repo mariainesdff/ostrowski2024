@@ -55,6 +55,4 @@ lemma NormRat_eq_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ f = g := by
   refine' ⟨_, fun h n => congrFun (congrArg DFunLike.coe h) ↑n⟩
   intro h
   ext z
-  rw [← Rat.num_div_den z]
-  simp only [map_div₀]
-  rw [h, NormRat_eq_on_Int_iff_eq_on_Nat.mp h]
+  rw [← Rat.num_div_den z, map_div₀, map_div₀, h, NormRat_eq_on_Int_iff_eq_on_Nat.mp h]
