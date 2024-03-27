@@ -125,17 +125,31 @@ variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
    sorry
 
+lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
+  simp only [logb, log_pow, mul_div]
+
+lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k ≤ B) : A ≤ B ^ (1/(k:ℝ)) := by
+  have : (A ^ (k : ℝ)) ^ (1 / (k : ℝ)) = A := by
+    rw [← rpow_mul, mul_one_div, div_self, rpow_one]; exact ne_of_gt hk; assumption
+  rw[← this]
+  refine rpow_le_rpow (rpow_nonneg hA k) hle ?_
+  apply le_of_lt
+  simp only [one_div, inv_pos]
+  assumption
+
+
 lemma param_upperbound : ∀ (k : ℕ),
  f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
   intro k
   -- the "power trick"
-  have easylog : logb m (n ^ k) = k * logb m n := by sorry
-  have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) := calc
-    (f n) ^ k = f (↑(n ^ k)) := by sorry
-    _         ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
+  have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) :=
+  calc
+    (f n) ^ k
+    = f (↑(n ^ k)) := by simp only [map_pow, Nat.cast_pow]
+    _ ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
       by exact main_inequality m (n ^ k)
     _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
-      by { push_cast; rw [easylog]}
+      by { push_cast; rw [logb_pow]}
   sorry
 
 
