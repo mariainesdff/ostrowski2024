@@ -125,6 +125,8 @@ variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
    sorry
 
+-- example (a ^ k ≤ b) :
+
 lemma param_upperbound : ∀ (k : ℕ),
  f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
   intro k
@@ -135,11 +137,11 @@ lemma param_upperbound : ∀ (k : ℕ),
     _         ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
       by exact main_inequality m (n ^ k)
     _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
-      by { push_cast; rw [easylog]}
+      by { push_cast; rw [easylog] }
+  -- TODO: take kth root on both sides
   sorry
 
 
-  -- TODO: take kth root on both sides
 
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
