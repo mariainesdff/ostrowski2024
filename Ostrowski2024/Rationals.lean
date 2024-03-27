@@ -122,9 +122,25 @@ open Real
 
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
-lemma param_upperbound :
-    ∀ (k : ℕ), f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) :=
-    by sorry
+lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
+   sorry
+
+lemma param_upperbound : ∀ (k : ℕ),
+ f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
+  intro k
+  -- the "power trick"
+  have easylog : logb m (n ^ k) = k * logb m n := by sorry
+  have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) := calc
+    (f n) ^ k = f (↑(n ^ k)) := by sorry
+    _         ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
+      by exact main_inequality m (n ^ k)
+    _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
+      by { push_cast; rw [easylog]}
+  sorry
+
+
+  -- TODO: take kth root on both sides
+
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
 lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
