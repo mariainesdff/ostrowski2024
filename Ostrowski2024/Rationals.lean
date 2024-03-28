@@ -312,6 +312,8 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
   simp only [logb, log_pow, mul_div]
 
+
+
 lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k ≤ B) : A ≤ B ^ (1/(k:ℝ)) := by
   have : (A ^ (k : ℝ)) ^ (1 / (k : ℝ)) = A := by
     rw [← rpow_mul, mul_one_div, div_self, rpow_one]; exact ne_of_gt hk; assumption
@@ -418,19 +420,58 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   --apply param_upperbound m n hmge hnge sorry
 
 
-lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
-  (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
+lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t) (hmn : f n ≤ (f m)^(Real.logb m n)) : t ≤ s := by
+    rw [← Real.rpow_le_rpow_left_iff (x:= n)]
+    · rw[← hn]
+      rw [hm] at hmn
+      rw [← Real.rpow_mul] at hmn
+      · rw [mul_comm] at hmn
+        rw [Real.rpow_mul] at hmn
+        · rw [Real.rpow_logb] at hmn
+          · exact hmn
+          · simp only [Nat.cast_pos]
+            linarith
+          · simp only [ne_eq, Nat.cast_eq_one]
+            linarith
+          · simp only [Nat.cast_pos]
+            linarith
+        · simp only [Nat.cast_nonneg]
+      · simp only [Nat.cast_nonneg]
+    · exact_mod_cast hnge
+
+
+lemma symmetric_roles (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
+  (hm : f m = m ^ s) (hn : f n = n ^ t) : s = t := by
+  apply le_antisymm
+  refine compare_exponents _ _ _ _ ht hs hn hm
+  refine compare_exponents _ _ _ _ hs ht hm hn
 
 end Step2
 
 -- ## final step
 -- finish the proof by symmetry (exchanging m,n and proving s \leq t) TODO
 
+
 -- ## Archimedean case: end goal
 /--
    If `f` is not bounded and not trivial, then it is equivalent to the usual absolute value on ℚ.
 -/
-theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := sorry
+theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv mulRingNorm_real f := by
+  obtain ⟨m, hm⟩ := Classical.exists_not_of_not_forall notbdd
+  set s := Real.logb m (f m) with hs
+  use s
+
+  have hms : (m : ℝ) ^ s = f m := by
+    rw [hs]
+    -- ↑m ^ Real.logb (↑m) (f ↑m) = ↑m
+    sorry
+
+  constructor
+  · sorry
+  · ext n
+    simp only [mul_ring_norm_eq_abs, Rat.cast_abs]
+    sorry
+
 
 end Archimedean
 
