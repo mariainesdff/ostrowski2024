@@ -92,6 +92,28 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
+lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 n ≤ Real.logb n0 n := by
+  have hnat : n0 ^ (Nat.log n0 n) ≤ n := by
+    apply Nat.pow_log_le_self
+    have : n ≠ 0 := by
+      apply ne_of_gt
+      assumption
+    assumption
+  have hreal : (n0:ℝ) ^ (Real.logb n0 n) = n := by
+    rw [Real.rpow_logb]
+    norm_cast
+    linarith [hn0]
+    simp only [ne_eq, Nat.cast_eq_one]
+    linarith [hn0]
+    exact_mod_cast hn
+  have : n0 ^ (Nat.log n0 n) ≤ (n0 : ℝ)^(Real.logb n0 n ) := by
+    rw [hreal]
+    exact_mod_cast hnat
+  have hn0_gt1R : 1 < (n0:ℝ) := by exact_mod_cast hn0
+  rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
+  exact_mod_cast this
+
+
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
