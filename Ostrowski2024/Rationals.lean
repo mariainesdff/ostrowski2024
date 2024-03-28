@@ -210,7 +210,23 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         linarith
       have hlog_pos : 0 < (Real.logb (↑n0) (↑n ^ k)) := by
         refine Real.logb_pos ?_ ?_
-        --Real.rpow_le_rpow_of_nonpos
+        · norm_cast
+        · norm_cast
+      replace hnk : (f ↑n ^ k) ^ (1 / (k:ℝ)) ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(1 / (k:ℝ)) := by
+        apply @Real.rpow_le_rpow _ _ (1/(k:ℝ))
+        · apply pow_nonneg
+          exact apply_nonneg f _
+        · apply hnk hk hn
+        · apply le_of_lt
+          positivity
+      have : (f ↑n ^ (k:ℝ)) ^ (k:ℝ)⁻¹ = f ↑n := by
+        --norm_cast
+        apply Real.rpow_rpow_inv
+        · exact apply_nonneg f _
+        · simp
+          omega
+      rw [← this]
+      convert hnk
   sorry
 
 -- ## Auxiliary lemma for limit
