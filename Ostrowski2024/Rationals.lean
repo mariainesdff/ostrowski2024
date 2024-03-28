@@ -115,14 +115,12 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       have hn0_gt1R : 1 < (n0:ℝ) := by exact_mod_cast hn0_ge2
       rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
       exact_mod_cast this
-      -- rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
-      -- · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
-      -- · rw [← Nat.cast_pow] at hnk
-      --   assumption
-    have hcoeff (c : ℕ) (hc: c ∈ Nat.digits n0 (n^k)) : f c < n0 := by sorry
-      -- apply lt_of_le_of_lt (MulRingNorm_nat_le_nat c f)
-      -- norm_cast
-      -- exact Nat.digits_lt_base hn0_ge2 hc
+    have hcoeff (c : ℕ) (hc: c ∈ Nat.digits n0 (n^k)) : f c < n0 := by
+      have hcltn0 : c < n0 := Nat.digits_lt_base hn0_ge2 hc
+      have := MulRingNorm_nat_le_nat c f
+      apply lt_of_le_of_lt
+      · exact this
+      · exact_mod_cast hcltn0
     calc
     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
         rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
