@@ -200,7 +200,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
         · apply pow_nonneg
           exact apply_nonneg f _
-        · sorry --apply hnk hk hn
+        · apply hnk hn hk
         · apply le_of_lt
           positivity
       have : (f ↑n ^ (k:ℝ)) ^ (k:ℝ)⁻¹ = f ↑n := by
@@ -225,7 +225,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
   · by_cases hn : n = 0
     norm_cast
     simp[hn]
-    · have hn_ge_one : 1 < Nat.succ n := by sorry
+    · have hn_ge_one : 1 < Nat.succ n := by omega
       specialize h_ex_const (Nat.succ n) hn_ge_one
       specialize prod_limit (Nat.succ n) hn_ge_one
       refine' forall_le_limit' (f ↑(Nat.succ n))
