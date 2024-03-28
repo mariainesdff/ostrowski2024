@@ -89,6 +89,25 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
           apply f.add_le'
       _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
 
+-- ## Auxiliary lemma for limit
+
+
+lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a ≤ g k) (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
+  set f:= fun _ : ℕ ↦ (a : ℝ)
+  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
+  exact le_of_tendsto_of_tendsto' hflim hg ha
+
+lemma forall_le_limit' (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
+  (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
+  set f:= fun _ : ℕ ↦ (a : ℝ) with hf
+  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
+  apply le_of_tendsto_of_tendsto hflim hg _
+  rw [Filter.EventuallyLE, Filter.eventually_atTop]
+  use 1
+  intro m hm
+  simp only [hf]
+  exact ha m hm
+
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
@@ -124,7 +143,7 @@ lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
-  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
+  have hnk {n : ℕ} (hn : 1 < n) {k : ℕ} (hk : 0 < k)  : (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
     set L := Nat.digits n0 (n^k) with hL
     /- d is the number of digits (starting at 0)-/
@@ -203,8 +222,8 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         · simp
         · simp
         · simp_all
-  have hkroot : ∀ (k n : ℕ), 0 < k → 1 < n → f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
-      intro k n hk hn
+  have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
+      intro n hn k hk
       have hnk_pos : 1 < (↑n ^ k) := by
         apply one_lt_pow hn
         linarith
@@ -216,7 +235,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
         · apply pow_nonneg
           exact apply_nonneg f _
-        · apply hnk hk hn
+        · sorry --apply hnk hk hn
         · apply le_of_lt
           positivity
       have : (f ↑n ^ (k:ℝ)) ^ (k:ℝ)⁻¹ = f ↑n := by
@@ -229,18 +248,29 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       convert hnk
       rw [Real.rpow_nat_cast]
 
-  have  h_ex_const : ∀ (k n : ℕ), 0 < k → 1 < n → f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1) ^ ((k:ℝ)⁻¹))* ((k)^((k:ℝ)⁻¹)) := by sorry
+  have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by sorry
 
-  -- have hlimit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ ↑n0 * (Real.logb (↑n0) ((n) ^ (k) ) + 1) ^ (k :ℝ)⁻¹) Filter.atTop (nhds 1) := by sorry
-  sorry
+  have prod_limit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by sorry
 
--- ## Auxiliary lemma for limit
+  intro n
+  cases' n with n
+  · norm_cast
+    rw [map_zero]
+    simp
+  · by_cases hn : n = 0
+    norm_cast
+    simp[hn]
+    · have hn_ge_one : 1 < Nat.succ n := by sorry
+      specialize h_ex_const (Nat.succ n) hn_ge_one
+      specialize prod_limit (Nat.succ n) hn_ge_one
+      refine' forall_le_limit' (f ↑(Nat.succ n))
+        (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(Nat.succ n)) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) 1
+        h_ex_const prod_limit
+
+  --· sorry
+  --· sorry
 
 
-lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a ≤ g k) (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
-  set f:= fun _ : ℕ ↦ (a : ℝ)
-  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
-  exact le_of_tendsto_of_tendsto' hflim hg ha
 
 
 
