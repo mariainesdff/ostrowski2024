@@ -131,7 +131,8 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         calc f a * f n0 ^ i ≤ n0 * 1 := by
               refine mul_le_mul ha.le ?_ ?_ ?_
               · apply pow_le_one _ _ hfn0
-                · sorry
+                · exact map_nonneg _ _
+                  sorry
               · sorry
               · linarith
           _ = n0 := mul_one _
