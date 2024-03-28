@@ -97,6 +97,17 @@ lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a 
   have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
   exact le_of_tendsto_of_tendsto' hflim hg ha
 
+lemma forall_le_limit' (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
+  (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
+  set f:= fun _ : ℕ ↦ (a : ℝ) with hf
+  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
+  apply le_of_tendsto_of_tendsto hflim hg _
+  rw [Filter.EventuallyLE, Filter.eventually_atTop]
+  use 1
+  intro m hm
+  simp only [hf]
+  exact ha m hm
+
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
@@ -224,7 +235,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
         · apply pow_nonneg
           exact apply_nonneg f _
-        · apply hnk hk hn
+        · sorry --apply hnk hk hn
         · apply le_of_lt
           positivity
       have : (f ↑n ^ (k:ℝ)) ^ (k:ℝ)⁻¹ = f ↑n := by
@@ -252,13 +263,12 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     · have hn_ge_one : 1 < Nat.succ n := by sorry
       specialize h_ex_const (Nat.succ n) hn_ge_one
       specialize prod_limit (Nat.succ n) hn_ge_one
-      refine' forall_le_limit (f ↑ Nat.succ n) (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑ Nat.succ n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) 1 _ prod_limit
-  · sorry
-  ·
+      refine' forall_le_limit' (f ↑(Nat.succ n))
+        (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(Nat.succ n)) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) 1
+        h_ex_const prod_limit
 
-
-
-  sorry
+  --· sorry
+  --· sorry
 
 
 
