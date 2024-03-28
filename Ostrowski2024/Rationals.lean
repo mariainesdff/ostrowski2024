@@ -89,13 +89,32 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
           apply f.add_le'
       _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
 
+-- ## Auxiliary lemma for limit
+
+
+lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a ≤ g k) (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
+  set f:= fun _ : ℕ ↦ (a : ℝ)
+  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
+  exact le_of_tendsto_of_tendsto' hflim hg ha
+
+lemma forall_le_limit' (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
+  (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
+  set f:= fun _ : ℕ ↦ (a : ℝ) with hf
+  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
+  apply le_of_tendsto_of_tendsto hflim hg _
+  rw [Filter.EventuallyLE, Filter.eventually_atTop]
+  use 1
+  intro m hm
+  simp only [hf]
+  exact ha m hm
+
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
-  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * ((Real.logb n0 n)^k  + 1)) := by
+  have hnk {n : ℕ} (hn : 1 < n) {k : ℕ} (hk : 0 < k)  : (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
     set L := Nat.digits n0 (n^k) with hL
     /- d is the number of digits (starting at 0)-/
@@ -167,8 +186,61 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         · sorry
         · simp
         · simp
-        · aesop
-  sorry
+        · simp_all
+  have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
+      intro n hn k hk
+      have hnk_pos : 1 < (↑n ^ k) := by
+        apply one_lt_pow hn
+        linarith
+      have hlog_pos : 0 < (Real.logb (↑n0) (↑n ^ k)) := by
+        refine Real.logb_pos ?_ ?_
+        · norm_cast
+        · norm_cast
+      replace hnk : (f ↑n ^ k) ^ (k:ℝ)⁻¹ ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
+        apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
+        · apply pow_nonneg
+          exact apply_nonneg f _
+        · sorry --apply hnk hk hn
+        · apply le_of_lt
+          positivity
+      have : (f ↑n ^ (k:ℝ)) ^ (k:ℝ)⁻¹ = f ↑n := by
+        --norm_cast
+        apply Real.rpow_rpow_inv
+        · exact apply_nonneg f _
+        · simp
+          omega
+      rw [← this]
+      convert hnk
+      rw [Real.rpow_nat_cast]
+
+  have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by sorry
+
+  have prod_limit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by sorry
+
+  intro n
+  cases' n with n
+  · norm_cast
+    rw [map_zero]
+    simp
+  · by_cases hn : n = 0
+    norm_cast
+    simp[hn]
+    · have hn_ge_one : 1 < Nat.succ n := by sorry
+      specialize h_ex_const (Nat.succ n) hn_ge_one
+      specialize prod_limit (Nat.succ n) hn_ge_one
+      refine' forall_le_limit' (f ↑(Nat.succ n))
+        (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(Nat.succ n)) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) 1
+        h_ex_const prod_limit
+
+  --· sorry
+  --· sorry
+
+
+
+
+
+
+
 --     calc
 --     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
 --         rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
@@ -208,6 +280,8 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
   simp only [logb, log_pow, mul_div]
 
+
+
 lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k ≤ B) : A ≤ B ^ (1/(k:ℝ)) := by
   have : (A ^ (k : ℝ)) ^ (1 / (k : ℝ)) = A := by
     rw [← rpow_mul, mul_one_div, div_self, rpow_one]; exact ne_of_gt hk; assumption
@@ -218,22 +292,46 @@ lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k �
   assumption
 
 
-lemma param_upperbound : ∀ (k : ℕ),
- f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
-  intro k
+lemma param_upperbound (k : ℕ) (hk : k ≠ 0) : f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
   -- the "power trick"
   have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) :=
   calc
     (f n) ^ k
     = f (↑(n ^ k)) := by simp only [map_pow, Nat.cast_pow]
     _ ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
-      by exact main_inequality m (n ^ k)
+        main_inequality m (n ^ k) hmge (one_lt_pow hnge hk ) notbdd
     _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
       by { push_cast; rw [logb_pow]}
-  sorry
-
-
-  -- TODO: take kth root on both sides
+  obtain hm := notbdd_implies_all_gt_one notbdd
+  have : 1< f m := by simp only [hm m hmge]
+  have  zero_le_expression: 0 ≤ ↑m * f ↑m / (f ↑m - 1) := by
+    apply div_nonneg _ (by linarith only [this])
+    apply mul_nonneg (Nat.cast_nonneg m) (apply_nonneg f ↑m)
+  have triviality : (1 / k) * (k : ℝ) = 1 := by
+      apply one_div_mul_cancel
+      exact_mod_cast hk
+  have our_prod_nonneg :  0 ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ (↑k * logb ↑m ↑n) := by
+      rw [mul_nonneg_iff_of_pos_right]
+      exact zero_le_expression
+      apply Real.rpow_pos_of_pos
+      linarith only [this]
+  convert_to f ↑n ≤ ((↑m * f ↑m / (f ↑m - 1)) * f ↑m ^ (k * logb ↑m ↑n))^ (1 / k : ℝ )
+  · rw [Real.mul_rpow]
+    simp only [mul_eq_mul_left_iff]
+    left
+    rw [← rpow_mul (apply_nonneg f ↑m), mul_comm, ← mul_assoc]
+    rw [triviality]
+    simp only [one_mul]
+    exact zero_le_expression
+    apply rpow_nonneg (apply_nonneg f ↑m)
+  · rw [← Real.rpow_le_rpow_iff (z:=k ) _  ]
+    · rw [← rpow_mul, triviality,rpow_nat_cast, rpow_one]
+      exact key
+      exact our_prod_nonneg
+    · apply rpow_nonneg
+      exact our_prod_nonneg
+    · simp only [Nat.cast_pos.2 (Nat.pos_of_ne_zero hk)]
+    · exact (apply_nonneg f ↑n)
 
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
@@ -254,10 +352,18 @@ lemma ge_of_tendsto_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter 
       refine Filter.Tendsto.mul_const B lim
     refine (ge_of_tendsto' limCB h)
 
-lemma le_of_param_upperbound {A B C : ℝ}
-  (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) : A ≤ B := by
+lemma le_of_param_upperbound {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
+     A ≤ B := by
   rw [← one_mul B]
-  refine ge_of_tendsto_mul' (one_lim_of_roots C hC) hub
+  apply ge_of_tendsto_mul' (one_lim_of_roots C hC)
+  exact hub
+
+lemma le_of_param_upperbound' {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
+     A ≤ B := by
+  rw [← one_mul B]
+  apply ge_of_tendsto_mul' (one_lim_of_roots C hC)
+  exact hub
+
 
 lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   set A := m * (f m) / ((f m) - 1)
@@ -278,22 +384,72 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
 
   have zero_lt_A : 0 < A := by linarith
   refine le_of_param_upperbound zero_lt_A ?_
-  apply param_upperbound
+  sorry
+  --apply param_upperbound m n hmge hnge sorry
 
 
-lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
-  (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
+lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t)  : t ≤ s := by
+    have hmn : f n ≤ (f m)^(Real.logb m n) := key_inequality m n hmge notbdd
+    rw [← Real.rpow_le_rpow_left_iff (x:= n)]
+    · rw[← hn]
+      rw [hm] at hmn
+      rw [← Real.rpow_mul] at hmn
+      · rw [mul_comm] at hmn
+        rw [Real.rpow_mul] at hmn
+        · rw [Real.rpow_logb] at hmn
+          · exact hmn
+          · simp only [Nat.cast_pos]
+            linarith
+          · simp only [ne_eq, Nat.cast_eq_one]
+            linarith
+          · simp only [Nat.cast_pos]
+            linarith
+        · simp only [Nat.cast_nonneg]
+      · simp only [Nat.cast_nonneg]
+    · exact_mod_cast hnge
+
+
+lemma symmetric_roles (s t : ℝ)
+  (hm : f m = m ^ s) (hn : f n = n ^ t) : s = t := by
+  apply le_antisymm
+  refine compare_exponents _ _ hnge hmge notbdd t s hn hm
+  refine compare_exponents _ _ hmge hnge notbdd s t  hm hn
 
 end Step2
 
 -- ## final step
 -- finish the proof by symmetry (exchanging m,n and proving s \leq t) TODO
 
+
 -- ## Archimedean case: end goal
 /--
    If `f` is not bounded and not trivial, then it is equivalent to the usual absolute value on ℚ.
 -/
-theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := sorry
+
+theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := by
+  obtain ⟨m, hm⟩ := Classical.exists_not_of_not_forall notbdd
+  set s := Real.logb m (f m) with hs
+  use s⁻¹
+  constructor
+  · rw [hs]
+    simp
+    apply Real.logb_pos
+    · simp
+      sorry
+    · linarith
+  · rw_mod_cast [← Norm_Rat_equiv_iff_equiv_on_Nat']
+    intro n
+    sorry
+
+    /-
+    have hms : (m : ℝ) ^ s = f m := by
+      rw [hs]
+    -- ↑m ^ Real.logb (↑m) (f ↑m) = ↑m
+    sorry
+
+    simp only [mul_ring_norm_eq_abs, Rat.cast_abs]
+    sorry -/
+
 
 end Archimedean
 
