@@ -122,19 +122,42 @@ open Real
 
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
+lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
+   sorry
 
--- lemma limit1 {N : ℝ} (hN : 0 < N) : filter.tendsto (λ n : ℕ, N ^ (1 / (n : ℝ))) filter.at_top (nhds 1) :=
--- begin
---   rw ←real.exp_log hN,
---   simp_rw [←real.exp_mul],
---   refine real.tendsto_exp_nhds_0_nhds_1.comp _,
---   simp_rw [mul_one_div],
---   apply tendsto_const_div_at_top_nhds_0_nat
--- end
+lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
+  simp only [logb, log_pow, mul_div]
+
+lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k ≤ B) : A ≤ B ^ (1/(k:ℝ)) := by
+  have : (A ^ (k : ℝ)) ^ (1 / (k : ℝ)) = A := by
+    rw [← rpow_mul, mul_one_div, div_self, rpow_one]; exact ne_of_gt hk; assumption
+  rw[← this]
+  refine rpow_le_rpow (rpow_nonneg hA k) hle ?_
+  apply le_of_lt
+  simp only [one_div, inv_pos]
+  assumption
+
+
+lemma param_upperbound : ∀ (k : ℕ),
+ f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
+  intro k
+  -- the "power trick"
+  have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) :=
+  calc
+    (f n) ^ k
+    = f (↑(n ^ k)) := by simp only [map_pow, Nat.cast_pow]
+    _ ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
+      by exact main_inequality m (n ^ k)
+    _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
+      by { push_cast; rw [logb_pow]}
+  sorry
+
+
+  -- TODO: take kth root on both sides
 
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
-lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
+lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
  (fun k : ℕ ↦ (C ^ (1 / (k : ℝ)))) Filter.atTop (nhds 1) := by
   rw [← Real.exp_log hC]
   simp_rw [← Real.exp_mul]
@@ -142,18 +165,30 @@ lemma one_lim_of_roots { C : ℝ } (hC : 0 < C) : Filter.Tendsto
   simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
 
--- if A < C_k * B for all k then A ≤ C * B, where C is the limit of C_k
--- Here we state it for the particular sequence C_k := C ^ (1/k)
-lemma one_le_of_param_upperbound {A B C : ℝ}
-  (hC : 1 < C) (hub : ∀ (k : ℕ), A < C ^ (1 / k) * B) : A ≤ B := by sorry
+/-- If A ≤ (C k) * B for all k, then A ≤ limC * B, where limC is the limit of the sequence C.
+-- TODO: can be generalized but we only need it here for sequences of reals.
+-/
+lemma ge_of_tendsto_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter ℕ} [Filter.NeBot x]
+  (lim : Filter.Tendsto C x (nhds limC)) (h : ∀ k, A ≤ (C k) * B) : A ≤ limC * B := by
+    have limCB : Filter.Tendsto (fun k ↦ (C k) * B) x (nhds (limC * B)) := by
+      refine Filter.Tendsto.mul_const B lim
+    refine (ge_of_tendsto' limCB h)
+
+lemma le_of_param_upperbound {A B C : ℝ}
+  (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) : A ≤ B := by
+  rw [← one_mul B]
+  refine ge_of_tendsto_mul' (one_lim_of_roots C hC) hub
 
 lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
-  set A := m * (f m) / ((f m) - 1) with hA
+  set A := m * (f m) / ((f m) - 1)
 
   have : f m - 1 < m * (f m) := calc
-    f m - 1 < f m := by linarith
-    _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast)) (by trivial) (by simp only [apply_nonneg])
+         f m - 1 < f m       := by linarith
+         _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast))
+                                  (by trivial) (by simp only [apply_nonneg])
 
+-- TODO: I proved something too strong, we actually only need 0 < A,
+--       but I leave it here in case it's useful later.
   have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
     rw [one_lt_div_iff]
     left
@@ -161,11 +196,10 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
     · linarith [notbdd_implies_all_gt_one notbdd m hmge]
     · linarith
 
-  have param_upperbound :
-    ∀ (k : ℕ), f n < ((m * (f m) / ((f m) - 1)) ^ (1 / k)) * ((f m) ^ (logb m n)) :=
-    by sorry
+  have zero_lt_A : 0 < A := by linarith
+  refine le_of_param_upperbound zero_lt_A ?_
+  apply param_upperbound
 
-  exact one_le_of_param_upperbound one_lt_A param_upperbound
 
 lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
   (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
@@ -222,88 +256,60 @@ section steps_2_3
 -- ## Non-archimedean case: Step 2. p is prime
 
 variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
-    (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
+  (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
+
+lemma ne01_gt_1 {a : ℕ} (ne_0 : a≠ 0) (ne_1 : a ≠ 1) :
+    1 < a := by
+  rcases a with _ | a
+  · exact (ne_0 rfl).elim
+  · rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ne_1
+    exact Nat.succ_lt_succ ne_1
 
 lemma p_is_prime : (Prime p) := by
-  have pneq0 : p≠ 0 := by
-    intro p0
-    rw [p0] at hp0
+  have neq_0 {a b : ℕ} (hab : p = a * b) : a ≠ 0 := by
+    intro an0
+    rw [an0] at hab
+    simp at hab
+    rw [hab] at hp0
     rw_mod_cast [map_zero] at hp0
-    linarith
+    simp at hp0
+  have f_positive (a b : ℕ) (hab : p = a * b) (one_lt_b : 1 < b) : 1 ≤ f a := by
+    by_contra ca
+    apply lt_of_not_ge at ca
+    apply (@not_le_of_gt _ _ p a)
+    · rw [hab]
+      nth_rw 2 [← mul_one a]
+      apply Nat.mul_lt_mul_of_pos_left
+      · exact one_lt_b
+      · simp only [pos_iff_ne_zero]
+        apply neq_0 hab
+    · apply hmin
+      constructor
+      · apply map_pos_of_ne_zero
+        exact_mod_cast (neq_0 hab)
+      · exact ca
   rw [← irreducible_iff_prime]
   constructor
   · simp only [Nat.isUnit_iff]
     intro p1
-    have fpIs1 : f p = 1 := by
-      rw [p1]
-      simp
-    rw [← fpIs1] at hp1
-    rw [fpIs1] at hp1
-    linarith
+    rw [p1] at hp1
+    simp at hp1
   · intro a b hab
+    have hba : p = b * a := by
+      rw [mul_comm]
+      exact hab
     simp only [Nat.isUnit_iff]
-    have aneq0: a>0 := by
-      simp only [pos_iff_ne_zero]
-      by_contra na
-      rw [na] at hab
-      simp at hab
-      contradiction
-    have bneq0: b>0 := by
-      simp only [pos_iff_ne_zero]
-      by_contra nb
-      rw [nb] at hab
-      simp at hab
-      contradiction
-    have fagr0 : f a > 0 := by
-      apply map_pos_of_ne_zero
-      norm_cast
-      linarith
-    have fbgr0 : f b > 0 := by
-      apply map_pos_of_ne_zero
-      norm_cast
-      linarith
     by_contra con
-    replace con : a ≠ 1 ∧ b ≠ 1 := by
-      tauto
-    obtain ⟨ ha0,hb0⟩ := con
+    push_neg at con
+    obtain ⟨a_neq_1,b_neq_1⟩ := con
     apply not_le_of_lt hp1
     rw [hab]
-    simp
-    have alep : a < p  := by
-      rw [hab]
-      nth_rw 1 [← mul_one a]
-      apply Nat.mul_lt_mul_of_pos_left
-      · rcases b with _ | b
-        linarith
-        rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at hb0
-        linarith
-      · exact aneq0
-    have blep : b < p  := by
-      rw [hab]
-      nth_rw 1 [← one_mul b]
-      apply Nat.mul_lt_mul_of_pos_right
-      · rcases a with _ | a
-        linarith
-        rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ha0
-        linarith
-      · exact bneq0
-    have fage1 : f a ≥ 1 := by
-      by_contra ca
-      apply lt_of_not_ge at ca
-      apply not_le_of_gt at alep
-      apply alep
-      apply hmin
-      tauto
-    have fbge1 : f b ≥ 1 := by
-      by_contra cb
-      apply lt_of_not_ge at cb
-      apply not_le_of_gt at blep
-      apply blep
-      apply hmin
-      tauto
-    simp at fage1 fbge1
+    simp only [Nat.cast_mul, map_mul]
     rw [← one_mul 1]
     gcongr
+    · exact f_positive a b hab (ne01_gt_1 (neq_0 hba) b_neq_1)
+    · exact f_positive b a hba (ne01_gt_1 (neq_0 hab) a_neq_1)
+
 
 -- ## Step 3
 lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
@@ -430,14 +436,42 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     exact Prime.nat_prime hprime
   use hp
   obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
-  use (1/t)
+  use (t⁻¹)
+  have tnezero : t ≠ 0 := by linarith [h.1]
+  have oneovertnezero : t⁻¹ ≠ 0 := by
+    simp only [ne_eq, inv_eq_zero]
+    linarith [h.1]
   constructor
   · simp only [one_div, inv_pos, h.1]
   · ext x
-    simp only [one_div, mul_ring_norm_eq_padic_norm]
-    sorry
-
+    apply (Norm_Rat_equiv_iff_equiv_on_Nat t).1
+    intro n
+    by_cases hn : n=0
+    · rw [hn]
+      simp only [CharP.cast_eq_zero, map_zero, ne_eq, oneovertnezero, not_false_eq_true,
+        Real.zero_rpow]
+    · push_neg at hn
+      rcases Nat.exists_eq_pow_mul_and_not_dvd hn p (Nat.Prime.ne_one (Prime.nat_prime hprime)) with ⟨ e, m, hpm, hnpm⟩
+      rw [hnpm]
+      simp only [Nat.cast_mul, Nat.cast_pow, map_mul, map_pow, mul_ring_norm_eq_padic_norm,
+        padicNorm.padicNorm_p_of_prime, Rat.cast_inv, Rat.cast_natCast, inv_pow]
+      rw [not_divisible_norm_one bdd p hfp.1 hfp.2 hmin m hpm]
+      rw [←padicNorm.nat_eq_one_iff] at hpm
+      rw [hpm,h.2]
+      simp only [mul_one, Rat.cast_one]
+      rw [← Real.rpow_natCast_mul]
+      swap; apply (Real.rpow_nonneg (Nat.cast_nonneg p))
+      rw [← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
+      simp only [neg_mul]
+      rw [Real.instLinearOrderedFieldReal.proof_10 t tnezero]
+      simp only [one_mul]
+      rw [Real.rpow_neg]
+      simp only [Real.rpow_nat_cast]
+      exact Nat.cast_nonneg p
 end Nonarchimedean
+
+
+
 
 /-- Ostrowski's Theorem -/
 theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
