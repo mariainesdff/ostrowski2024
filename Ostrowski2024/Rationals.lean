@@ -396,6 +396,9 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
             simp
             ring_nf
             simp
+            apply le_of_mul_le_mul_left (a:= Real.log 2)
+            · done
+            · done
 
         · rw [Real.rpow_logb hp0]
           · linarith
