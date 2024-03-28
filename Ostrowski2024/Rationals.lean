@@ -400,7 +400,8 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   --apply param_upperbound m n hmge hnge sorry
 
 
-lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t) (hmn : f n ≤ (f m)^(Real.logb m n)) : t ≤ s := by
+lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t)  : t ≤ s := by
+    have hmn : f n ≤ (f m)^(Real.logb m n) := key_inequality m n hmge notbdd
     rw [← Real.rpow_le_rpow_left_iff (x:= n)]
     · rw[← hn]
       rw [hm] at hmn
@@ -420,11 +421,11 @@ lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t) (hmn :
     · exact_mod_cast hnge
 
 
-lemma symmetric_roles (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
+lemma symmetric_roles (s t : ℝ)
   (hm : f m = m ^ s) (hn : f n = n ^ t) : s = t := by
   apply le_antisymm
-  refine compare_exponents _ _ _ _ ht hs hn hm
-  refine compare_exponents _ _ _ _ hs ht hm hn
+  refine compare_exponents _ _ hnge hmge notbdd t s hn hm
+  refine compare_exponents _ _ hmge hnge notbdd s t  hm hn
 
 end Step2
 
@@ -436,21 +437,30 @@ end Step2
 /--
    If `f` is not bounded and not trivial, then it is equivalent to the usual absolute value on ℚ.
 -/
-theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv mulRingNorm_real f := by
+
+theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := by
   obtain ⟨m, hm⟩ := Classical.exists_not_of_not_forall notbdd
   set s := Real.logb m (f m) with hs
-  use s
+  use s⁻¹
+  constructor
+  · rw [hs]
+    simp
+    apply Real.logb_pos
+    · simp
+      sorry
+    · linarith
+  · rw_mod_cast [← Norm_Rat_equiv_iff_equiv_on_Nat']
+    intro n
+    sorry
 
-  have hms : (m : ℝ) ^ s = f m := by
-    rw [hs]
+    /-
+    have hms : (m : ℝ) ^ s = f m := by
+      rw [hs]
     -- ↑m ^ Real.logb (↑m) (f ↑m) = ↑m
     sorry
 
-  constructor
-  · sorry
-  · ext n
     simp only [mul_ring_norm_eq_abs, Rat.cast_abs]
-    sorry
+    sorry -/
 
 
 end Archimedean
