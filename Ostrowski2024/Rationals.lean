@@ -92,6 +92,28 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
+lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 n ≤ Real.logb n0 n := by
+  have hnat : n0 ^ (Nat.log n0 n) ≤ n := by
+    apply Nat.pow_log_le_self
+    have : n ≠ 0 := by
+      apply ne_of_gt
+      assumption
+    assumption
+  have hreal : (n0:ℝ) ^ (Real.logb n0 n) = n := by
+    rw [Real.rpow_logb]
+    norm_cast
+    linarith [hn0]
+    simp only [ne_eq, Nat.cast_eq_one]
+    linarith [hn0]
+    exact_mod_cast hn
+  have : n0 ^ (Nat.log n0 n) ≤ (n0 : ℝ)^(Real.logb n0 n ) := by
+    rw [hreal]
+    exact_mod_cast hnat
+  have hn0_gt1R : 1 < (n0:ℝ) := by exact_mod_cast hn0
+  rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
+  exact_mod_cast this
+
+
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
@@ -152,8 +174,9 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         calc f a * f n0 ^ i ≤ n0 * 1 := by
               refine mul_le_mul ha.le ?_ ?_ ?_
               · apply pow_le_one _ _ hfn0
-                · sorry
-              · sorry
+                · exact apply_nonneg f _
+              · apply pow_nonneg
+                exact apply_nonneg f _
               · linarith
           _ = n0 := mul_one _
       _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by
@@ -416,7 +439,7 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
     apply lt_of_not_le at cm
     have copr (k : ℕ ) :  (IsCoprime (p^k : ℤ) (m^k: ℤ )) := by
       apply isCoprime_of_prime_dvd
-      · intro ⟨pnot0, mnot0 ⟩
+      · intro ⟨pnot0, _ ⟩
         apply pow_ne_zero k _ pnot0
         intro p0
         rw_mod_cast [p0] at hp0
@@ -440,13 +463,13 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
           rw [Int.neg_dvd] at zdivmk
           norm_cast at zdivmk
     unfold IsCoprime at copr
-    have ineq1 : ∀ (k : ℕ), ∃ (a b: ℤ ), 1 = f ( a *  p ^ k + b * m ^ k)  := by
-      intro k
-      rcases (copr k) with ⟨ a, b , hab⟩
-      use a
-      use b
-      rw_mod_cast [hab]
-      simp
+    -- have ineq1 : ∀ (k : ℕ), ∃ (a b: ℤ ), 1 = f ( a *  p ^ k + b * m ^ k)  := by
+    --   intro k
+    --   rcases (copr k) with ⟨ a, b , hab⟩
+    --   use a
+    --   use b
+    --   rw_mod_cast [hab]
+    --   simp
     have ineq2 : ∀ (k : ℕ), ∃ (a b: ℤ ), 1 ≤  f ( a) *  (f p) ^ k + (f b) * (f m) ^ k  := by
       intro k
       rcases (copr k) with ⟨ a, b , hab⟩
@@ -463,36 +486,48 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
         _ ≤ f (↑a * ↑p ^ k) + f (↑b * ↑m ^ k) := by
           exact f.add_le' _ _
     set M := (f p) ⊔ (f m) with hM
-    set k0 := Nat.ceil ( Real.logb  M 2⁻¹ )+1 with hk
-    have fpkle12 : (f p)^(k0) < 2⁻¹ := by
-      have k0real: (f p)^k0 = (f p)^(k0 : ℝ):= by norm_cast
+    set k0 := Nat.ceil ( Real.logb  M (1/2) )+1 with hk
+    have le_half (x : ℝ) (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) :
+        x^(k0) < 1/2 := by
+      have k0real: x^k0 = x^(k0 : ℝ):= by norm_cast
       rw [k0real]
-      apply lt_of_lt_of_le (b :=  ( f p)^ (Real.logb  M 2⁻¹))
-      · apply Real.rpow_lt_rpow_of_exponent_gt hp0 hp1
+      apply lt_of_lt_of_le (b := x ^ (Real.logb  M (1/2)))
+      · apply Real.rpow_lt_rpow_of_exponent_gt hx0 hx1
         rw [hk]
-        apply lt_of_le_of_lt (b :=(Nat.ceil  (Real.logb  M 2⁻¹) :ℝ) )
-        · exact Nat.le_ceil (Real.logb M 2⁻¹)
-        · simp only [Nat.cast_add, Nat.cast_one, lt_add_iff_pos_right, zero_lt_one]
-      · apply le_trans (b:= f ↑p ^ (Real.logb (f p)) 2⁻¹ )
-        · apply Real.rpow_le_rpow_of_exponent_ge hp0
+        apply lt_of_le_of_lt (b :=(Nat.ceil  (Real.logb  M (1/2)) :ℝ) )
+        · exact Nat.le_ceil (Real.logb M (1/2))
+        · simp only [Real.logb_inv, one_div, Nat.cast_add, Nat.cast_one, lt_add_iff_pos_right,zero_lt_one]
+      · apply le_trans (b:= x ^ (Real.logb x) (1/2) )
+        · apply Real.rpow_le_rpow_of_exponent_ge hx0
           · linarith
-          · have fpleM: Real.log (f p) ≤ Real.log M := by
-              apply Real.log_le_log hp0
-              rw [hM]
-              simp only [le_sup_left]
+          · have fpleM: Real.log x ≤ Real.log M := by
+              apply Real.log_le_log hx0 hxM
             simp only [← Real.log_div_log]
             simp
             ring_nf
             simp
             rw [mul_le_mul_left]
-            · sorry
+            ·  rw [inv_le_inv_of_neg]
+               ·  apply fpleM
+               ·  rw [Real.log_neg_iff]
+                  · rw [hM]
+                    rw [sup_lt_iff]
+                    constructor
+                    · exact hp1
+                    · exact cm
+                  · rw [hM]
+                    rw [lt_sup_iff]
+                    left
+                    exact hp0
+               · rw [Real.log_neg_iff hx0]
+                 exact hx1
             · apply Real.log_pos
               exact one_lt_two
-        · rw [Real.rpow_logb hp0]
+        · rw [Real.rpow_logb hx0]
           · linarith
-          · simp only [inv_pos, Nat.ofNat_pos]
-    have fmkle12 : (f m)^(k0:ℝ) < 1/2 := by
-      sorry
+          · simp only [one_div, inv_pos, Nat.ofNat_pos]
+    -- have fmkle12 : (f m)^(k0:ℝ) < 1/2 := by
+    --   sorry
     have ineq3 : ∃ (a b: ℤ ), 1 ≤ f a * f ↑p ^ k0 + f b * f ↑m ^ k0 := by
       exact ineq2 k0
     rcases ineq3 with ⟨ a, b ,hab⟩
@@ -512,9 +547,17 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
             · simp only [one_mul, le_refl]
       · rw [← add_halves (a:=1)]
         apply add_lt_add
-        · simp
-          exact_mod_cast fpkle12
-        · exact_mod_cast fmkle12
+        · apply le_half _ hp0 hp1
+          rw [hM]
+          simp only [le_sup_left]
+        · apply le_half (f m) _ cm
+          · rw [hM]
+            simp only [le_sup_right]
+          · apply map_pos_of_ne_zero
+            intro m0
+            apply hp
+            rw_mod_cast [m0]
+            simp
     linarith
 
 
