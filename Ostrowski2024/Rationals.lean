@@ -416,10 +416,10 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
             simp
             ring_nf
             simp
-            apply le_of_mul_le_mul_left (a:= Real.log 2)
-            · done
-            · done
-
+            rw [mul_le_mul_left]
+            · sorry
+            · apply Real.log_pos
+              exact one_lt_two
         · rw [Real.rpow_logb hp0]
           · linarith
           · simp only [inv_pos, Nat.ofNat_pos]
@@ -442,7 +442,11 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
               rw [← f_of_abs_eq_f]
               exact bdd (Int.natAbs b)
             · simp only [one_mul, le_refl]
-      · sorry
+      · rw [← add_halves (a:=1)]
+        apply add_lt_add
+        · simp
+          exact_mod_cast fpkle12
+        · exact_mod_cast fmkle12
     linarith
 
 
