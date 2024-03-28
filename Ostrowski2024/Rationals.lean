@@ -203,7 +203,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         · simp
         · simp
         · simp_all
-  have hkroot : ∀ (k n : ℕ), 0 < k → 1 < n → f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(1 / ↑k) := by
+  have hkroot : ∀ (k n : ℕ), 0 < k → 1 < n → f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
       intro k n hk hn
       have hnk_pos : 1 < (↑n ^ k) := by
         apply one_lt_pow hn
@@ -212,8 +212,8 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         refine Real.logb_pos ?_ ?_
         · norm_cast
         · norm_cast
-      replace hnk : (f ↑n ^ k) ^ (1 / (k:ℝ)) ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(1 / (k:ℝ)) := by
-        apply @Real.rpow_le_rpow _ _ (1/(k:ℝ))
+      replace hnk : (f ↑n ^ k) ^ (k:ℝ)⁻¹ ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
+        apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
         · apply pow_nonneg
           exact apply_nonneg f _
         · apply hnk hk hn
@@ -227,6 +227,8 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
           omega
       rw [← this]
       convert hnk
+      rw [Real.rpow_nat_cast]
+  have hlimit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ ↑n0 * (Real.logb (↑n0) ((n) ^ (k) ) + 1) ^ (k :ℝ)⁻¹) Filter.atTop (nhds 1) := by sorry
   sorry
 
 -- ## Auxiliary lemma for limit
