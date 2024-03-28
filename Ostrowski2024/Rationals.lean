@@ -92,7 +92,28 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     have hd_natlog : d = Nat.log n0 (n^k) := by
       rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
     have hnk : 0 ≤ ((n ^ k) :ℝ ) := by positivity
-    have hd_log : d ≤ Real.logb n0 (n^k) := by sorry
+    have hnknz : n^k ≠ 0 := by
+      simp only [ne_eq, pow_eq_zero_iff', not_and, not_not]
+      intro h
+      linarith [h,hn]
+    have hd_log : d ≤ Real.logb n0 (n^k) := by
+      rw [hd_natlog]
+      have hnat := Nat.pow_log_le_self n0 hnknz
+      have hreal : (n0:ℝ) ^ (Real.logb (↑n0) (↑n ^ k)) = n^k := by
+        rw [Real.rpow_logb]
+        norm_cast
+        linarith [hn0_ge2]
+        simp only [ne_eq, Nat.cast_eq_one]
+        linarith [hn0_ge2]
+        rw [lt_iff_le_and_ne]
+        constructor
+        · exact hnk
+        · exact_mod_cast hnknz.symm
+      have : n0 ^ (↑(Nat.log n0 (n ^ k)) )≤ (n0 : ℝ)^(Real.logb (↑n0) (↑n ^ k) ) := by
+        rw [hreal]
+        exact_mod_cast hnat
+
+      sorry
       -- rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
       -- · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
       -- · rw [← Nat.cast_pow] at hnk
@@ -104,37 +125,12 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     calc
     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
         rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
-      _ = f (L'.sum) := by
-        rw [Nat.ofDigits_eq_sum_mapIdx, hL']
-        norm_cast
-      _ ≤ (L'.map f).sum := flist_triang _ _
-      _ ≤ (L.mapIdx fun i a => (n0 : ℝ)).sum := by
-        simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
-        apply List.sum_le_sum
-        rintro ⟨i,a⟩ hia
-        dsimp [Function.uncurry]
-        replace hia := List.mem_enumFrom _ hia
-        have ha := hcoeff _ hia.2.2
-        push_cast
-        rw[map_mul, map_pow]
-        calc f a * f n0 ^ i ≤ n0 * 1 := by
-              refine mul_le_mul ha.le ?_ ?_ ?_
-              · apply pow_le_one _ _ hfn0
-                · exact map_nonneg _ _
-                  sorry
-              · sorry
-              · linarith
-          _ = n0 := mul_one _
-      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by
-        rw [List.mapIdx_eq_enum_map,
-          List.eq_replicate_of_mem (a := (n0:ℝ))
-            (l := List.map (Function.uncurry fun i a => ↑n0) (List.enum L)),
-          List.sum_replicate, List.length_map, List.enum_length,
-          nsmul_eq_mul, mul_comm]
-        refine mul_le_mul le_rfl ?_ ?_ ?_
-        · linarith
-        · simp
-        · linarith
+      _ = f ((List.foldr (fun (x : ℕ) (y : ℕ) => x + n0 * y) 0 L : ℕ) : ℚ) := by
+        rw [Nat.ofDigits_eq_foldr]; rfl
+      _ ≤ List.foldr (fun (x : ℕ) (y : ℝ) => f x + f n0 * y) (f 0) L := by
+        sorry
+--      _ ≤ List.sum (List.mapIdx (fun (i a : ℕ) => f a * f n0 ^ i) L) := by
+      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by sorry
   sorry
 
 
@@ -399,32 +395,13 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
           simp only [map_one, Int.cast_one, le_refl]
         _ ≤ f (↑a * ↑p ^ k) + f (↑b * ↑m ^ k) := by
           exact f.add_le' _ _
-    set M := (f p) ⊔ (f m) with hM
-    set k0 := Nat.ceil ( Real.logb  M 2⁻¹ )+1 with hk
-    have fpkle12 : (f p)^(k0) < 2⁻¹ := by
-      have k0real: (f p)^k0 = (f p)^(k0 : ℝ):= by norm_cast
-      rw [k0real]
-      apply lt_of_lt_of_le (b :=  ( f p)^ (Real.logb  M 2⁻¹))
+    set k0 := Nat.ceil ( (-Real.log (2))/Real.log (( (f p) ⊔ (f m))))+1 with hk
+    have fpkle12 : (f p)^(k0 : ℝ) < 1/2 := by
+      apply lt_of_lt_of_le (b :=  ( f p)^ ((-Real.log (2))/Real.log (( (f p) ⊔ (f m)))))
       · apply Real.rpow_lt_rpow_of_exponent_gt hp0 hp1
         rw [hk]
-        apply lt_of_le_of_lt (b :=(Nat.ceil  (Real.logb  M 2⁻¹) :ℝ) )
-        · exact Nat.le_ceil (Real.logb M 2⁻¹)
-        · simp only [Nat.cast_add, Nat.cast_one, lt_add_iff_pos_right, zero_lt_one]
-      · apply le_trans (b:= f ↑p ^ (Real.logb (f p)) 2⁻¹ )
-        · apply Real.rpow_le_rpow_of_exponent_ge hp0
-          · linarith
-          · have fpleM: Real.log (f p) ≤ Real.log M := by
-              apply Real.log_le_log hp0
-              rw [hM]
-              simp only [le_sup_left]
-            simp only [← Real.log_div_log]
-            simp
-            ring_nf
-            simp
-
-        · rw [Real.rpow_logb hp0]
-          · linarith
-          · simp only [inv_pos, Nat.ofNat_pos]
+        sorry
+      · sorry
     have fmkle12 : (f m)^(k0:ℝ) < 1/2 := by
       sorry
     have ineq3 : ∃ (a b: ℤ ), 1 ≤ f a * f ↑p ^ k0 + f b * f ↑m ^ k0 := by
@@ -444,7 +421,7 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
               rw [← f_of_abs_eq_f]
               exact bdd (Int.natAbs b)
             · simp only [one_mul, le_refl]
-      · sorry
+      · linarith
     linarith
 
 
