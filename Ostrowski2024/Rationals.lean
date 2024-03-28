@@ -78,6 +78,17 @@ end Padic
 
 section Archimedean
 
+-- ## auxiliary Lemma: triangle inequality for lists
+
+lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).sum := by
+  induction l with
+  | nil => simp
+  | cons head tail ih =>
+    simp only [List.sum_cons, List.map_cons]
+    calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by
+          apply f.add_le'
+      _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
+
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
@@ -121,16 +132,52 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       apply lt_of_le_of_lt
       · exact this
       · exact_mod_cast hcltn0
+    set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a => (a * n0 ^ i)) with hL'
     calc
     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
         rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
-      _ = f ((List.foldr (fun (x : ℕ) (y : ℕ) => x + n0 * y) 0 L : ℕ) : ℚ) := by
-        rw [Nat.ofDigits_eq_foldr]; rfl
-      _ ≤ List.foldr (fun (x : ℕ) (y : ℝ) => f x + f n0 * y) (f 0) L := by
-        sorry
---      _ ≤ List.sum (List.mapIdx (fun (i a : ℕ) => f a * f n0 ^ i) L) := by
-      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by sorry
+      _ = f (L'.sum) := by
+        rw [Nat.ofDigits_eq_sum_mapIdx, hL']
+        norm_cast
+      _ ≤ (L'.map f).sum := flist_triang _ _
+      _ ≤ (L.mapIdx fun i a => (n0 : ℝ)).sum := by
+        simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
+        apply List.sum_le_sum
+        rintro ⟨i,a⟩ hia
+        dsimp [Function.uncurry]
+        replace hia := List.mem_enumFrom _ hia
+        have ha := hcoeff _ hia.2.2
+        push_cast
+        rw[map_mul, map_pow]
+        calc f a * f n0 ^ i ≤ n0 * 1 := by
+              refine mul_le_mul ha.le ?_ ?_ ?_
+              · apply pow_le_one _ _ hfn0
+                · sorry
+              · sorry
+              · linarith
+          _ = n0 := mul_one _
+      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by
+        rw [List.mapIdx_eq_enum_map,
+          List.eq_replicate_of_mem (a := (n0:ℝ))
+            (l := List.map (Function.uncurry fun i a => ↑n0) (List.enum L)),
+          List.sum_replicate, List.length_map, List.enum_length,
+          nsmul_eq_mul, mul_comm]
+        refine mul_le_mul le_rfl ?_ ?_ ?_
+        · sorry
+        · simp
+        · simp
+        · aesop
   sorry
+--     calc
+--     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
+--         rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
+--       _ = f ((List.foldr (fun (x : ℕ) (y : ℕ) => x + n0 * y) 0 L : ℕ) : ℚ) := by
+--         rw [Nat.ofDigits_eq_foldr]; rfl
+--       _ ≤ List.foldr (fun (x : ℕ) (y : ℝ) => f x + f n0 * y) (f 0) L := by
+--         sorry
+-- --      _ ≤ List.sum (List.mapIdx (fun (i a : ℕ) => f a * f n0 ^ i) L) := by
+--       _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by sorry
+--   sorry
 
 
 
