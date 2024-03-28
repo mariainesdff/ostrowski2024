@@ -113,6 +113,13 @@ lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 
   rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
   exact_mod_cast this
 
+  /- set d := Nat.log m n with hd
+  have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry -/
+open BigOperators
+
+
+lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
+    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by sorry
 
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
@@ -242,13 +249,12 @@ variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
   obtain hm := notbdd_implies_all_gt_one notbdd
   have : 1< f m := by simp only [hm m hmge]
-  set d := Nat.log m n with hd
-  have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry
+  let d := Nat.log m n
   have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by
     rw [geom_sum_eq]
     apply ne_of_gt
     linarith
-  calc f ↑n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := hnmd
+  calc f ↑n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) :=  fn_le_from_expansion m n hmge hnge
     _ = m * (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by rw [hsum]; ring
     _ ≤ m * (f ↑m ^ (d+1))/(f ↑m - 1) := by
       apply div_le_div_of_nonneg_right (by linarith only [hmge, this]) (by linarith only [this])
@@ -257,8 +263,7 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
       apply mul_le_mul_of_nonneg_left
       rw [←Real.rpow_nat_cast]
       apply Real.rpow_le_rpow_of_exponent_le (le_of_lt this)
-      have NeededAlsoBefore_MakeALemma : ↑d ≤ logb ↑m ↑n := by sorry
-      exact NeededAlsoBefore_MakeALemma
+      apply nat_log_le_real_log m n (by linarith [hmge]) hmge
       apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt this)
       exact mul_nonneg (by linarith only [hmge]) (by linarith only [this])
 
@@ -275,19 +280,51 @@ lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k �
   assumption
 
 
-lemma param_upperbound : ∀ (k : ℕ),
+lemma param_upperbound (k : ℕ) :  k ≠ 0 →
  f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
-  intro k
+  intro hk
   -- the "power trick"
   have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) :=
   calc
     (f n) ^ k
     = f (↑(n ^ k)) := by simp only [map_pow, Nat.cast_pow]
     _ ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
-      by exact main_inequality m (n ^ k)
+        main_inequality m (n ^ k) hmge (one_lt_pow hnge hk ) notbdd
     _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
       by { push_cast; rw [logb_pow]}
-  sorry
+  obtain hm := notbdd_implies_all_gt_one notbdd
+  have : 1< f m := by simp only [hm m hmge]
+  have  zero_le_expression: 0 ≤ ↑m * f ↑m / (f ↑m - 1) := by
+    apply div_nonneg _ (by linarith only [this])
+    apply mul_nonneg (Nat.cast_nonneg m) (apply_nonneg f ↑m)
+  have triviality : (1 / k) * (k : ℝ) = 1 := by
+      apply one_div_mul_cancel
+      exact_mod_cast hk
+  have our_prod_nonneg :  0 ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ (↑k * logb ↑m ↑n) := by
+      rw [mul_nonneg_iff_of_pos_right]
+      exact zero_le_expression
+      apply Real.rpow_pos_of_pos
+      linarith only [this]
+  convert_to f ↑n ≤ ((↑m * f ↑m / (f ↑m - 1)) * f ↑m ^ (k * logb ↑m ↑n))^ (1 / k : ℝ )
+  · rw [Real.mul_rpow]
+    simp only [mul_eq_mul_left_iff]
+    left
+    rw [← rpow_mul (apply_nonneg f ↑m), mul_comm, ← mul_assoc]
+    rw [triviality]
+    simp only [one_mul]
+    exact zero_le_expression
+    apply rpow_nonneg (apply_nonneg f ↑m)
+  · rw [← Real.rpow_le_rpow_iff (z:=k ) _  ]
+    · rw [← rpow_mul, triviality,rpow_nat_cast, rpow_one]
+      exact key
+      exact our_prod_nonneg
+    · apply rpow_nonneg
+      exact our_prod_nonneg
+    · simp only [Nat.cast_pos.2 (Nat.pos_of_ne_zero hk)]
+    · exact (apply_nonneg f ↑n)
+
+--rw [← rpow_mul, mul_one_div, div_self, rpow_one];
+
 
 
   -- TODO: take kth root on both sides
@@ -311,8 +348,8 @@ lemma ge_of_tendsto_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter 
       refine Filter.Tendsto.mul_const B lim
     refine (ge_of_tendsto' limCB h)
 
-lemma le_of_param_upperbound {A B C : ℝ}
-  (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) : A ≤ B := by
+lemma le_of_param_upperbound {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
+     A ≤ B := by
   rw [← one_mul B]
   refine ge_of_tendsto_mul' (one_lim_of_roots C hC) hub
 
