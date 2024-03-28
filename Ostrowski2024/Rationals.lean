@@ -124,7 +124,7 @@ lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
-  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * ((Real.logb n0 n)^k  + 1)) := by
+  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
     set L := Nat.digits n0 (n^k) with hL
     /- d is the number of digits (starting at 0)-/
@@ -186,18 +186,25 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
                 exact apply_nonneg f _
               · linarith
           _ = n0 := mul_one _
-      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by
+      _ ≤ n0 * (Real.logb n0 (n ^ k) + 1) := by
         rw [List.mapIdx_eq_enum_map,
           List.eq_replicate_of_mem (a := (n0:ℝ))
             (l := List.map (Function.uncurry fun i a => ↑n0) (List.enum L)),
           List.sum_replicate, List.length_map, List.enum_length,
           nsmul_eq_mul, mul_comm]
         refine mul_le_mul le_rfl ?_ ?_ ?_
-        · sorry
+        · calc ↑(List.length L) ≤ ↑d + 1 := by
+                rw [hd]
+                norm_cast
+                omega
+               _ ≤ Real.logb (↑n0) (↑n ^ k) + 1 := by
+                simp
+                exact hd_log
         · simp
         · simp
         · aesop
   sorry
+
 --     calc
 --     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
 --         rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
