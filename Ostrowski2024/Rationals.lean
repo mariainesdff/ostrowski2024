@@ -228,7 +228,8 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       rw [← this]
       convert hnk
       rw [Real.rpow_nat_cast]
-  have hlimit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ ↑n0 * (Real.logb (↑n0) ((n) ^ (k) ) + 1) ^ (k :ℝ)⁻¹) Filter.atTop (nhds 1) := by sorry
+
+  -- have hlimit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ ↑n0 * (Real.logb (↑n0) ((n) ^ (k) ) + 1) ^ (k :ℝ)⁻¹) Filter.atTop (nhds 1) := by sorry
   sorry
 
 -- ## Auxiliary lemma for limit
