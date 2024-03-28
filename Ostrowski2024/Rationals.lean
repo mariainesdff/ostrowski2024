@@ -464,7 +464,23 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
             ring_nf
             simp
             rw [mul_le_mul_left]
-            · sorry
+            ·  rw [inv_le_inv_of_neg]
+               ·  apply Real.log_le_log
+                  · exact hp0
+                  · rw [hM]
+                    simp
+               ·  rw [Real.log_neg_iff]
+                  · rw [hM]
+                    rw [sup_lt_iff]
+                    constructor
+                    · exact hp1
+                    · exact cm
+                  · rw [hM]
+                    rw [lt_sup_iff]
+                    left
+                    exact hp0
+               · rw [Real.log_neg_iff hp0]
+                 exact hp1
             · apply Real.log_pos
               exact one_lt_two
         · rw [Real.rpow_logb hp0]
