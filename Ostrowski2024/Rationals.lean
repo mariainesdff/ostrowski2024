@@ -468,8 +468,18 @@ end Step2
    If `f` is not bounded and not trivial, then it is equivalent to the usual absolute value on ℚ.
 -/
 
-theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := by
+
+
+theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)  : MulRingNorm.equiv f mulRingNorm_real := by
   obtain ⟨m, hm⟩ := Classical.exists_not_of_not_forall notbdd
+  have oneltm : 1<m := by
+    by_contra!
+    replace this : m = 0 ∨ m = 1 := by omega
+    rcases this with (rfl | rfl )
+    · rw_mod_cast [map_zero] at hm
+      simp at hm
+    · rw_mod_cast [map_one] at hm
+      simp at hm
   set s := Real.logb m (f m) with hs
   use s⁻¹
   constructor
@@ -477,11 +487,73 @@ theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontr
     simp
     apply Real.logb_pos
     · simp
-      sorry
+      exact oneltm
     · linarith
   · rw_mod_cast [← Norm_Rat_equiv_iff_equiv_on_Nat']
     intro n
-    sorry
+    have onelefn : n>1 → 1 < f n := by
+      apply notbdd_implies_all_gt_one notbdd n
+    by_cases nzero : n=0
+    · rw_mod_cast [nzero]
+      simp only [CharP.cast_eq_zero, map_zero, le_refl]
+      rw [Real.rpow_eq_zero]
+      · simp only [le_refl]
+      · simp only [ne_eq, inv_eq_zero]
+        rw [hs]
+        simp only [Real.logb_eq_zero, Nat.cast_eq_zero, Nat.cast_eq_one, map_eq_zero]
+        norm_cast
+        simp only [Int.reduceNegSucc, Int.cast_neg, Int.cast_one, false_or]
+        push_neg
+        constructor
+        · omega
+        · constructor
+          · omega
+          · constructor
+            · omega
+            · constructor
+              · linarith
+              · linarith
+    · by_cases none : n=1
+      · rw [none]
+        simp only [Nat.cast_one, map_one, Real.one_rpow]
+      · have oneltn : 1<n := by
+          omega
+        have fngeone : f n > 1 := by
+          apply notbdd_implies_all_gt_one notbdd
+          exact oneltn
+        set t := Real.logb n (f n) with ht
+        have hm' : (f m )= m ^ s := by
+          rw [hs,Real.rpow_logb ]
+          · norm_cast
+            omega
+          · norm_cast
+            omega
+          · linarith
+        have hn : (f n )= n ^ t := by
+          rw [ht,Real.rpow_logb ]
+          · norm_cast
+            omega
+          · norm_cast
+          · linarith
+        have seqt : s = t := by
+          apply symmetric_roles
+          · exact oneltm
+          · exact oneltn
+          · exact notbdd
+          · exact hm'
+          · exact hn
+        rw [seqt,hn]
+        simp only [Nat.cast_nonneg, mul_ring_norm_eq_abs, Nat.abs_cast, Rat.cast_natCast]
+        rw [← Real.rpow_mul]
+        · convert Real.rpow_one _
+          apply mul_inv_cancel
+          rw [ht]
+          apply Real.logb_ne_zero_of_pos_of_ne_one
+          · assumption_mod_cast
+          · positivity
+          · linarith
+        · linarith
+
 
     /-
     have hms : (m : ℝ) ^ s = f m := by
@@ -815,5 +887,5 @@ theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
   · right
     apply bdd_implies_equiv_padic bdd hf_nontriv
   · left
-    apply notbdd_implies_equiv_real bdd hf_nontriv
+    apply notbdd_implies_equiv_real bdd
 end Rational
