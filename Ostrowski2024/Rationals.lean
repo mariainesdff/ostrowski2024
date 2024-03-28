@@ -186,11 +186,23 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
 section Step2
 
 open Real
+open BigOperators
 
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
-   sorry
+  --obtain hn := notbdd_implies_all_gt_one notbdd
+  --have := hn n hnge
+  set d := Nat.log m n with hd
+  have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry
+  have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by sorry
+  calc f ↑n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry
+    _ = m * (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by sorry
+    _ ≤ m * (f ↑m ^ (d+1))/(f ↑m - 1) := by sorry
+    _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by sorry
+    _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by sorry
+
+
 
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
   simp only [logb, log_pow, mul_div]
