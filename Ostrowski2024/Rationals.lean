@@ -395,8 +395,24 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   --apply param_upperbound m n hmge hnge sorry
 
 
-lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
-  (hm : f m = m ^ s) (hn : f n = n ^ t) : t ≤ s := sorry
+lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t) (hmn : f n ≤ (f m)^(Real.logb m n)) : t ≤ s := by
+    rw [← Real.rpow_le_rpow_left_iff (x:= n)]
+    · rw[← hn]
+      rw [hm] at hmn
+      rw [← Real.rpow_mul] at hmn
+      · rw [mul_comm] at hmn
+        rw [Real.rpow_mul] at hmn
+        · rw [Real.rpow_logb] at hmn
+          · exact hmn
+          · simp only [Nat.cast_pos]
+            linarith
+          · simp only [ne_eq, Nat.cast_eq_one]
+            linarith
+          · simp only [Nat.cast_pos]
+            linarith
+        · simp only [Nat.cast_nonneg]
+      · simp only [Nat.cast_nonneg]
+    · exact_mod_cast hnge
 
 end Step2
 
