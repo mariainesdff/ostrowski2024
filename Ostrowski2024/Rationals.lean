@@ -296,9 +296,7 @@ lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k �
   assumption
 
 
-lemma param_upperbound (k : ℕ) :  k ≠ 0 →
- f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
-  intro hk
+lemma param_upperbound (k : ℕ) (hk : k ≠ 0) : f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
   -- the "power trick"
   have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) :=
   calc
@@ -339,12 +337,6 @@ lemma param_upperbound (k : ℕ) :  k ≠ 0 →
     · simp only [Nat.cast_pos.2 (Nat.pos_of_ne_zero hk)]
     · exact (apply_nonneg f ↑n)
 
---rw [← rpow_mul, mul_one_div, div_self, rpow_one];
-
-
-
-  -- TODO: take kth root on both sides
-
 
 /-- For any C > 1, the limit of C ^ (1/k) is 1 as k -> ∞. -/
 lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
@@ -367,7 +359,15 @@ lemma ge_of_tendsto_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter 
 lemma le_of_param_upperbound {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
      A ≤ B := by
   rw [← one_mul B]
-  refine ge_of_tendsto_mul' (one_lim_of_roots C hC) hub
+  apply ge_of_tendsto_mul' (one_lim_of_roots C hC)
+  exact hub
+
+lemma le_of_param_upperbound' {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
+     A ≤ B := by
+  rw [← one_mul B]
+  apply ge_of_tendsto_mul' (one_lim_of_roots C hC)
+  exact hub
+
 
 lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   set A := m * (f m) / ((f m) - 1)
@@ -388,7 +388,8 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
 
   have zero_lt_A : 0 < A := by linarith
   refine le_of_param_upperbound zero_lt_A ?_
-  apply param_upperbound
+  sorry
+  --apply param_upperbound m n hmge hnge sorry
 
 
 lemma compare_exponents (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
