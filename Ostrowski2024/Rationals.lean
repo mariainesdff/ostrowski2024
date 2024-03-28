@@ -195,8 +195,27 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
                 exact hd_log
         · simp
         · simp
-        · aesop
+        · simp_all
+  have hkroot : ∀ (k n : ℕ), 0 < k → 1 < n → f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(1 / ↑k) := by
+      intro k n hk hn
+      have hnk_pos : 1 < (↑n ^ k) := by
+        apply one_lt_pow hn
+        linarith
+      have hlog_pos : 0 < (Real.logb (↑n0) (↑n ^ k)) := by
+        refine Real.logb_pos ?_ ?_
+        --Real.rpow_le_rpow_of_nonpos
   sorry
+
+-- ## Auxiliary lemma for limit
+
+lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a ≤ g k) (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
+  set f:= fun _ : ℕ ↦ (a : ℝ)
+  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
+  exact le_of_tendsto_of_tendsto' hflim hg ha
+
+
+
+
 
 --     calc
 --     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
