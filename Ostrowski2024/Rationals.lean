@@ -394,9 +394,12 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
           simp only [map_one, Int.cast_one, le_refl]
         _ ≤ f (↑a * ↑p ^ k) + f (↑b * ↑m ^ k) := by
           exact f.add_le' _ _
-    set k0 := Nat.ceil ( (-Real.log (2))/Real.log (( (f p) ⊔ (f m))))+1 with hk
-    have fpkle12 : (f p)^(k0 : ℝ) < 1/2 := by
-      apply lt_of_lt_of_le (b :=  ( f p)^ ((-Real.log (2))/Real.log (( (f p) ⊔ (f m)))))
+    set M := (f p) ⊔ (f m) with hM
+    set k0 := Nat.ceil ( Real.logb  M 2⁻¹ )+1 with hk
+    have fpkle12 : (f p)^(k0) < 2⁻¹ := by
+      have k0real: (f p)^k0 = (f p)^(k0 : ℝ):= by norm_cast
+      rw [k0real]
+      apply lt_of_lt_of_le (b :=  ( f p)^ (Real.logb  M 2⁻¹))
       · apply Real.rpow_lt_rpow_of_exponent_gt hp0 hp1
         rw [hk]
         apply lt_of_le_of_lt (b :=(Nat.ceil  (Real.logb  M 2⁻¹) :ℝ) )
@@ -439,9 +442,8 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
               rw [← f_of_abs_eq_f]
               exact bdd (Int.natAbs b)
             · simp only [one_mul, le_refl]
-      · linarith
+      · sorry
     linarith
-
 
 
 
