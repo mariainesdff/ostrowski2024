@@ -112,8 +112,9 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       have : n0 ^ (↑(Nat.log n0 (n ^ k)) )≤ (n0 : ℝ)^(Real.logb (↑n0) (↑n ^ k) ) := by
         rw [hreal]
         exact_mod_cast hnat
-
-      sorry
+      have hn0_gt1R : 1 < (n0:ℝ) := by exact_mod_cast hn0_ge2
+      rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
+      exact_mod_cast this
       -- rw [hd_natlog, show (Nat.log n0 (n^k) : ℝ) = ((Nat.log n0 (n^k) : ℤ) : ℝ) by rfl, ← @Int.log_natCast ℝ, ← Real.floor_logb_nat_cast hn0_ge2 ?_, Nat.cast_pow]
       -- · exact Int.floor_le (Real.logb (↑n0) (↑n ^ k))
       -- · rw [← Nat.cast_pow] at hnk
