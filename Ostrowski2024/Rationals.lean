@@ -374,10 +374,14 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
           simp only [map_one, Int.cast_one, le_refl]
         _ ≤ f (↑a * ↑p ^ k) + f (↑b * ↑m ^ k) := by
           exact f.add_le' _ _
-    set k0 := Nat.ceil ( (-Real.log (2))/Real.log (( (f p) ⊔ (f m)))) with hk
-    have fpkle12 : (f p)^k0 < 1/2 := by
-      sorry
-    have fmkle12 : (f m)^k0 < 1/2 := by
+    set k0 := Nat.ceil ( (-Real.log (2))/Real.log (( (f p) ⊔ (f m))))+1 with hk
+    have fpkle12 : (f p)^(k0 : ℝ) < 1/2 := by
+      apply lt_of_lt_of_le (b :=  ( f p)^ ((-Real.log (2))/Real.log (( (f p) ⊔ (f m)))))
+      · apply Real.rpow_lt_rpow_of_exponent_gt hp0 hp1
+        rw [hk]
+        sorry
+      · sorry
+    have fmkle12 : (f m)^(k0:ℝ) < 1/2 := by
       sorry
     have ineq3 : ∃ (a b: ℤ ), 1 ≤ f a * f ↑p ^ k0 + f b * f ↑m ^ k0 := by
       exact ineq2 k0
@@ -387,10 +391,17 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
       · apply le_trans (b := 1 * (f ↑p )^ k0 + (f b) * (f ↑m) ^ k0)
         · apply le_trans hab
           gcongr
-          sorry
-        · sorry
+          rw [← f_of_abs_eq_f]
+          exact bdd (Int.natAbs a)
+        · gcongr
+          · linarith
+          · apply le_trans (b := 1 *  (f ↑m) ^ k0)
+            · gcongr
+              rw [← f_of_abs_eq_f]
+              exact bdd (Int.natAbs b)
+            · simp only [one_mul, le_refl]
       · linarith
-    sorry
+    linarith
 
 
 
