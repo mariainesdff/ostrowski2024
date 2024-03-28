@@ -165,8 +165,8 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         refine mul_le_mul le_rfl ?_ ?_ ?_
         · sorry
         · simp
-        · sorry
-        · sorry
+        · simp
+        · aesop
   sorry
 --     calc
 --     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
