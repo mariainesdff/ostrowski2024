@@ -374,13 +374,32 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
           simp only [map_one, Int.cast_one, le_refl]
         _ ≤ f (↑a * ↑p ^ k) + f (↑b * ↑m ^ k) := by
           exact f.add_le' _ _
-    set k0 := Nat.ceil ( (-Real.log (2))/Real.log (( (f p) ⊔ (f m))))+1 with hk
-    have fpkle12 : (f p)^(k0 : ℝ) < 1/2 := by
-      apply lt_of_lt_of_le (b :=  ( f p)^ ((-Real.log (2))/Real.log (( (f p) ⊔ (f m)))))
+    set M := (f p) ⊔ (f m) with hM
+    set k0 := Nat.ceil ( Real.logb  M 2⁻¹ )+1 with hk
+    have fpkle12 : (f p)^(k0) < 2⁻¹ := by
+      have k0real: (f p)^k0 = (f p)^(k0 : ℝ):= by norm_cast
+      rw [k0real]
+      apply lt_of_lt_of_le (b :=  ( f p)^ (Real.logb  M 2⁻¹))
       · apply Real.rpow_lt_rpow_of_exponent_gt hp0 hp1
         rw [hk]
-        sorry
-      · sorry
+        apply lt_of_le_of_lt (b :=(Nat.ceil  (Real.logb  M 2⁻¹) :ℝ) )
+        · exact Nat.le_ceil (Real.logb M 2⁻¹)
+        · simp only [Nat.cast_add, Nat.cast_one, lt_add_iff_pos_right, zero_lt_one]
+      · apply le_trans (b:= f ↑p ^ (Real.logb (f p)) 2⁻¹ )
+        · apply Real.rpow_le_rpow_of_exponent_ge hp0
+          · linarith
+          · have fpleM: Real.log (f p) ≤ Real.log M := by
+              apply Real.log_le_log hp0
+              rw [hM]
+              simp only [le_sup_left]
+            simp only [← Real.log_div_log]
+            simp
+            ring_nf
+            simp
+
+        · rw [Real.rpow_logb hp0]
+          · linarith
+          · simp only [inv_pos, Nat.ofNat_pos]
     have fmkle12 : (f m)^(k0:ℝ) < 1/2 := by
       sorry
     have ineq3 : ∃ (a b: ℤ ), 1 ≤ f a * f ↑p ^ k0 + f b * f ↑m ^ k0 := by
@@ -400,7 +419,7 @@ lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
               rw [← f_of_abs_eq_f]
               exact bdd (Int.natAbs b)
             · simp only [one_mul, le_refl]
-      · linarith
+      · sorry
     linarith
 
 
