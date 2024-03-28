@@ -88,3 +88,29 @@ lemma Norm_Rat_equiv_iff_equiv_on_Nat (t : ℝ) : (∀ n : ℕ , (f n)^(t⁻¹) 
     rw [num]
   · intro hx n
     exact hx n
+
+lemma Norm_Rat_equiv_iff_equiv_on_Nat' (t : ℝ) : (∀ n : ℕ , (f n)^(t⁻¹) = g n) ↔ ( (fun x  : ℚ =>  (f x)^(t⁻¹)  )= g ) := by
+  constructor
+  · intro h
+    ext x
+    rw [← Rat.num_div_den x]
+    simp only [map_div₀]
+    rw [Real.div_rpow]
+    swap
+    · exact apply_nonneg f _
+    swap
+    · exact apply_nonneg f _
+    rw [h x.den]
+    have num : f ↑x.num ^ t⁻¹ = g x.num := by
+      obtain ⟨n, hpos | hneg ⟩ := Int.eq_nat_or_neg x.num
+      · rw [hpos]
+        norm_cast
+        rw [h n]
+      · rw [hneg]
+        push_cast
+        rw [map_neg_eq_map]
+        rw [map_neg_eq_map]
+        exact h n
+    rw [num]
+  · intro hx n
+    rw [← hx]
