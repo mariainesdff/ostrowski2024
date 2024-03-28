@@ -229,10 +229,13 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       convert hnk
       rw [Real.rpow_nat_cast]
 
+  have  h_ex_const : ∀ (k n : ℕ), 0 < k → 1 < n → f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1) ^ ((k:ℝ)⁻¹))* ((k)^((k:ℝ)⁻¹)) := by sorry
+
   -- have hlimit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ ↑n0 * (Real.logb (↑n0) ((n) ^ (k) ) + 1) ^ (k :ℝ)⁻¹) Filter.atTop (nhds 1) := by sorry
   sorry
 
 -- ## Auxiliary lemma for limit
+
 
 lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a ≤ g k) (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
   set f:= fun _ : ℕ ↦ (a : ℝ)
@@ -288,6 +291,8 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
 
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
   simp only [logb, log_pow, mul_div]
+
+
 
 lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k ≤ B) : A ≤ B ^ (1/(k:ℝ)) := by
   have : (A ^ (k : ℝ)) ^ (1 / (k : ℝ)) = A := by
@@ -414,16 +419,39 @@ lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t) (hmn :
       · simp only [Nat.cast_nonneg]
     · exact_mod_cast hnge
 
+
+lemma symmetric_roles (s t : ℝ) (hs : 0 < s) (ht : 0 < t)
+  (hm : f m = m ^ s) (hn : f n = n ^ t) : s = t := by
+  apply le_antisymm
+  refine compare_exponents _ _ _ _ ht hs hn hm
+  refine compare_exponents _ _ _ _ hs ht hm hn
+
 end Step2
 
 -- ## final step
 -- finish the proof by symmetry (exchanging m,n and proving s \leq t) TODO
 
+
 -- ## Archimedean case: end goal
 /--
    If `f` is not bounded and not trivial, then it is equivalent to the usual absolute value on ℚ.
 -/
-theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv f mulRingNorm_real := sorry
+theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) (hf_nontriv : f ≠ 1)  : MulRingNorm.equiv mulRingNorm_real f := by
+  obtain ⟨m, hm⟩ := Classical.exists_not_of_not_forall notbdd
+  set s := Real.logb m (f m) with hs
+  use s
+
+  have hms : (m : ℝ) ^ s = f m := by
+    rw [hs]
+    -- ↑m ^ Real.logb (↑m) (f ↑m) = ↑m
+    sorry
+
+  constructor
+  · sorry
+  · ext n
+    simp only [mul_ring_norm_eq_abs, Rat.cast_abs]
+    sorry
+
 
 end Archimedean
 
