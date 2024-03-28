@@ -249,7 +249,21 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       convert hnk
       rw [Real.rpow_nat_cast]
 
-  have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by sorry
+  have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
+    intro n hn k hk
+    replace hkroot := hkroot n hn k hk
+    rw [← Real.mul_rpow]
+    · rw [mul_add,add_mul]
+      simp only [mul_one, ge_iff_le]
+      rw [mul_assoc]
+      apply le_trans hkroot
+
+
+      sorry
+    · sorry
+    · sorry
+
+  sorry
 
   have prod_limit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by sorry
 
