@@ -92,39 +92,10 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
-lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 n ≤ Real.logb n0 n := by
-  have hnat : n0 ^ (Nat.log n0 n) ≤ n := by
-    apply Nat.pow_log_le_self
-    have : n ≠ 0 := by
-      apply ne_of_gt
-      assumption
-    assumption
-  have hreal : (n0:ℝ) ^ (Real.logb n0 n) = n := by
-    rw [Real.rpow_logb]
-    norm_cast
-    linarith [hn0]
-    simp only [ne_eq, Nat.cast_eq_one]
-    linarith [hn0]
-    exact_mod_cast hn
-  have : n0 ^ (Nat.log n0 n) ≤ (n0 : ℝ)^(Real.logb n0 n ) := by
-    rw [hreal]
-    exact_mod_cast hnat
-  have hn0_gt1R : 1 < (n0:ℝ) := by exact_mod_cast hn0
-  rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
-  exact_mod_cast this
-
-  /- set d := Nat.log m n with hd
-  have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry -/
-open BigOperators
-
-
-lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
-    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by sorry
-
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
-  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
+  have hnk {k n : ℕ} (hk : 0 < k) (hn : 1 < n) : (f n)^k ≤ (n0 * ((Real.logb n0 n)^k  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
     set L := Nat.digits n0 (n^k) with hL
     /- d is the number of digits (starting at 0)-/
@@ -186,25 +157,18 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
                 exact apply_nonneg f _
               · linarith
           _ = n0 := mul_one _
-      _ ≤ n0 * (Real.logb n0 (n ^ k) + 1) := by
+      _ ≤ n0 * (Real.logb n0 n ^ k + 1) := by
         rw [List.mapIdx_eq_enum_map,
           List.eq_replicate_of_mem (a := (n0:ℝ))
             (l := List.map (Function.uncurry fun i a => ↑n0) (List.enum L)),
           List.sum_replicate, List.length_map, List.enum_length,
           nsmul_eq_mul, mul_comm]
         refine mul_le_mul le_rfl ?_ ?_ ?_
-        · calc ↑(List.length L) ≤ ↑d + 1 := by
-                rw [hd]
-                norm_cast
-                omega
-               _ ≤ Real.logb (↑n0) (↑n ^ k) + 1 := by
-                simp
-                exact hd_log
+        · sorry
         · simp
         · simp
         · aesop
   sorry
-
 --     calc
 --     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
 --         rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
@@ -228,25 +192,18 @@ open BigOperators
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
-  obtain hm := notbdd_implies_all_gt_one notbdd
-  have : 1< f m := by simp only [hm m hmge]
-  let d := Nat.log m n
-  have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by
-    rw [geom_sum_eq]
-    apply ne_of_gt
-    linarith
-  calc f ↑n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) :=  fn_le_from_expansion m n hmge hnge
-    _ = m * (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by rw [hsum]; ring
-    _ ≤ m * (f ↑m ^ (d+1))/(f ↑m - 1) := by
-      apply div_le_div_of_nonneg_right (by linarith only [hmge, this]) (by linarith only [this])
-    _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
-    _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
-      apply mul_le_mul_of_nonneg_left
-      rw [←Real.rpow_nat_cast]
-      apply Real.rpow_le_rpow_of_exponent_le (le_of_lt this)
-      apply nat_log_le_real_log m n (by linarith [hmge]) hmge
-      apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt this)
-      exact mul_nonneg (by linarith only [hmge]) (by linarith only [this])
+  --obtain hn := notbdd_implies_all_gt_one notbdd
+  --have := hn n hnge
+  set d := Nat.log m n with hd
+  have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry
+  have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by sorry
+  calc f ↑n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry
+    _ = m * (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by sorry
+    _ ≤ m * (f ↑m ^ (d+1))/(f ↑m - 1) := by sorry
+    _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by sorry
+    _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by sorry
+
+
 
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
   simp only [logb, log_pow, mul_div]
@@ -435,151 +392,90 @@ lemma p_is_prime : (Prime p) := by
 
 
 -- ## Step 3
-lemma not_divisible_norm_one (m : ℕ) (hp : ¬ p ∣ m )  : f m = 1 := by
-  have pnatprime : Prime p := by
-    apply p_is_prime
-    · exact hp0
-    · exact hp1
-    · exact fun m a => hmin m a
+
+lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m )  : f m = 1 := by
   have pprime : Prime (p : ℤ)  := by
     rw [← Nat.prime_iff_prime_int]
-    exact Prime.nat_prime pnatprime
+    exact Prime.nat_prime (p_is_prime _ hp0 hp1 hmin)
   rw [le_antisymm_iff]
+  set M := (f p) ⊔ (f m) with hM
+  set k0 := Nat.ceil ( Real.logb  M (1/2) )+1 with hk
+  have copr : IsCoprime (p^k0 : ℤ) (m^k0) := by
+    apply IsCoprime.pow
+    rw [Prime.coprime_iff_not_dvd pprime]
+    exact_mod_cast hpm
+  obtain ⟨a,b,bezout⟩ := copr
   constructor
   · exact bdd m
-  · by_contra cm
-    apply lt_of_not_le at cm
-    have copr (k : ℕ ) :  (IsCoprime (p^k : ℤ) (m^k: ℤ )) := by
-      apply isCoprime_of_prime_dvd
-      · intro ⟨pnot0, _ ⟩
-        apply pow_ne_zero k _ pnot0
-        intro p0
-        rw_mod_cast [p0] at hp0
-        rw_mod_cast [map_zero] at hp0
-        linarith
-      · intro z hz zdiv
-        have kneq0 : k ≠ 0 := by
-          by_contra ck
-          rw [ck, pow_zero] at zdiv
-          apply Prime.not_dvd_one hz
-          exact zdiv
-        rw [Prime.dvd_pow_iff_dvd hz kneq0] at zdiv
-        rw [Prime.dvd_prime_iff_associated hz pprime] at zdiv
-        intro zdivmk
-        rw [Prime.dvd_pow_iff_dvd hz kneq0]  at zdivmk
-        rw [Int.associated_iff] at zdiv
-        rcases zdiv with zp | zmp
-        · rw [zp] at zdivmk
-          norm_cast at zdivmk
-        · rw [zmp] at zdivmk
-          rw [Int.neg_dvd] at zdivmk
-          norm_cast at zdivmk
-    unfold IsCoprime at copr
-    -- have ineq1 : ∀ (k : ℕ), ∃ (a b: ℤ ), 1 = f ( a *  p ^ k + b * m ^ k)  := by
-    --   intro k
-    --   rcases (copr k) with ⟨ a, b , hab⟩
-    --   use a
-    --   use b
-    --   rw_mod_cast [hab]
-    --   simp
-    have ineq2 : ∀ (k : ℕ), ∃ (a b: ℤ ), 1 ≤  f ( a) *  (f p) ^ k + (f b) * (f m) ^ k  := by
-      intro k
-      rcases (copr k) with ⟨ a, b , hab⟩
-      use a
-      use b
-      rw [← map_pow ]
-      rw [← map_pow ]
-      rw [← map_mul ]
-      rw [← map_mul ]
-      calc 1 = f 1 :=  by simp only [map_one]
-        _ ≤ f (↑a * ↑p ^ k + ↑b * ↑m ^ k) := by
-          rw_mod_cast [hab]
-          simp only [map_one, Int.cast_one, le_refl]
-        _ ≤ f (↑a * ↑p ^ k) + f (↑b * ↑m ^ k) := by
-          exact f.add_le' _ _
-    set M := (f p) ⊔ (f m) with hM
-    set k0 := Nat.ceil ( Real.logb  M (1/2) )+1 with hk
-    have le_half (x : ℝ) (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) :
-        x^(k0) < 1/2 := by
-      have k0real: x^k0 = x^(k0 : ℝ):= by norm_cast
-      rw [k0real]
-      apply lt_of_lt_of_le (b := x ^ (Real.logb  M (1/2)))
-      · apply Real.rpow_lt_rpow_of_exponent_gt hx0 hx1
-        rw [hk]
-        apply lt_of_le_of_lt (b :=(Nat.ceil  (Real.logb  M (1/2)) :ℝ) )
-        · exact Nat.le_ceil (Real.logb M (1/2))
-        · simp only [Real.logb_inv, one_div, Nat.cast_add, Nat.cast_one, lt_add_iff_pos_right,zero_lt_one]
-      · apply le_trans (b:= x ^ (Real.logb x) (1/2) )
-        · apply Real.rpow_le_rpow_of_exponent_ge hx0
-          · linarith
-          · have fpleM: Real.log x ≤ Real.log M := by
-              apply Real.log_le_log hx0 hxM
-            simp only [← Real.log_div_log]
-            simp
+  · by_contra hm
+    apply lt_of_not_le at hm
+
+    have le_half x (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) :
+      x^k0 < 1/2 := by calc
+        x ^ k0 = x ^ (k0:ℝ) := by norm_cast
+        _ < x ^ Real.logb M (1 / 2) := by
+          apply Real.rpow_lt_rpow_of_exponent_gt hx0 hx1
+          rw [hk]
+          calc
+            Real.logb M (1 / 2) ≤ (Nat.ceil  (Real.logb  M (1/2)) :ℝ) := by
+              exact Nat.le_ceil (Real.logb M (1/2))
+            _ < ↑(⌈Real.logb M (1 / 2)⌉₊ + 1) := by
+              norm_cast
+              apply lt_add_one
+        _ ≤ x ^ (Real.logb x) (1/2) := by
+          apply Real.rpow_le_rpow_of_exponent_ge hx0
+          · linarith only [hx1]
+          · simp only [← Real.log_div_log]
             ring_nf
-            simp
+            simp only [one_div, Real.log_inv, neg_mul, neg_le_neg_iff]
             rw [mul_le_mul_left]
-            ·  rw [inv_le_inv_of_neg]
-               ·  apply fpleM
-               ·  rw [Real.log_neg_iff]
-                  · rw [hM]
-                    rw [sup_lt_iff]
-                    constructor
-                    · exact hp1
-                    · exact cm
-                  · rw [hM]
-                    rw [lt_sup_iff]
-                    left
-                    exact hp0
-               · rw [Real.log_neg_iff hx0]
-                 exact hx1
+            · rw [inv_le_inv_of_neg]
+              · apply Real.log_le_log hx0 hxM
+              · rw [Real.log_neg_iff]
+                · rw [hM]
+                  rw [sup_lt_iff]
+                  constructor
+                  · exact hp1
+                  · exact hm
+                · rw [hM]
+                  rw [lt_sup_iff]
+                  left
+                  exact hp0
+              · rw [Real.log_neg_iff hx0]
+                exact hx1
             · apply Real.log_pos
               exact one_lt_two
-        · rw [Real.rpow_logb hx0]
+        _ = 1/2 := by
+          rw [Real.rpow_logb hx0]
           · linarith
           · simp only [one_div, inv_pos, Nat.ofNat_pos]
-    -- have fmkle12 : (f m)^(k0:ℝ) < 1/2 := by
-    --   sorry
-    have ineq3 : ∃ (a b: ℤ ), 1 ≤ f a * f ↑p ^ k0 + f b * f ↑m ^ k0 := by
-      exact ineq2 k0
-    rcases ineq3 with ⟨ a, b ,hab⟩
-    have last_one  : (1:ℝ ) < 1 := by
-      apply lt_of_le_of_lt (b :=  (f ↑p )^ k0 + (f ↑m) ^ k0)
-      · apply le_trans (b := 1 * (f ↑p )^ k0 + (f b) * (f ↑m) ^ k0)
-        · apply le_trans hab
-          gcongr
-          rw [← f_of_abs_eq_f]
-          exact bdd (Int.natAbs a)
-        · gcongr
-          · linarith
-          · apply le_trans (b := 1 *  (f ↑m) ^ k0)
-            · gcongr
-              rw [← f_of_abs_eq_f]
-              exact bdd (Int.natAbs b)
-            · simp only [one_mul, le_refl]
-      · rw [← add_halves (a:=1)]
+
+    apply lt_irrefl (1 : ℝ)
+    calc
+      (1:ℝ) = f 1 := by rw [map_one]
+      _ = f (a * p ^ k0 + b * m ^ k0) := by
+        rw_mod_cast [bezout]
+        norm_cast
+      _ ≤ f (a * p ^ k0) + f (b * m ^ k0) := by apply f.add_le'
+      _ ≤ 1 * (f p) ^ k0 + 1 * (f m) ^ k0 := by
+        simp only [map_mul, map_pow, le_refl]
+        gcongr
+        all_goals rw [← f_of_abs_eq_f]; apply bdd
+      _ = (f p) ^ k0 + (f m) ^ k0 := by simp
+      _ < 1 := by
+        rw [← add_halves (a:=1)]
         apply add_lt_add
         · apply le_half _ hp0 hp1
           rw [hM]
           simp only [le_sup_left]
-        · apply le_half (f m) _ cm
+        · apply le_half (f m) _ hm
           · rw [hM]
             simp only [le_sup_right]
           · apply map_pos_of_ne_zero
             intro m0
-            apply hp
+            apply hpm
             rw_mod_cast [m0]
             simp
-    linarith
-
-
-
-
-
-
-
-
-
 
 -- ## Non-archimedean case: step 4
 
