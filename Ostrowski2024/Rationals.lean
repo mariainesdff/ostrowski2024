@@ -138,7 +138,8 @@ open BigOperators
 
 
 lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
-    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by sorry
+    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by
+  sorry
 
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
