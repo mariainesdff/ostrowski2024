@@ -113,6 +113,13 @@ lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 
   rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
   exact_mod_cast this
 
+  /- set d := Nat.log m n with hd
+  have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry -/
+open BigOperators
+
+
+lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
+    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by sorry
 
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
@@ -216,13 +223,12 @@ variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
   obtain hm := notbdd_implies_all_gt_one notbdd
   have : 1< f m := by simp only [hm m hmge]
-  set d := Nat.log m n with hd
-  have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry
+  let d := Nat.log m n
   have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by
     rw [geom_sum_eq]
     apply ne_of_gt
     linarith
-  calc f ↑n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := hnmd
+  calc f ↑n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) :=  fn_le_from_expansion m n hmge hnge
     _ = m * (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by rw [hsum]; ring
     _ ≤ m * (f ↑m ^ (d+1))/(f ↑m - 1) := by
       apply div_le_div_of_nonneg_right (by linarith only [hmge, this]) (by linarith only [this])
@@ -231,8 +237,7 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
       apply mul_le_mul_of_nonneg_left
       rw [←Real.rpow_nat_cast]
       apply Real.rpow_le_rpow_of_exponent_le (le_of_lt this)
-      have NeededAlsoBefore_MakeALemma : ↑d ≤ logb ↑m ↑n := by sorry
-      exact NeededAlsoBefore_MakeALemma
+      apply nat_log_le_real_log m n (by linarith [hmge]) hmge
       apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt this)
       exact mul_nonneg (by linarith only [hmge]) (by linarith only [this])
 
