@@ -141,6 +141,8 @@ lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
     f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by
   sorry
 
+
+
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
@@ -257,13 +259,91 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       simp only [mul_one, ge_iff_le]
       rw [mul_assoc]
       apply le_trans hkroot
+      rw_mod_cast [Real.rpow_le_rpow_iff]
+      · push_cast
+        rw_mod_cast [mul_add]
+        apply add_le_add
+        · simp only [Nat.cast_pow]
+          apply mul_le_mul
+          · simp only [le_refl]
+          · rw [← Real.log_div_log]
+            rw [← Real.log_div_log]
+            rw [mul_comm]
+            rw [mul_div]
+            rw [← Real.log_rpow]
+            · apply div_le_div
+              · apply Real.log_nonneg
+                apply Real.one_le_rpow
+                · norm_cast
+                  linarith
+                · norm_cast
+                  linarith
+              · simp
+              · apply Real.log_pos
+                norm_cast
+              · simp
+            · norm_cast
+              linarith
+          · apply Real.logb_nonneg
+            · norm_cast
+            · norm_cast
+              apply Nat.one_le_pow
+              linarith
+          · norm_cast
+            linarith
+        · simp only [mul_one, Nat.cast_mul]
+          norm_cast
+          apply Nat.le_mul_of_pos_right _ hk
+      · apply mul_nonneg
+        · norm_cast
+          linarith
+        · apply add_nonneg
+          · apply Real.logb_nonneg
+            · norm_cast
+            · norm_cast
+              apply Nat.one_le_pow
+              linarith
+          · simp
+      · norm_cast
+        simp
+        apply add_nonneg
+        · apply mul_nonneg
+          · norm_cast
+            linarith
+          · rw [← zero_mul 0]
+            gcongr
+            apply mul_nonneg
+            · apply Real.log_nonneg
+              norm_cast
+              linarith
+            · rw [inv_nonneg]
+              apply Real.log_nonneg
+              norm_cast
+              linarith
+            · apply Real.logb_nonneg
+              · norm_cast
+              · norm_cast
+                linarith
+            · norm_cast
+              linarith
+        · apply mul_nonneg
+          · norm_cast
+            linarith
+          · norm_cast
+            linarith
+      · simp only [inv_pos, Nat.cast_pos, hk]
+    · apply mul_nonneg
+      · norm_cast
+        linarith
+      · apply add_nonneg
+        · apply Real.logb_nonneg
+          · norm_cast
+          · norm_cast
+            linarith
+        · simp
+    · norm_cast
+      simp only [zero_le]
 
-
-      sorry
-    · sorry
-    · sorry
-
-  sorry
 
   have prod_limit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by sorry
 
