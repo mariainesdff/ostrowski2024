@@ -45,9 +45,6 @@ lemma int_norm_bound_iff_nat_norm_bound :
   · simp only [Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
     exact h n
 
--- I don't think this is needed anymore.
--- lemma mul_eq_pow {a : ℚ} {n : ℕ} : f (a ^ n) = (f a) ^ n := map_pow f a n
-
 lemma NormRat_eq_on_Int_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ (∀ n : ℤ , f n = g n) := by
   refine' ⟨_, fun a n => a n⟩
   intro h z

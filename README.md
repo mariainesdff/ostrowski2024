@@ -57,6 +57,22 @@ theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 * Absolute value on Q is determined by its values on the positive integers TODO
 
 * Formalize the statement: We will prove
