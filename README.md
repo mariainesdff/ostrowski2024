@@ -55,7 +55,7 @@ theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
 * We were not able to effectively use available tactics for handling formulas (i.e. `linarith`, `omega`, `gcongr`) in expressions involving several casts;
 
 
-
+------------------
 
 
 
