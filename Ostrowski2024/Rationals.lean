@@ -135,9 +135,9 @@ lemma one_lim_kroot_log_expr (n0 n : ℕ) (hn0_ge2: 1 < n0) (hn : 1 < n) : Filte
           simp
           exact (lt_trans zero_lt_one hn)
         _ < Real.logb ↑n0 ↑n + 1 := lt_add_of_pos_right (Real.logb ↑n0 ↑n) zero_lt_one
-      sorry
-      -- one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1)) hpos
-      -- this should work I have no idea why it does not
+      convert_to Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ (1/(k:ℝ))) Filter.atTop (nhds 1)
+      · simp only [one_div]
+      apply one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1)) hpos
 
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
@@ -373,12 +373,18 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
 
   have prod_limit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
     intro n hn
-    have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)) Filter.atTop (nhds 1) := one_lim_kroot_log_expr n0 n hn0_ge2 hn
+    have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹))
+        Filter.atTop (nhds 1) := one_lim_kroot_log_expr n0 n hn0_ge2 hn
 
-    have hklim : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by sorry
+    have hklim : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
+
+      --apply tendsto_rpow_div
+      sorry
       -- tendsto_rpow_div is the limit we want but has issues with casts
 
-    have hprod :  Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds (1*1)) := Filter.Tendsto.mul hnlim hklim
+    have hprod :  Filter.Tendsto (fun k : ℕ ↦
+        (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds (1*1))
+            := Filter.Tendsto.mul hnlim hklim
     simp at hprod
     exact hprod
 
