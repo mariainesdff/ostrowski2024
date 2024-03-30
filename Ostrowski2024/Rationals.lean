@@ -119,6 +119,26 @@ lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
   simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
 
+/- the function `(n0 * ((Real.logb n0 n) + 1))^k^⁻¹` tends to `1` as `k → ∞`-/
+lemma one_lim_kroot_log_expr (n0 n : ℕ) (hn0_ge2: 1 < n0) (hn : 1 < n) : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)) Filter.atTop (nhds 1) := by
+      have hpos : 0 < (n0 * (Real.logb (↑ n0) (↑n) + 1)) := by
+        rw[mul_pos_iff]
+        left
+        constructor
+        norm_cast
+        exact (lt_trans zero_lt_one hn0_ge2)
+        calc
+        0 < Real.logb ↑n0 ↑n := by
+          rw[Real.logb_pos_iff ?_ ?_]
+          simp[hn]
+          simp[hn0_ge2]
+          simp
+          exact (lt_trans zero_lt_one hn)
+        _ < Real.logb ↑n0 ↑n + 1 := lt_add_of_pos_right (Real.logb ↑n0 ↑n) zero_lt_one
+      sorry
+      -- one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1)) hpos
+      -- this should work I have no idea why it does not
+
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
@@ -144,8 +164,8 @@ lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 
   rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
   exact_mod_cast this
 
-/- intermediate lemma computing upper bound of `f ↑ n` in terms of logarithms -/
-  lemma fn_le_n0_logb (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k) (hkroot : f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
+/- intermediate lemma computing upper bound of `f ↑ n` in terms of `k`-th root of logarithm -/
+  lemma fn_le_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k) (hkroot : f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
     -- intro n0
     intro n hn k hk hkroot
    -- replace hkroot := hkroot n hn k hk
@@ -346,17 +366,14 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
 
   have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
     intro n hn k hk
-    apply fn_le_n0_logb f n0 hn0_ge2
+    apply fn_le_kroot f n0 hn0_ge2
     · exact hn
     · exact hk
     · exact hkroot n hn k hk
 
   have prod_limit : ∀ (n : ℕ), 1 < n → Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
     intro n hn
-    have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)) Filter.atTop (nhds 1) := by
-      have hpos : 0 < (n0 * (Real.logb (↑ n0) (↑n) + 1)) := by sorry
-      sorry
-      --exact one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1)) hpos
+    have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)) Filter.atTop (nhds 1) := one_lim_kroot_log_expr n0 n hn0_ge2 hn
 
     have hklim : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by sorry
       -- tendsto_rpow_div is the limit we want but has issues with casts
