@@ -89,14 +89,16 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
           apply f.add_le'
       _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
 
--- ## Auxiliary lemma for limit
-
+/- ## Auxiliary lemma for limit
+    If `a :ℝ` is bounded above by a function `g : ℕ → ℝ` for every `k : ℕ` then it is less or equal than the limit `lim_{k → ∞} g(k)`-/
 
 lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a ≤ g k) (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
   set f:= fun _ : ℕ ↦ (a : ℝ)
   have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
   exact le_of_tendsto_of_tendsto' hflim hg ha
 
+/- For the applications we need the same statement with the extra hypothesis that ` a ≤ g(k)` holds for every `k > 0`. This is done using the notion of `eventually less`
+-/
 lemma forall_le_limit' (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
   (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
   set f:= fun _ : ℕ ↦ (a : ℝ) with hf
