@@ -268,7 +268,25 @@ lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
     f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by
   sorry
 
+lemma bar : Filter.Tendsto (fun x : ℝ  ↦ ( x ^ (x)⁻¹)) Filter.atTop (nhds 1) → Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
+  rw [Filter.tendsto_def,Filter.tendsto_def]
+  simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
+  intro h s1 hs1
+  rcases (h s1 hs1) with ⟨s2, hs2⟩
 
+  use (Nat.floor s2)+1
+  intro b hs2b
+  specialize hs2 b
+  have : s2 ≤ ↑b := by
+    calc s2 ≤ ⌊s2⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one s2)
+      _ ≤ ↑b := by exact_mod_cast hs2b
+  exact hs2 this
+
+lemma foo : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
+  apply bar
+  convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (1/x))) Filter.atTop (nhds 1)
+  · simp only [one_div]
+  apply tendsto_rpow_div
 
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
@@ -376,15 +394,20 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹))
         Filter.atTop (nhds 1) := one_lim_kroot_log_expr n0 n hn0_ge2 hn
 
-    have hklim : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
+--proved this in a lemma above called foo
+   /-  have hklim : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
+      convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (x⁻¹))) Filter.atTop (nhds 1)
+      ·
+        sorry
+      convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (1/x))) Filter.atTop (nhds 1)
+      · simp only [one_div]
+      apply tendsto_rpow_div -/
 
-      --apply tendsto_rpow_div
-      sorry
       -- tendsto_rpow_div is the limit we want but has issues with casts
 
     have hprod :  Filter.Tendsto (fun k : ℕ ↦
         (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds (1*1))
-            := Filter.Tendsto.mul hnlim hklim
+            := Filter.Tendsto.mul hnlim foo
     simp at hprod
     exact hprod
 
