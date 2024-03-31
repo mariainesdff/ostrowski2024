@@ -139,6 +139,28 @@ lemma one_lim_kroot_log_expr (n0 n : ℕ) (hn0_ge2: 1 < n0) (hn : 1 < n) : Filte
       · simp only [one_div]
       apply one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1)) hpos
 
+/-auxiliary lemma to compute the limit as `k → ∞` of the function `k : ℕ ↦ k^k`-/
+lemma bar : Filter.Tendsto (fun x : ℝ  ↦ ( x ^ (x)⁻¹)) Filter.atTop (nhds 1) → Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
+  rw [Filter.tendsto_def,Filter.tendsto_def]
+  simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
+  intro h s1 hs1
+  rcases (h s1 hs1) with ⟨s2, hs2⟩
+
+  use (Nat.floor s2)+1
+  intro b hs2b
+  specialize hs2 b
+  have : s2 ≤ ↑b := by
+    calc s2 ≤ ⌊s2⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one s2)
+      _ ≤ ↑b := by exact_mod_cast hs2b
+  exact hs2 this
+
+/-extends the lemma `tendsto_rpow_div` when the function has natural input-/
+lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
+  apply bar
+  convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (1/x))) Filter.atTop (nhds 1)
+  · simp only [one_div]
+  apply tendsto_rpow_div
+
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
 
@@ -164,8 +186,37 @@ lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 
   rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
   exact_mod_cast this
 
+/-
+The lemma formalizes taking the `k`-th root in the inequality `f ↑n ^ k ≤ ↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1)`-/
+lemma fn_le_kroot_log (n0 : ℕ) (hn0 : 1 < n0) (hnk : ∀ {n : ℕ}, 1 < n → ∀ {k : ℕ}, 0 < k → f ↑n ^ k ≤ ↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1)): ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
+      --intro n0
+      intro n hn k hk
+      have hnk_pos : 1 < (↑n ^ k) := by
+        apply one_lt_pow hn
+        linarith
+      have hlog_pos : 0 < (Real.logb (↑n0) (↑n ^ k)) := by
+        refine Real.logb_pos ?_ ?_
+        · norm_cast
+        · norm_cast
+      replace hnk : (f ↑n ^ k) ^ (k:ℝ)⁻¹ ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
+        apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
+        · apply pow_nonneg
+          exact apply_nonneg f _
+        · apply hnk hn hk
+        · apply le_of_lt
+          positivity
+      have : (f ↑n ^ (k:ℝ)) ^ (k:ℝ)⁻¹ = f ↑n := by
+        --norm_cast
+        apply Real.rpow_rpow_inv
+        · exact apply_nonneg f _
+        · simp
+          omega
+      rw [← this]
+      convert hnk
+      rw [Real.rpow_nat_cast]
+
 /- intermediate lemma computing upper bound of `f ↑ n` in terms of `k`-th root of logarithm -/
-  lemma fn_le_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k) (hkroot : f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
+  lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k) (hkroot : f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
     -- intro n0
     intro n hn k hk hkroot
    -- replace hkroot := hkroot n hn k hk
@@ -268,25 +319,7 @@ lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
     f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by
   sorry
 
-lemma bar : Filter.Tendsto (fun x : ℝ  ↦ ( x ^ (x)⁻¹)) Filter.atTop (nhds 1) → Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
-  rw [Filter.tendsto_def,Filter.tendsto_def]
-  simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
-  intro h s1 hs1
-  rcases (h s1 hs1) with ⟨s2, hs2⟩
 
-  use (Nat.floor s2)+1
-  intro b hs2b
-  specialize hs2 b
-  have : s2 ≤ ↑b := by
-    calc s2 ≤ ⌊s2⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one s2)
-      _ ≤ ↑b := by exact_mod_cast hs2b
-  exact hs2 this
-
-lemma foo : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
-  apply bar
-  convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (1/x))) Filter.atTop (nhds 1)
-  · simp only [one_div]
-  apply tendsto_rpow_div
 
 lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
   contrapose! notbdd
@@ -356,35 +389,11 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         · simp
         · simp
         · simp_all
-  have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
-      intro n hn k hk
-      have hnk_pos : 1 < (↑n ^ k) := by
-        apply one_lt_pow hn
-        linarith
-      have hlog_pos : 0 < (Real.logb (↑n0) (↑n ^ k)) := by
-        refine Real.logb_pos ?_ ?_
-        · norm_cast
-        · norm_cast
-      replace hnk : (f ↑n ^ k) ^ (k:ℝ)⁻¹ ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
-        apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
-        · apply pow_nonneg
-          exact apply_nonneg f _
-        · apply hnk hn hk
-        · apply le_of_lt
-          positivity
-      have : (f ↑n ^ (k:ℝ)) ^ (k:ℝ)⁻¹ = f ↑n := by
-        --norm_cast
-        apply Real.rpow_rpow_inv
-        · exact apply_nonneg f _
-        · simp
-          omega
-      rw [← this]
-      convert hnk
-      rw [Real.rpow_nat_cast]
+  have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := fn_le_kroot_log n0 hn0_ge2 hnk
 
   have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
     intro n hn k hk
-    apply fn_le_kroot f n0 hn0_ge2
+    apply fn_le_mul_kroot f n0 hn0_ge2
     · exact hn
     · exact hk
     · exact hkroot n hn k hk
@@ -394,23 +403,11 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹))
         Filter.atTop (nhds 1) := one_lim_kroot_log_expr n0 n hn0_ge2 hn
 
---proved this in a lemma above called foo
-   /-  have hklim : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
-      convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (x⁻¹))) Filter.atTop (nhds 1)
-      ·
-        sorry
-      convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (1/x))) Filter.atTop (nhds 1)
-      · simp only [one_div]
-      apply tendsto_rpow_div -/
-
-      -- tendsto_rpow_div is the limit we want but has issues with casts
-
     have hprod :  Filter.Tendsto (fun k : ℕ ↦
         (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds (1*1))
-            := Filter.Tendsto.mul hnlim foo
+            := Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
     simp at hprod
     exact hprod
-
 
   intro n
   cases' n with n
@@ -426,10 +423,6 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       refine' forall_le_limit' (f ↑(Nat.succ n))
         (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(Nat.succ n)) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) 1
         h_ex_const prod_limit
-
-  --· sorry
-  --· sorry
-
 
 -- ## step 2
 -- given m,n \geq 2 and |m|=m^s, |n|=n^t for s,t >0, prove t \leq s
