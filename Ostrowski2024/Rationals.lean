@@ -91,7 +91,7 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
       _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
 
 /-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by `n0 + n0 |n0| + n0 |n0|^2 + ...`-/
-lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_ge2: 1 < n0) (n : ℕ) (hn: 1 < n) (k : ℕ) (hk: 0 < k) (hcoeff: ∀ c ∈ Nat.digits n0 (n ^ k), f ↑c < ↑n0): (f n)^k ≤ ((Nat.digits n0 (n^k)).mapIdx fun i a => n0 * n0 ^ i).sum := by
+lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_ge2: 1 < n0) (n : ℕ) (hn: 1 < n) (k : ℕ) (hk: 0 < k) (hcoeff: ∀ c ∈ Nat.digits n0 (n ^ k), f ↑c < ↑n0): (f n)^k ≤ ((Nat.digits n0 (n^k)).mapIdx fun i a => n0 * (f n0) ^ i).sum := by
     set L := Nat.digits n0 (n ^ k) with hL
     set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a => (a * n0 ^ i)) with hL'
     calc
@@ -101,9 +101,9 @@ lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_
             rw [Nat.ofDigits_eq_sum_mapIdx, hL']
             norm_cast
           _ ≤ (L'.map f).sum := flist_triang _ _
-          _ ≤ (L.mapIdx fun i a => n0 * n0 ^ i).sum := by
+          _ ≤ (L.mapIdx fun i a => n0 * (f n0) ^ i).sum := by
                 simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
-                simp
+                --simp
                 apply List.sum_le_sum
                 rintro ⟨i,a⟩ hia
                 dsimp [Function.uncurry]
@@ -111,19 +111,14 @@ lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_
                 have ha := le_of_lt (hcoeff _ hia.2.2)
                 push_cast
                 rw[map_mul, map_pow]
-                have hfn0 := MulRingNorm_nat_le_nat n0 f
-                have hfn0_pos : 0 < f n0 := by
-                  rw [lt_iff_le_and_ne]
-                  constructor
-                  exact apply_nonneg f _
-                  sorry
-                refine mul_le_mul ha (pow_le_pow_left (le_of_lt hfn0_pos) hfn0 i) ?_ ?_
-                exact le_of_lt (pow_pos hfn0_pos i)
+                refine mul_le_mul ha ?_ ?_ ?_
+                simp
+                apply pow_nonneg
+                simp
                 simp
 
 lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
-    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by
-  sorry
+    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by sorry
 
 /- ## Auxiliary lemma for limits
     If `a :ℝ` is bounded above by a function `g : ℕ → ℝ` for every `k : ℕ` then it is less or equal than the limit `lim_{k → ∞} g(k)`-/
@@ -227,13 +222,13 @@ The lemma formalizes taking the `k`-th root in the inequality `f ↑n ^ k ≤ �
 lemma fn_le_kroot_log (n0 : ℕ) (hn0 : 1 < n0) (hnk : ∀ {n : ℕ}, 1 < n → ∀ {k : ℕ}, 0 < k → f ↑n ^ k ≤ ↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1)): ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
       --intro n0
       intro n hn k hk
-      have hnk_pos : 1 < (↑n ^ k) := by
-        apply one_lt_pow hn
-        linarith
-      have hlog_pos : 0 < (Real.logb (↑n0) (↑n ^ k)) := by
-        refine Real.logb_pos ?_ ?_
-        · norm_cast
-        · norm_cast
+      -- have hnk_pos : 1 < (↑n ^ k) := by
+      --   apply one_lt_pow hn
+      --   linarith
+      -- have hlog_pos : 0 < (Real.logb (↑n0) (↑n ^ k)) := by
+      --   refine Real.logb_pos ?_ ?_
+      --   · norm_cast
+      --   · norm_cast
       replace hnk : (f ↑n ^ k) ^ (k:ℝ)⁻¹ ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
         apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
         · apply pow_nonneg
