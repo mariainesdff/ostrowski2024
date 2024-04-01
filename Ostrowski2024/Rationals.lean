@@ -121,6 +121,9 @@ lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_
                 exact le_of_lt (pow_pos hfn0_pos i)
                 simp
 
+lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
+    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by
+  sorry
 
 /- ## Auxiliary lemma for limits
     If `a :ℝ` is bounded above by a function `g : ℕ → ℝ` for every `k : ℕ` then it is less or equal than the limit `lim_{k → ∞} g(k)`-/
@@ -348,9 +351,7 @@ lemma fn_le_kroot_log (n0 : ℕ) (hn0 : 1 < n0) (hnk : ∀ {n : ℕ}, 1 < n → 
 open BigOperators
 
 
-lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
-    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by
-  sorry
+
 
 
 
