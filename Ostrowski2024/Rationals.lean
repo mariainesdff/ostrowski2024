@@ -78,8 +78,9 @@ end Padic
 
 section Archimedean
 
--- ## auxiliary Lemma: triangle inequality for lists
+-- ## auxiliary Lemmas for lists
 
+/-Triangle inequality for absolute values applied to Lists-/
 lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).sum := by
   induction l with
   | nil => simp
@@ -88,6 +89,38 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
     calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by
           apply f.add_le'
       _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
+
+/-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by `n0 + n0 |n0| + n0 |n0|^2 + ...`-/
+lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_ge2: 1 < n0) (n : ℕ) (hn: 1 < n) (k : ℕ) (hk: 0 < k) (hcoeff: ∀ c ∈ Nat.digits n0 (n ^ k), f ↑c < ↑n0): (f n)^k ≤ ((Nat.digits n0 (n^k)).mapIdx fun i a => n0 * n0 ^ i).sum := by
+    set L := Nat.digits n0 (n ^ k) with hL
+    set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a => (a * n0 ^ i)) with hL'
+    calc
+    (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
+            rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
+          _ = f (L'.sum) := by
+            rw [Nat.ofDigits_eq_sum_mapIdx, hL']
+            norm_cast
+          _ ≤ (L'.map f).sum := flist_triang _ _
+          _ ≤ (L.mapIdx fun i a => n0 * n0 ^ i).sum := by
+                simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
+                simp
+                apply List.sum_le_sum
+                rintro ⟨i,a⟩ hia
+                dsimp [Function.uncurry]
+                replace hia := List.mem_enumFrom _ hia
+                have ha := le_of_lt (hcoeff _ hia.2.2)
+                push_cast
+                rw[map_mul, map_pow]
+                have hfn0 := MulRingNorm_nat_le_nat n0 f
+                have hfn0_pos : 0 < f n0 := by
+                  rw [lt_iff_le_and_ne]
+                  constructor
+                  exact apply_nonneg f _
+                  sorry
+                refine mul_le_mul ha (pow_le_pow_left (le_of_lt hfn0_pos) hfn0 i) ?_ ?_
+                exact le_of_lt (pow_pos hfn0_pos i)
+                simp
+
 
 /- ## Auxiliary lemma for limits
     If `a :ℝ` is bounded above by a function `g : ℕ → ℝ` for every `k : ℕ` then it is less or equal than the limit `lim_{k → ∞} g(k)`-/
