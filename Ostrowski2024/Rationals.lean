@@ -91,7 +91,9 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
       _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
 
 /-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by `n0 + n0 |n0| + n0 |n0|^2 + ...`-/
-lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_ge2: 1 < n0) (n : ℕ) (hn: 1 < n) (k : ℕ) (hk: 0 < k) (hcoeff: ∀ c ∈ Nat.digits n0 (n ^ k), f ↑c < ↑n0): (f n)^k ≤ ((Nat.digits n0 (n^k)).mapIdx fun i a => n0 * (f n0) ^ i).sum := by
+lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_ge2: 1 < n0) (n : ℕ) (hn: 1 < n) (k : ℕ)
+    (hk: 0 < k) (hcoeff: ∀ c ∈ Nat.digits n0 (n ^ k), f ↑c < ↑n0):
+        (f n)^k ≤ ((Nat.digits n0 (n^k)).mapIdx fun i a => n0 * (f n0) ^ i).sum := by
     set L := Nat.digits n0 (n ^ k) with hL
     set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a => (a * n0 ^ i)) with hL'
     calc
@@ -116,6 +118,7 @@ lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_
                 apply pow_nonneg
                 simp
                 simp
+open BigOperators
 
 lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
     f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by sorry
@@ -559,11 +562,44 @@ lemma le_of_param_upperbound {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A 
   apply ge_of_tendsto_mul' (one_lim_of_roots C hC)
   exact hub
 
-lemma le_of_param_upperbound' {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
+open Filter
+lemma ge_of_tendsto_mul'' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ}
+  (lim : Filter.Tendsto C Filter.atTop (nhds limC)) (h : ∀ k, k ≠ 0 → A ≤ (C k) * B) : A ≤ limC * B := by
+  have limCB : Filter.Tendsto (fun k ↦ (C k) * B) Filter.atTop (nhds (limC * B)) := by
+    refine Filter.Tendsto.mul_const B lim
+  apply (ge_of_tendsto limCB )
+  rw [Filter.eventually_iff_exists_mem]
+  use {b | 1 ≤ b}
+  constructor
+  · simp only [mem_atTop_sets, ge_iff_le, Set.mem_setOf_eq]
+    use 1
+    exact fun b a => a
+  · intro y hy
+    simp only [Set.mem_setOf_eq] at hy
+    exact h y (by linarith)
+
+
+/- open Filter
+lemma ge_of_tendsto_mul'' {A B : ℝ} {K : ℕ → ℝ}
+  (lim : Filter.Tendsto K Filter.atTop (nhds 1)) (h : ∀ k, k≠ 0 →  A ≤ (K k) * B) : A ≤ B := by
+  by_cases hB : B > 0
+  · have : A/B ≤ 1 := by sorry
+
+    sorry
+
+  · push_neg at hB
+    rw [hB]
+    rw [hB] at h
+    specialize h 1 one_ne_zero
+    simp only [mul_zero] at h
+    exact h -/
+
+lemma le_of_param_upperbound' {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ),k ≠ 0 →  A ≤ C ^ (1 / (k:ℝ)) * B) :
      A ≤ B := by
+  let K:= fun x : ℕ  => C ^ (1 / (x : ℝ ))
+  have lim : Filter.Tendsto K Filter.atTop (nhds 1) :=  one_lim_of_roots C hC
   rw [← one_mul B]
-  apply ge_of_tendsto_mul' (one_lim_of_roots C hC)
-  exact hub
+  exact ge_of_tendsto_mul'' lim hub
 
 
 lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
@@ -584,13 +620,13 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
     · linarith
 
   have zero_lt_A : 0 < A := by linarith
-  refine le_of_param_upperbound zero_lt_A ?_
-  sorry
-  --apply param_upperbound m n hmge hnge sorry
+  refine le_of_param_upperbound' zero_lt_A ?_
+  intro k hk
+  apply param_upperbound m n hmge hnge notbdd k hk
 
 
 lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t)  : t ≤ s := by
-    have hmn : f n ≤ (f m)^(Real.logb m n) := key_inequality m n hmge notbdd
+    have hmn : f n ≤ (f m)^(Real.logb m n) := key_inequality m n hmge hnge notbdd
     rw [← Real.rpow_le_rpow_left_iff (x:= n)]
     · rw[← hn]
       rw [hm] at hmn
