@@ -33,9 +33,9 @@ lemma equiv_trans {R : Type*} [Ring R] (f g k : MulRingNorm R) (hfg : equiv f g)
 
 end MulRingNorm
 
-lemma MulRingNorm_nat_le_nat (n : ℕ) (f : MulRingNorm ℚ) : f n ≤ n := by
+lemma MulRingNorm_nat_le_nat {R : Type*} [Ring R] (n : ℕ) (f : MulRingNorm R) : f n ≤ n := by
   induction' n with n hn
-  · simp only [Nat.zero_eq, CharP.cast_eq_zero, map_zero, le_refl]
+  · simp only [Nat.cast_zero, map_zero, le_refl]
   · simp only [Nat.cast_succ]
     calc
       f (↑n + 1) ≤ f (↑n) + f 1 := f.add_le' ↑n 1
