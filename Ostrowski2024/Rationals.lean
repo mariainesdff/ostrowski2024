@@ -83,12 +83,13 @@ section Archimedean
 /-Triangle inequality for absolute values applied to Lists-/
 lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).sum := by
   induction l with
-  | nil => simp
+  | nil => simp only [List.sum_nil, map_zero, List.map_nil, le_refl]
   | cons head tail ih =>
     simp only [List.sum_cons, List.map_cons]
     calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by
           apply f.add_le'
       _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
+
 
 /-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by `n0 + n0 |n0| + n0 |n0|^2 + ...`-/
 lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_ge2: 1 < n0) (n : ℕ) (hn: 1 < n) (k : ℕ)
@@ -487,6 +488,65 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
       exact mul_nonneg (by linarith only [hmge]) (by linarith only [this])
 
 
+lemma list_mul_sum (l : List ℝ ) (x : ℝ ) : x * l.sum = (l.map fun a => x * a).sum := by
+  induction l with
+  | nil =>
+    simp only [List.sum_nil, mul_zero, List.map_nil]
+  | cons head tail ih =>
+    simp only [List.sum_cons, List.map_cons]
+    rw [mul_add,add_right_inj]
+    exact ih
+
+lemma foo (l : List ℕ  ) : ∀ x : ℝ , List.sum (List.mapIdx (fun i a => x * f ↑m ^ i) (l)) =
+  x * List.sum (List.mapIdx (fun i a => f ↑m ^ i) (l)) := by
+  induction l with
+  | nil => simp only [List.mapIdx_nil, List.sum_nil, mul_zero, forall_const]
+  | cons head tail ih =>
+    intro x
+    simp only [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons]
+    rw [mul_add]
+    simp only [mul_one, add_right_inj]
+
+    sorry
+
+lemma main_inequality' : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
+  obtain hm := notbdd_implies_all_gt_one notbdd
+  have : 1< f m := by simp only [hm m hmge]
+  let d := Nat.log m n
+  have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by
+    rw [geom_sum_eq]
+    apply ne_of_gt
+    linarith
+  have hcoeff (k c : ℕ)  (hc: c ∈ Nat.digits m (n^k)) : f c < m := by
+      have hcltn0 : c < m := Nat.digits_lt_base hmge hc
+      have := MulRingNorm_nat_le_nat c f
+      apply lt_of_le_of_lt
+      · exact this
+      · exact_mod_cast hcltn0
+  have h : ∀ k, 0 < k → (f n)^k ≤ ((Nat.digits m (n^k)).mapIdx fun i a => m * (f m) ^ i).sum  := by
+    intro k hk
+    exact mulringnorm_n_pow_k_le_sum_digits_n0 _ _ hmge _ hnge _ hk (hcoeff k )
+  calc f ↑n ≤ ((Nat.digits m (n)).mapIdx fun i a => m * (f m) ^ i).sum := by
+        specialize h 1 zero_lt_one
+        simp only [pow_one] at h
+        exact h
+    _ = m * ((Nat.digits m (n)).mapIdx fun i a =>  (f m) ^ i).sum := by
+      apply foo
+    _ ≤ m * ((f ↑m ^ (d+1) - 1)/(f ↑m - 1)) := by
+      apply mul_le_mul_of_nonneg_left _ (Nat.cast_nonneg m)
+      set L := Nat.digits m (n ) with hL
+      sorry
+    _ ≤ m * ((f ↑m ^ (d+1))/(f ↑m - 1)) := by
+      apply mul_le_mul_of_nonneg_left _ (Nat.cast_nonneg m)
+      exact div_le_div_of_nonneg_right (by linarith only [hmge, this]) (by linarith only [this])
+    _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
+    _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
+      apply mul_le_mul_of_nonneg_left
+      rw [←Real.rpow_nat_cast]
+      apply Real.rpow_le_rpow_of_exponent_le (le_of_lt this)
+      apply nat_log_le_real_log m n (by linarith [hmge]) hmge
+      apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt this)
+      exact mul_nonneg (by linarith only [hmge]) (by linarith only [this])
 
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
   simp only [logb, log_pow, mul_div]
