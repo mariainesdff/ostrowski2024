@@ -19,13 +19,13 @@ This file states some basic lemmas about mul_ring_norm ℚ
 -/
 
 noncomputable section
-
+variable {R : Type*} [Ring R]
 variable {f g : MulRingNorm ℚ}
 
 /-- The norm of -1 is 1 -/
-lemma norm_neg_one_eq_one : f (-1) = 1 := by simp only [map_neg_eq_map, map_one]
+lemma norm_neg_one_eq_one {f : MulRingNorm R} : f (-1) = 1 := by simp only [map_neg_eq_map, map_one]
 
-lemma f_of_abs_eq_f (x : ℤ) : f (Int.natAbs x) = f x := by
+lemma f_of_abs_eq_f {f: MulRingNorm R} (x : ℤ) : f (Int.natAbs x) = f x := by
  obtain ⟨n,rfl|rfl⟩ := Int.eq_nat_or_neg x
  · simp only [Int.natAbs_ofNat, Int.cast_ofNat]
  · simp only [Int.natAbs_neg, Int.natAbs_ofNat, Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
@@ -53,7 +53,7 @@ lemma NormRat_eq_on_Int_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ (∀ n : �
   · simp only [Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
     exact h n
 
-lemma NormRat_eq_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ f = g := by
+lemma NormRat_eq_iff_eq_on_Nat :  (∀ n : ℕ , f n = g n) ↔ f = g := by
   refine' ⟨_, fun h n => congrFun (congrArg DFunLike.coe h) ↑n⟩
   intro h
   ext z
