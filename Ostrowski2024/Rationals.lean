@@ -466,49 +466,6 @@ open BigOperators
 
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
-/- lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
-  obtain hm := notbdd_implies_all_gt_one notbdd
-  have : 1< f m := by simp only [hm m hmge]
-  let d := Nat.log m n
-  have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by
-    rw [geom_sum_eq]
-    apply ne_of_gt
-    linarith
-  calc f ↑n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) :=  fn_le_from_expansion m n hmge hnge
-    _ = m * (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by rw [hsum]; ring
-    _ ≤ m * (f ↑m ^ (d+1))/(f ↑m - 1) := by
-      apply div_le_div_of_nonneg_right (by linarith only [hmge, this]) (by linarith only [this])
-    _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
-    _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
-      apply mul_le_mul_of_nonneg_left
-      rw [←Real.rpow_nat_cast]
-      apply Real.rpow_le_rpow_of_exponent_le (le_of_lt this)
-      apply nat_log_le_real_log m n (by linarith [hmge]) hmge
-      apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt this)
-      exact mul_nonneg (by linarith only [hmge]) (by linarith only [this]) -/
-
-
-/- lemma list_mul_sum (l : List ℝ ) (x : ℝ ) : x * l.sum = (l.map fun a => x * a).sum := by
-  induction l with
-  | nil =>
-    simp only [List.sum_nil, mul_zero, List.map_nil]
-  | cons head tail ih =>
-    simp only [List.sum_cons, List.map_cons]
-    rw [mul_add,add_right_inj]
-    exact ih -/
-
-/- lemma list_mul_sum (l : List ℕ  )  : ∀ x : ℝ , List.sum (List.mapIdx (fun i a => x * f ↑m ^ i) (l)) =
-  x * List.sum (List.mapIdx (fun i a => f ↑m ^ i) (l)) := by
-  induction l with
-  | nil => simp only [List.mapIdx_nil, List.sum_nil, mul_zero, forall_const]
-  | cons head tail ih =>
-    intro x
-    simp only [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons]
-    rw [mul_add]
-    simp only [mul_one, add_right_inj]
-    have (a : ℕ ) : f ↑m ^ (a + 1) = f m * f ↑m ^ a := by ring
-    simp_rw [this, ← mul_assoc, ih,← mul_assoc] -/
-
 
 lemma list_mul_sum (l : List ℕ  ) (y : ℝ ) : ∀ x : ℝ , List.sum (List.mapIdx (fun i a => x * y ^ i) (l)) =
   x * List.sum (List.mapIdx (fun i a => y ^ i) (l)) := by
@@ -540,7 +497,6 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
   let d := Nat.log m n
   have hd_length : d + 1  = (Nat.digits m (n)).length := by
     rw [Nat.digits_len _ _ hmge (by linarith only [hnge])]
-      --rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
   have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by
     rw [geom_sum_eq]
     apply ne_of_gt
@@ -560,8 +516,6 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
         exact h
     _ = m * ((Nat.digits m (n)).mapIdx fun i a =>  (f m) ^ i).sum := by apply list_mul_sum
     _ = m * ((f ↑m ^ (d+1) - 1)/(f ↑m - 1)) := by
-      --apply mul_le_mul_of_nonneg_left _ (Nat.cast_nonneg m)
-      --set L := Nat.digits m (n ) with hL
       rw [list_geom, hd_length]
       rw[sub_ne_zero]
       linarith
@@ -668,20 +622,7 @@ lemma ge_of_tendsto_mul'' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ}
     exact h y (by linarith)
 
 
-/- open Filter
-lemma ge_of_tendsto_mul'' {A B : ℝ} {K : ℕ → ℝ}
-  (lim : Filter.Tendsto K Filter.atTop (nhds 1)) (h : ∀ k, k≠ 0 →  A ≤ (K k) * B) : A ≤ B := by
-  by_cases hB : B > 0
-  · have : A/B ≤ 1 := by sorry
 
-    sorry
-
-  · push_neg at hB
-    rw [hB]
-    rw [hB] at h
-    specialize h 1 one_ne_zero
-    simp only [mul_zero] at h
-    exact h -/
 
 lemma le_of_param_upperbound' {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ),k ≠ 0 →  A ≤ C ^ (1 / (k:ℝ)) * B) :
      A ≤ B := by
