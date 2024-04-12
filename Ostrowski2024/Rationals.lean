@@ -732,7 +732,7 @@ theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)  : MulRin
     · simp
       exact oneltm
     · linarith
-  · rw_mod_cast [← Norm_Rat_equiv_iff_equiv_on_Nat']
+  · rw_mod_cast [← NormRat_equiv_iff_equiv_on_Nat']
     intro n
     have onelefn : n>1 → 1 < f n := by
       apply notbdd_implies_all_gt_one notbdd n
@@ -1032,7 +1032,7 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
   constructor
   · simp only [one_div, inv_pos, h.1]
   · ext x
-    apply (Norm_Rat_equiv_iff_equiv_on_Nat t).1
+    apply (NormRat_equiv_iff_equiv_on_Nat t).1
     intro n
     by_cases hn : n=0
     · rw [hn]
