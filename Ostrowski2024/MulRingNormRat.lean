@@ -53,7 +53,7 @@ lemma NormRat_eq_on_Int_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ (∀ n : �
   · simp only [Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
     exact h n
 
-lemma NormRat_eq_iff_eq_on_Nat :  (∀ n : ℕ , f n = g n) ↔ f = g := by
+lemma NormRat_eq_iff_eq_on_Nat : (∀ n : ℕ , f n = g n) ↔ f = g := by
   refine' ⟨_, fun h n => congrFun (congrArg DFunLike.coe h) ↑n⟩
   intro h
   ext z
@@ -61,6 +61,33 @@ lemma NormRat_eq_iff_eq_on_Nat :  (∀ n : ℕ , f n = g n) ↔ f = g := by
   simp only [map_div₀]
   rw [h, NormRat_eq_on_Int_iff_eq_on_Nat.mp h]
 
+--this uses the definition of equivalence pushed in Mathlib
+lemma NormRat_equiv_iff_equiv_on_Nat1 : (∃ c : ℝ, 0 < c ∧ (∀ n : ℕ , (f n)^c = g n)) ↔ f.equiv g:= by
+  constructor
+  · intro h
+    obtain ⟨c, hc, h⟩ := h
+    use c
+    constructor
+    · exact hc
+    · ext x
+      rw [← Rat.num_div_den x, map_div₀, map_div₀, Real.div_rpow, h x.den]
+      · obtain ⟨n, hpos | hneg ⟩ := Int.eq_nat_or_neg x.num
+        · rw [hpos]
+          push_cast
+          rw [h n]
+        . rw [hneg]
+          push_cast
+          simp_rw [map_neg_eq_map, h n]
+      all_goals exact apply_nonneg f _
+  · intro h
+    obtain ⟨c, hc, h⟩ := h
+    use c
+    constructor
+    · exact hc
+    · intro n
+      rw [← h]
+
+--this is the precise formula needed in Ostrowski
 lemma NormRat_equiv_iff_equiv_on_Nat (t : ℝ) : (∀ n : ℕ , (f n)^(t⁻¹) = g n) ↔ (∀ x : ℚ, (f x)^(t⁻¹) = g x) := by
   constructor
   · intro h x
