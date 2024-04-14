@@ -372,7 +372,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     set d := L.length - 1 with hd
     have hd_natlog : d = Nat.log n0 (n^k) := by
       rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
-    have hnk : 0 ≤ ((n ^ k) :ℝ ) := by positivity
+    --have hnk : 0 ≤ ((n ^ k) :ℝ ) := by positivity
     have hnknz : n^k ≠ 0 := by
       simp only [ne_eq, pow_eq_zero_iff', not_and, not_not]
       intro h
@@ -396,7 +396,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
         rw [Nat.ofDigits_eq_sum_mapIdx, hL']
         norm_cast
       _ ≤ (L'.map f).sum := flist_triang _ _
-      _ ≤ (L.mapIdx fun i a => (n0 : ℝ)).sum := by
+      _ ≤ (L.mapIdx fun _ _ => (n0 : ℝ)).sum := by
         simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
         apply List.sum_le_sum
         rintro ⟨i,a⟩ hia
@@ -416,7 +416,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       _ ≤ n0 * (Real.logb n0 (n ^ k) + 1) := by
         rw [List.mapIdx_eq_enum_map,
           List.eq_replicate_of_mem (a := (n0:ℝ))
-            (l := List.map (Function.uncurry fun i a => ↑n0) (List.enum L)),
+            (l := List.map (Function.uncurry fun _ _ => ↑n0) (List.enum L)),
           List.sum_replicate, List.length_map, List.enum_length,
           nsmul_eq_mul, mul_comm]
         refine mul_le_mul le_rfl ?_ ?_ ?_
@@ -479,8 +479,8 @@ open BigOperators
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
 
-lemma list_mul_sum (l : List ℕ  ) (y : ℝ ) : ∀ x : ℝ , List.sum (List.mapIdx (fun i a => x * y ^ i) (l)) =
-  x * List.sum (List.mapIdx (fun i a => y ^ i) (l)) := by
+lemma list_mul_sum (l : List ℕ  ) (y : ℝ ) : ∀ x : ℝ , List.sum (List.mapIdx (fun i _ => x * y ^ i) (l)) =
+  x * List.sum (List.mapIdx (fun i _ => y ^ i) (l)) := by
   induction l with
   | nil => simp only [List.mapIdx_nil, List.sum_nil, mul_zero, forall_const]
   | cons head tail ih =>
@@ -492,7 +492,7 @@ lemma list_mul_sum (l : List ℕ  ) (y : ℝ ) : ∀ x : ℝ , List.sum (List.ma
     simp_rw [this, ← mul_assoc, ih,← mul_assoc]
 
 lemma list_geom (l : List ℕ )  (y : ℝ ) (hy : y - 1 ≠ 0) :
-    List.sum (List.mapIdx (fun i a => y ^ i) l) = (y ^ l.length - 1) / (y - 1) := by
+    List.sum (List.mapIdx (fun i _ => y ^ i) l) = (y ^ l.length - 1) / (y - 1) := by
   induction l with
   | nil => simp only [List.mapIdx_nil, List.sum_nil, List.length_nil, pow_zero, sub_self, zero_div]
   | cons head tail ih =>
@@ -520,7 +520,7 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
       apply lt_of_le_of_lt
       · exact this
       · exact_mod_cast hcltn0
-  have h : ∀ k, 0 < k → (f n)^k ≤ ((Nat.digits m (n^k)).mapIdx fun i a => m * (f m) ^ i).sum  := by
+  have h : ∀ k, 0 < k → (f n)^k ≤ ((Nat.digits m (n^k)).mapIdx fun i _ => m * (f m) ^ i).sum  := by
     intro k hk
     exact mulringnorm_n_pow_k_le_sum_digits_n0 _ _ hmge _ hnge _ hk (hcoeff k )
   calc f ↑n ≤ ((Nat.digits m (n)).mapIdx fun i _ => m * (f m) ^ i).sum := by
@@ -715,97 +715,53 @@ end Step2
 
 theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)  : MulRingNorm.equiv f mulRingNorm_real := by
   obtain ⟨m, hm⟩ := Classical.exists_not_of_not_forall notbdd
-  have oneltm : 1<m := by
+  have oneltm : 1 < m := by
     by_contra!
+    apply hm
     replace this : m = 0 ∨ m = 1 := by omega
     rcases this with (rfl | rfl )
-    · rw_mod_cast [map_zero] at hm
-      simp at hm
-    · rw_mod_cast [map_one] at hm
-      simp at hm
+    all_goals simp only [CharP.cast_eq_zero, map_zero, zero_le_one,Nat.cast_one, map_one, le_refl]
   set s := Real.logb m (f m) with hs
   use s⁻¹
   constructor
-  · rw [hs]
-    simp
-    apply Real.logb_pos
-    · simp
-      exact oneltm
-    · linarith
+  · rw [hs,inv_pos]
+    apply Real.logb_pos (Nat.one_lt_cast.2 oneltm) (by linarith only [hm])
   · rw_mod_cast [← NormRat_equiv_iff_equiv_on_Nat']
     intro n
-    have onelefn : n>1 → 1 < f n := by
-      apply notbdd_implies_all_gt_one notbdd n
     by_cases nzero : n=0
-    · rw_mod_cast [nzero]
+    · rw [nzero]
       simp only [CharP.cast_eq_zero, map_zero, le_refl]
-      rw [Real.rpow_eq_zero]
-      · simp only [le_refl]
-      · simp only [ne_eq, inv_eq_zero]
-        rw [hs]
-        simp only [Real.logb_eq_zero, Nat.cast_eq_zero, Nat.cast_eq_one, map_eq_zero]
-        norm_cast
-        simp only [Int.reduceNegSucc, Int.cast_neg, Int.cast_one, false_or]
+      rw [Real.rpow_eq_zero (le_rfl)]
+      · rw [hs]
+        simp only [ne_eq, inv_eq_zero, Real.logb_eq_zero, Nat.cast_eq_zero, Nat.cast_eq_one,
+          map_eq_zero]
         push_neg
-        constructor
-        · omega
-        · constructor
-          · omega
-          · constructor
-            · omega
-            · constructor
-              · linarith
-              · linarith
+        norm_cast
+        simp only [not_false_eq_true, Int.reduceNegSucc, Int.cast_neg, Int.cast_one, true_and]
+        refine ⟨by  omega, by  omega, by  omega, by linarith, by linarith⟩
     · by_cases none : n=1
       · rw [none]
         simp only [Nat.cast_one, map_one, Real.one_rpow]
-      · have oneltn : 1<n := by
-          omega
-        have fngeone : f n > 1 := by
-          apply notbdd_implies_all_gt_one notbdd
-          exact oneltn
+      · have oneltn : 1 < n := by omega
+        have fngeone : 1 < f n := notbdd_implies_all_gt_one notbdd _ oneltn
         set t := Real.logb n (f n) with ht
         have hm' : (f m )= m ^ s := by
-          rw [hs,Real.rpow_logb ]
-          · norm_cast
-            omega
-          · norm_cast
-            omega
-          · linarith
+          rw [hs,Real.rpow_logb _ _ (by linarith) ]
+          all_goals norm_cast
+          all_goals omega
         have hn : (f n )= n ^ t := by
-          rw [ht,Real.rpow_logb ]
-          · norm_cast
-            omega
-          · norm_cast
-          · linarith
+          rw [ht,Real.rpow_logb _ _ (by linarith) ]
+          all_goals norm_cast
+          all_goals omega
         have seqt : s = t := by
-          apply symmetric_roles
-          · exact oneltm
-          · exact oneltn
-          · exact notbdd
-          · exact hm'
-          · exact hn
+          exact symmetric_roles _ _ oneltm oneltn notbdd _ _ hm' hn
         rw [seqt,hn]
         simp only [Nat.cast_nonneg, mul_ring_norm_eq_abs, Nat.abs_cast, Rat.cast_natCast]
-        rw [← Real.rpow_mul]
-        · convert Real.rpow_one _
-          apply mul_inv_cancel
-          rw [ht]
-          apply Real.logb_ne_zero_of_pos_of_ne_one
-          · assumption_mod_cast
-          · positivity
-          · linarith
-        · linarith
-
-
-    /-
-    have hms : (m : ℝ) ^ s = f m := by
-      rw [hs]
-    -- ↑m ^ Real.logb (↑m) (f ↑m) = ↑m
-    sorry
-
-    simp only [mul_ring_norm_eq_abs, Rat.cast_abs]
-    sorry -/
+        rw [← Real.rpow_mul (by linarith)]
+        convert Real.rpow_one _
+        apply mul_inv_cancel
+        rw [ht]
+        exact Real.logb_ne_zero_of_pos_of_ne_one (by assumption_mod_cast) (by positivity) (by linarith)
 
 
 end Archimedean
