@@ -80,16 +80,44 @@ section Archimedean
 
 -- ## auxiliary Lemmas for lists
 
+/- Multiplication by a constant moves in a List.sum -/
+lemma list_mul_sum {R : Type*} [CommSemiring R] {T : Type*} (l : List T) (y : R) : ∀ x : R ,
+    List.sum (List.mapIdx (fun i _ => x * y ^ i) (l)) =
+    x * List.sum (List.mapIdx (fun i _ => y ^ i) (l)) := by
+  induction l with
+  | nil => simp only [List.mapIdx_nil, List.sum_nil, mul_zero, forall_const]
+  | cons head tail ih =>
+    intro x
+    simp only [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons]
+    rw [mul_add]
+    simp only [mul_one, add_right_inj]
+    have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
+    simp_rw [this, ← mul_assoc, ih,← mul_assoc]
+
+/- Geometric sum for lists -/
+lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) (y : F ) (hy : y ≠ 1) :
+    List.sum (List.mapIdx (fun i _ => y ^ i) l) = (y ^ l.length - 1) / (y - 1) := by
+  induction l with
+  | nil => simp only [List.mapIdx_nil, List.sum_nil, List.length_nil, pow_zero, sub_self, zero_div]
+  | cons head tail ih =>
+    simp only [List.mapIdx_cons, pow_zero, List.sum_cons, List.length_cons]
+    have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
+    simp_rw [this,list_mul_sum, ih]
+    rw [mul_div,← same_add_div (sub_ne_zero.2 hy), mul_sub]
+    simp only [mul_one, sub_add_sub_cancel']
+
 /-Triangle inequality for absolute values applied to Lists-/
 lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).sum := by
   induction l with
   | nil => simp only [List.sum_nil, map_zero, List.map_nil, le_refl]
   | cons head tail ih =>
     simp only [List.sum_cons, List.map_cons]
-    calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by
-          apply f.add_le'
+    calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by apply f.add_le'
       _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
 
+/- #find_home! list_mul_sum
+#find_home! list_geom
+#find_home! flist_triang -/
 
 /-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by
     `n0 + n0 |n0| + n0 |n0|^2 + ...`-/
@@ -478,32 +506,6 @@ open BigOperators
 
 variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
-
-lemma list_mul_sum (l : List ℕ  ) (y : ℝ ) : ∀ x : ℝ , List.sum (List.mapIdx (fun i _ => x * y ^ i) (l)) =
-  x * List.sum (List.mapIdx (fun i _ => y ^ i) (l)) := by
-  induction l with
-  | nil => simp only [List.mapIdx_nil, List.sum_nil, mul_zero, forall_const]
-  | cons head tail ih =>
-    intro x
-    simp only [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons]
-    rw [mul_add]
-    simp only [mul_one, add_right_inj]
-    have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
-    simp_rw [this, ← mul_assoc, ih,← mul_assoc]
-
-lemma list_geom (l : List ℕ )  (y : ℝ ) (hy : y - 1 ≠ 0) :
-    List.sum (List.mapIdx (fun i _ => y ^ i) l) = (y ^ l.length - 1) / (y - 1) := by
-  induction l with
-  | nil => simp only [List.mapIdx_nil, List.sum_nil, List.length_nil, pow_zero, sub_self, zero_div]
-  | cons head tail ih =>
-    simp only [List.mapIdx_cons, pow_zero, List.sum_cons, List.length_cons]
-    have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
-    simp_rw [this,list_mul_sum, ih]
-    rw [mul_div,← same_add_div hy, mul_sub]
-    simp only [mul_one, sub_add_sub_cancel']
-
-
-
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
   obtain hm := notbdd_implies_all_gt_one notbdd
   have : 1< f m := by simp only [hm m hmge]
@@ -530,8 +532,7 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
     _ = m * ((Nat.digits m (n)).mapIdx fun i _ =>  (f m) ^ i).sum := by apply list_mul_sum
     _ = m * ((f ↑m ^ (d+1) - 1)/(f ↑m - 1)) := by
       rw [list_geom, hd_length]
-      rw[sub_ne_zero]
-      linarith
+      linarith only [this]
     _ ≤ m * ((f ↑m ^ (d+1))/(f ↑m - 1)) := by
       apply mul_le_mul_of_nonneg_left _ (Nat.cast_nonneg m)
       exact div_le_div_of_nonneg_right (by linarith only [hmge, this]) (by linarith only [this])
@@ -878,7 +879,6 @@ lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m )  : f m = 1 := by
   · exact bdd m
   · by_contra hm
     apply lt_of_not_le at hm
-
     have le_half x (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) :
       x^k0 < 1/2 := by calc
         x ^ k0 = x ^ (k0:ℝ) := by norm_cast
@@ -918,7 +918,6 @@ lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m )  : f m = 1 := by
           rw [Real.rpow_logb hx0]
           · linarith
           · simp only [one_div, inv_pos, Nat.ofNat_pos]
-
     apply lt_irrefl (1 : ℝ)
     calc
       (1:ℝ) = f 1 := by rw [map_one]
