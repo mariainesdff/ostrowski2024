@@ -447,7 +447,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
             (l := List.map (Function.uncurry fun _ _ => ↑n0) (List.enum L)),
           List.sum_replicate, List.length_map, List.enum_length,
           nsmul_eq_mul, mul_comm]
-        refine mul_le_mul le_rfl ?_ ?_ ?_
+        refine mul_le_mul le_rfl ?_ (by simp only [Nat.cast_nonneg]) (by simp only [Nat.cast_nonneg])
         · calc ↑(List.length L) ≤ ↑d + 1 := by
                 rw [hd]
                 norm_cast
@@ -455,9 +455,9 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
                _ ≤ Real.logb (↑n0) (↑n ^ k) + 1 := by
                 simp
                 exact hd_log
-        · simp
-        · simp
-        · simp_all
+        · simp_all only [ne_eq, not_false_eq_true, pow_eq_zero_iff', not_and, not_not,
+          not_true_eq_false, implies_true, List.mem_map, Prod.exists, Function.uncurry_apply_pair,
+          exists_and_right, and_imp, forall_exists_index, forall_const]
   have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k),
       f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := fn_le_kroot_log n0 hn0_ge2 hnk
 
