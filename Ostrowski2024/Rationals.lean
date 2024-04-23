@@ -135,19 +135,14 @@ lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_
         _ ≤ (L'.map f).sum := flist_triang _ _
         _ ≤ (L.mapIdx fun i _ => n0 * (f n0) ^ i).sum := by
               simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
-              --simp
               apply List.sum_le_sum
               rintro ⟨i,a⟩ hia
               dsimp [Function.uncurry]
               replace hia := List.mem_enumFrom _ hia
-              have ha := le_of_lt (hcoeff _ hia.2.2)
               push_cast
               rw[map_mul, map_pow]
-              refine mul_le_mul ha ?_ ?_ ?_
-              simp
-              apply pow_nonneg
-              simp
-              simp
+              exact mul_le_mul (le_of_lt (hcoeff _ hia.2.2)) (by simp) (by simp) ( by simp)
+
 open BigOperators
 
 /- lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
