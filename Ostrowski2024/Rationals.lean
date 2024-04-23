@@ -289,95 +289,50 @@ lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : 
   -- intro n0
   intro n hn k hk hkroot
   -- replace hkroot := hkroot n hn k hk
-  rw [← Real.mul_rpow]
+  rw [← Real.mul_rpow ?_ (by linarith)]
+  swap
+  · apply mul_nonneg (by linarith)
+    apply add_nonneg (Real.logb_nonneg (by norm_cast) ?_) (Real.instStrictOrderedCommRingReal.proof_3)
+    norm_cast
+    linarith
   · rw [mul_add,add_mul]
     simp only [mul_one, ge_iff_le]
     rw [mul_assoc]
     apply le_trans hkroot
-    rw_mod_cast [Real.rpow_le_rpow_iff]
+    rw_mod_cast [Real.rpow_le_rpow_iff ?_ ?_ (by simp only [inv_pos, Nat.cast_pos, hk])]
     · push_cast
       rw_mod_cast [mul_add]
       apply add_le_add
       · simp only [Nat.cast_pow]
-        apply mul_le_mul
-        · simp only [le_refl]
-        · rw [← Real.log_div_log]
-          rw [← Real.log_div_log]
-          rw [mul_comm]
-          rw [mul_div]
-          rw [← Real.log_rpow]
-          · apply div_le_div
-            · apply Real.log_nonneg
-              apply Real.one_le_rpow
-              · norm_cast
-                linarith
-              · norm_cast
-                linarith
-            · simp
-            · apply Real.log_pos
+        apply mul_le_mul (by simp only [le_refl]) ?_ ?_ (by linarith)
+        · rw [← Real.log_div_log, ← Real.log_div_log, mul_comm, mul_div, ← Real.log_rpow]
+          · apply div_le_div ?_ (by simp only [Real.log_pow, Real.rpow_nat_cast, le_refl]) ?_ (by simp only [le_refl])
+            · apply Real.log_nonneg (Real.one_le_rpow ?_ (by linarith))
               norm_cast
-            · simp
-          · norm_cast
+              linarith
+            · exact Real.log_pos (by norm_cast)
+          · simp only [Nat.cast_pos]
             linarith
-        · apply Real.logb_nonneg
-          · norm_cast
-          · norm_cast
-            apply Nat.one_le_pow
-            linarith
-        · norm_cast
+        · apply Real.logb_nonneg (by norm_cast)
+          norm_cast
+          apply Nat.one_le_pow
           linarith
       · simp only [mul_one, Nat.cast_mul]
         norm_cast
         apply Nat.le_mul_of_pos_right _ hk
-    · apply mul_nonneg
-      · norm_cast
-        linarith
-      · apply add_nonneg
-        · apply Real.logb_nonneg
-          · norm_cast
-          · norm_cast
-            apply Nat.one_le_pow
-            linarith
-        · simp
-    · norm_cast
-      simp
-      apply add_nonneg
-      · apply mul_nonneg
-        · norm_cast
-          linarith
-        · rw [← zero_mul 0]
-          gcongr
-          apply mul_nonneg
-          · apply Real.log_nonneg
-            norm_cast
-            linarith
-          · rw [inv_nonneg]
-            apply Real.log_nonneg
-            norm_cast
-            linarith
-          · apply Real.logb_nonneg
-            · norm_cast
-            · norm_cast
-              linarith
-          · norm_cast
-            linarith
-      · apply mul_nonneg
-        · norm_cast
-          linarith
-        · norm_cast
-          linarith
-    · simp only [inv_pos, Nat.cast_pos, hk]
-  · apply mul_nonneg
-    · norm_cast
+    · apply mul_nonneg (by linarith)
+      apply add_nonneg ?_ (Real.instStrictOrderedCommRingReal.proof_3)
+      apply Real.logb_nonneg (by norm_cast)
+      norm_cast
+      apply Nat.one_le_pow
       linarith
-    · apply add_nonneg
-      · apply Real.logb_nonneg
-        · norm_cast
-        · norm_cast
-          linarith
-      · simp
-  · norm_cast
-    simp only [zero_le]
+    · simp only [Nat.cast_mul]
+      apply add_nonneg ?_ (mul_nonneg (by linarith) (by linarith))
+      apply mul_nonneg (by linarith)
+      apply mul_nonneg ?_ (by linarith)
+      apply Real.logb_nonneg (by norm_cast)
+      norm_cast
+      linarith
 
   /- set d := Nat.log m n with hd
   have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry -/
