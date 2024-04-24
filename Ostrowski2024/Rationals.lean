@@ -919,49 +919,40 @@ end steps_2_3
   If `f` is bounded and not trivial, then it is equivalent to a p-adic absolute value.
 -/
 theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f ≠ 1) :
-∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) :=
-  by
-  obtain ⟨p,hfp,hmin⟩ := p_exists bdd hf_nontriv
+∃ p, ∃ (hp : Fact (Nat.Prime p)), MulRingNorm.equiv f (mulRingNorm_padic p) := by
+  obtain ⟨p, hfp, hmin⟩ := p_exists bdd hf_nontriv
   have hprime : Prime p := p_is_prime p hfp.1 hfp.2 hmin
   use p
-  have hp : Fact (Nat.Prime p) := by
-    rw [fact_iff]
-    exact Prime.nat_prime hprime
-  use hp
+  have hprime_fact : Fact (Nat.Prime p) := fact_iff.2 (Prime.nat_prime hprime)
+  use hprime_fact
   obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
   use (t⁻¹)
-  have tnezero : t ≠ 0 := by linarith [h.1]
+  refine ⟨by simp only [one_div, inv_pos, h.1], ?_ ⟩
   have oneovertnezero : t⁻¹ ≠ 0 := by
     simp only [ne_eq, inv_eq_zero]
     linarith [h.1]
-  constructor
-  · simp only [one_div, inv_pos, h.1]
-  · ext x
-    apply (NormRat_equiv_iff_equiv_on_Nat t).1
-    intro n
-    by_cases hn : n=0
-    · rw [hn]
-      simp only [CharP.cast_eq_zero, map_zero, ne_eq, oneovertnezero, not_false_eq_true,
-        Real.zero_rpow]
-    · push_neg at hn
-      rcases Nat.exists_eq_pow_mul_and_not_dvd hn p (Nat.Prime.ne_one (Prime.nat_prime hprime))
-          with ⟨ e, m, hpm, hnpm⟩
-      rw [hnpm]
-      simp only [Nat.cast_mul, Nat.cast_pow, map_mul, map_pow, mul_ring_norm_eq_padic_norm,
-        padicNorm.padicNorm_p_of_prime, Rat.cast_inv, Rat.cast_natCast, inv_pow]
-      rw [not_divisible_norm_one bdd p hfp.1 hfp.2 hmin m hpm]
-      rw [←padicNorm.nat_eq_one_iff] at hpm
-      rw [hpm,h.2]
-      simp only [mul_one, Rat.cast_one]
-      rw [← Real.rpow_natCast_mul]
-      swap; apply (Real.rpow_nonneg (Nat.cast_nonneg p))
-      rw [← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
-      simp only [neg_mul]
-      rw [Real.instLinearOrderedFieldReal.proof_10 t tnezero]
-      simp only [one_mul]
-      rw [Real.rpow_neg]
-      simp only [Real.rpow_nat_cast]
-      exact Nat.cast_nonneg p
+  ext x
+  apply (NormRat_equiv_iff_equiv_on_Nat t).1
+  intro n
+  by_cases hn : n=0
+  · rw [hn]
+    simp only [CharP.cast_eq_zero, map_zero, ne_eq, oneovertnezero, not_false_eq_true,
+      Real.zero_rpow]
+  · push_neg at hn
+    rcases Nat.exists_eq_pow_mul_and_not_dvd hn p (Nat.Prime.ne_one (Prime.nat_prime hprime))
+      with ⟨ e, m, hpm, hnpm⟩
+    rw [hnpm]
+    simp only [Nat.cast_mul, Nat.cast_pow, map_mul, map_pow, mul_ring_norm_eq_padic_norm,
+      padicNorm.padicNorm_p_of_prime, Rat.cast_inv, Rat.cast_natCast, inv_pow]
+    rw [not_divisible_norm_one bdd p hfp.1 hfp.2 hmin m hpm,h.2]
+    rw [←padicNorm.nat_eq_one_iff] at hpm
+    rw [hpm]
+    simp only [mul_one, Rat.cast_one]
+    rw [← Real.rpow_natCast_mul (Real.rpow_nonneg (Nat.cast_nonneg p) _ ),
+      ← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
+    simp only [neg_mul]
+    rw [Real.instLinearOrderedFieldReal.proof_10 t (by linarith [h.1]),
+      one_mul, Real.rpow_neg (Nat.cast_nonneg p), Real.rpow_nat_cast]
 end Nonarchimedean
 
 
