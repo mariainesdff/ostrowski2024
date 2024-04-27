@@ -1,5 +1,5 @@
 
-import Ostrowski2024.Basic
+--import Ostrowski2024.Basic
 import Ostrowski2024.MulRingNormRat
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
@@ -280,7 +280,7 @@ lemma fn_le_kroot_log (n0 : ℕ)  (hn0 : 1 < n0)
       omega
   rw [← this]
   convert hnk
-  rw [Real.rpow_nat_cast]
+  rw [Real.rpow_natCast]
 
 /- intermediate lemma computing upper bound of `f ↑ n` in terms of `k`-th root of logarithm -/
 lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k)
@@ -306,7 +306,7 @@ lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : 
       · simp only [Nat.cast_pow]
         apply mul_le_mul (by simp only [le_refl]) ?_ ?_ (by linarith)
         · rw [← Real.log_div_log, ← Real.log_div_log, mul_comm, mul_div, ← Real.log_rpow]
-          · apply div_le_div ?_ (by simp only [Real.log_pow, Real.rpow_nat_cast, le_refl]) ?_ (by simp only [le_refl])
+          · apply div_le_div ?_ (by simp only [Real.log_pow, Real.rpow_natCast, le_refl]) ?_ (by simp only [le_refl])
             · apply Real.log_nonneg (Real.one_le_rpow ?_ (by linarith))
               norm_cast
               linarith
@@ -489,7 +489,7 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
     _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
     _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
       apply mul_le_mul_of_nonneg_left
-      rw [←Real.rpow_nat_cast]
+      rw [←Real.rpow_natCast]
       apply Real.rpow_le_rpow_of_exponent_le (le_of_lt this)
       apply nat_log_le_real_log m n (by linarith [hmge]) hmge
       apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt this)
@@ -544,7 +544,7 @@ lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
     exact zero_le_expression
     apply rpow_nonneg (apply_nonneg f ↑m)
   · rw [← Real.rpow_le_rpow_iff (z:=k ) _  ]
-    · rw [← rpow_mul, triviality,rpow_nat_cast, rpow_one]
+    · rw [← rpow_mul, triviality,rpow_natCast, rpow_one]
       exact key
       exact our_prod_nonneg
     · apply rpow_nonneg
@@ -672,24 +672,24 @@ theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)  : MulRin
     replace this : m = 0 ∨ m = 1 := by omega
     rcases this with (rfl | rfl )
     all_goals simp only [CharP.cast_eq_zero, map_zero, zero_le_one,Nat.cast_one, map_one, le_refl]
+  rw [← NormRat_equiv_iff_equiv_on_Nat]
   set s := Real.logb m (f m) with hs
   use s⁻¹
   constructor
   · rw [hs,inv_pos]
     apply Real.logb_pos (Nat.one_lt_cast.2 oneltm) (by linarith only [hm])
-  · rw_mod_cast [← NormRat_equiv_iff_equiv_on_Nat']
-    intro n
-    by_cases nzero : n=0
+  · intro n
+    by_cases nzero : n = 0
     · rw [nzero]
       simp only [CharP.cast_eq_zero, map_zero, le_refl]
       rw [Real.rpow_eq_zero (le_rfl)]
-      · rw [hs]
-        simp only [ne_eq, inv_eq_zero, Real.logb_eq_zero, Nat.cast_eq_zero, Nat.cast_eq_one,
-          map_eq_zero]
-        push_neg
-        norm_cast
-        simp only [not_false_eq_true, Int.reduceNegSucc, Int.cast_neg, Int.cast_one, true_and]
-        refine ⟨by  omega, by  omega, by  omega, by linarith, by linarith⟩
+      rw [hs]
+      simp only [ne_eq, inv_eq_zero, Real.logb_eq_zero, Nat.cast_eq_zero, Nat.cast_eq_one,
+        map_eq_zero]
+      push_neg
+      norm_cast
+      simp only [not_false_eq_true, Int.reduceNegSucc, Int.cast_neg, Int.cast_one, true_and]
+      refine ⟨by  omega, by  omega, by  omega, by linarith, by linarith⟩
     · by_cases none : n=1
       · rw [none]
         simp only [Nat.cast_one, map_one, Real.one_rpow]
@@ -737,15 +737,10 @@ lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) �
       simp only [MulRingNorm.apply_one, Nat.cast_eq_zero, hn0, ↓reduceIte]
       exact h n hn0
   obtain ⟨n,hn1,hn2⟩ := hn
-  have hnlt1 : f n < 1 := by
-    exact lt_of_le_of_ne (bdd n) hn2
-  have hngt0 : 0 < f n := by
-    apply map_pos_of_ne_zero
-    exact Nat.cast_ne_zero.mpr hn1
   set P := {m : ℕ | 0 < f ↑m ∧ f ↑m < 1}
   have hPnonempty : Set.Nonempty P := by
     use n
-    refine ⟨hngt0,hnlt1 ⟩
+    refine ⟨map_pos_of_ne_zero f (Nat.cast_ne_zero.mpr hn1),lt_of_le_of_ne (bdd n) hn2 ⟩
   use sInf P
   refine ⟨Nat.sInf_mem hPnonempty,?_⟩
   intro m hm
@@ -793,7 +788,7 @@ lemma p_is_prime : (Prime p) := by
   · simp only [Nat.isUnit_iff]
     intro p1
     rw [p1] at hp1
-    simp at hp1
+    simp only [Nat.cast_one, map_one, lt_self_iff_false] at hp1
   · intro a b hab
     have hba : p = b * a := by
       rw [mul_comm]
@@ -926,13 +921,12 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
   have hprime_fact : Fact (Nat.Prime p) := fact_iff.2 (Prime.nat_prime hprime)
   use hprime_fact
   obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
+  rw [← NormRat_equiv_iff_equiv_on_Nat]
   use (t⁻¹)
   refine ⟨by simp only [one_div, inv_pos, h.1], ?_ ⟩
   have oneovertnezero : t⁻¹ ≠ 0 := by
     simp only [ne_eq, inv_eq_zero]
     linarith [h.1]
-  ext x
-  apply (NormRat_equiv_iff_equiv_on_Nat t).1
   intro n
   by_cases hn : n=0
   · rw [hn]
@@ -951,8 +945,7 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     rw [← Real.rpow_natCast_mul (Real.rpow_nonneg (Nat.cast_nonneg p) _ ),
       ← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
     simp only [neg_mul]
-    rw [Real.instLinearOrderedFieldReal.proof_10 t (by linarith [h.1]),
-      one_mul, Real.rpow_neg (Nat.cast_nonneg p), Real.rpow_nat_cast]
+    rw [mul_inv_cancel (by linarith [h.1]), one_mul, Real.rpow_neg (Nat.cast_nonneg p), Real.rpow_natCast]
 end Nonarchimedean
 
 
