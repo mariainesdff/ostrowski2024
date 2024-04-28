@@ -203,7 +203,7 @@ lemma one_lim_kroot_log_expr (n0 n : ℕ) (hn0_ge2: 1 < n0) (hn : 1 < n) :
   apply one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1)) hpos
 
 /-auxiliary lemma to compute the limit as `k → ∞` of the function `k : ℕ ↦ k^k`-/
-lemma bar : Filter.Tendsto (fun x : ℝ  ↦ ( x ^ (x)⁻¹)) Filter.atTop (nhds 1) →
+/- lemma bar : Filter.Tendsto (fun x : ℝ  ↦ ( x ^ (x)⁻¹)) Filter.atTop (nhds 1) →
     Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
   rw [Filter.tendsto_def,Filter.tendsto_def]
   simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
@@ -216,14 +216,29 @@ lemma bar : Filter.Tendsto (fun x : ℝ  ↦ ( x ^ (x)⁻¹)) Filter.atTop (nhds
   have : s2 ≤ ↑b := by
     calc s2 ≤ ⌊s2⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one s2)
       _ ≤ ↑b := by exact_mod_cast hs2b
-  exact hs2 this
+  exact hs2 this -/
 
 /-extends the lemma `tendsto_rpow_div` when the function has natural input-/
 lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
-  apply bar
+  rw [Filter.tendsto_def]
+  simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
+  intro N hN
+  let h := tendsto_rpow_div
+  rw [Filter.tendsto_def] at h
+  simp only [one_div, Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
+  rcases (h N hN) with ⟨a, ha ⟩
+  use (Nat.floor a)+1
+  intro b hb
+  specialize ha b
+  apply ha
+  calc
+  a ≤  ⌊a⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one a)
+  _  ≤ ↑b := by exact_mod_cast hb
+
+  /- apply bar
   convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (1/x))) Filter.atTop (nhds 1)
   · simp only [one_div]
-  apply tendsto_rpow_div
+  apply tendsto_rpow_div -/
 
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
@@ -239,9 +254,9 @@ lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 
   have hreal : (n0:ℝ) ^ (Real.logb n0 n) = n := by
     rw [Real.rpow_logb]
     norm_cast
-    linarith [hn0]
+    linarith only [hn0]
     simp only [ne_eq, Nat.cast_eq_one]
-    linarith [hn0]
+    linarith only [hn0]
     exact_mod_cast hn
   have : n0 ^ (Nat.log n0 n) ≤ (n0 : ℝ)^(Real.logb n0 n ) := by
     rw [hreal]
@@ -289,12 +304,12 @@ lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : 
   -- intro n0
   intro n hn k hk hkroot
   -- replace hkroot := hkroot n hn k hk
-  rw [← Real.mul_rpow ?_ (by linarith)]
+  rw [← Real.mul_rpow ?_ (by linarith only [hk])]
   swap
-  · apply mul_nonneg (by linarith)
+  · apply mul_nonneg (by linarith only [hn0])
     apply add_nonneg (Real.logb_nonneg (by norm_cast) ?_) (Real.instStrictOrderedCommRingReal.proof_3)
     norm_cast
-    linarith
+    exact Nat.one_le_of_lt hn
   · rw [mul_add,add_mul]
     simp only [mul_one, ge_iff_le]
     rw [mul_assoc]
@@ -304,35 +319,35 @@ lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : 
       rw_mod_cast [mul_add]
       apply add_le_add
       · simp only [Nat.cast_pow]
-        apply mul_le_mul (by simp only [le_refl]) ?_ ?_ (by linarith)
+        apply mul_le_mul (by simp only [le_refl]) ?_ ?_ (by linarith only [hn0])
         · rw [← Real.log_div_log, ← Real.log_div_log, mul_comm, mul_div, ← Real.log_rpow]
           · apply div_le_div ?_ (by simp only [Real.log_pow, Real.rpow_natCast, le_refl]) ?_ (by simp only [le_refl])
-            · apply Real.log_nonneg (Real.one_le_rpow ?_ (by linarith))
+            · apply Real.log_nonneg (Real.one_le_rpow ?_ (by linarith only [hk]))
               norm_cast
-              linarith
+              exact Nat.one_le_of_lt hn
             · exact Real.log_pos (by norm_cast)
           · simp only [Nat.cast_pos]
-            linarith
+            exact Nat.zero_lt_of_lt hn
         · apply Real.logb_nonneg (by norm_cast)
           norm_cast
           apply Nat.one_le_pow
-          linarith
+          exact Nat.zero_lt_of_lt hn
       · simp only [mul_one, Nat.cast_mul]
         norm_cast
         apply Nat.le_mul_of_pos_right _ hk
-    · apply mul_nonneg (by linarith)
+    · apply mul_nonneg (by linarith only [hn0])
       apply add_nonneg ?_ (Real.instStrictOrderedCommRingReal.proof_3)
       apply Real.logb_nonneg (by norm_cast)
       norm_cast
       apply Nat.one_le_pow
-      linarith
+      exact Nat.zero_lt_of_lt hn
     · simp only [Nat.cast_mul]
-      apply add_nonneg ?_ (mul_nonneg (by linarith) (by linarith))
-      apply mul_nonneg (by linarith)
-      apply mul_nonneg ?_ (by linarith)
+      apply add_nonneg ?_ (mul_nonneg (by linarith only [hn0]) (by linarith only [hk]))
+      apply mul_nonneg (by linarith only [hn0])
+      apply mul_nonneg ?_ (by linarith only [hk])
       apply Real.logb_nonneg (by norm_cast)
       norm_cast
-      linarith
+      exact Nat.one_le_of_lt hn
 
   /- set d := Nat.log m n with hd
   have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry -/
@@ -354,7 +369,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
     have hnknz : n^k ≠ 0 := by
       simp only [ne_eq, pow_eq_zero_iff', not_and, not_not]
       intro h
-      linarith [h,hn]
+      linarith only [h,hn]
     have hd_log : d ≤ Real.logb n0 (n^k) := by
       rw [hd_natlog]
       norm_cast
@@ -389,7 +404,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
                 · exact apply_nonneg f _
               · apply pow_nonneg
                 exact apply_nonneg f _
-              · linarith
+              · linarith only [hn0_ge2]
           _ = n0 := mul_one _
       _ ≤ n0 * (Real.logb n0 (n ^ k) + 1) := by
         rw [List.mapIdx_eq_enum_map,
@@ -664,7 +679,7 @@ end Step2
 
 
 
-theorem notbdd_implies_equiv_real (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)  : MulRingNorm.equiv f mulRingNorm_real := by
+theorem notbdd_implies_equiv_real (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1)  : MulRingNorm.equiv f mulRingNorm_real := by
   obtain ⟨m, hm⟩ := Classical.exists_not_of_not_forall notbdd
   have oneltm : 1 < m := by
     by_contra!
@@ -742,7 +757,7 @@ lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) �
     use n
     refine ⟨map_pos_of_ne_zero f (Nat.cast_ne_zero.mpr hn1),lt_of_le_of_ne (bdd n) hn2 ⟩
   use sInf P
-  refine ⟨Nat.sInf_mem hPnonempty,?_⟩
+  refine ⟨Nat.sInf_mem hPnonempty, ?_⟩
   intro m hm
   exact Nat.sInf_le hm
   done
@@ -753,7 +768,7 @@ section steps_2_3
 variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
   (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
 
-lemma ne01_gt_1 {a : ℕ} (ne_0 : a≠ 0) (ne_1 : a ≠ 1) :
+lemma ne01_gt_1 {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) :
     1 < a := by
   rcases a with _ | a
   · exact (ne_0 rfl).elim
@@ -813,82 +828,71 @@ lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m )  : f m = 1 := by
     rw [← Nat.prime_iff_prime_int]
     exact Prime.nat_prime (p_is_prime _ hp0 hp1 hmin)
   rw [le_antisymm_iff]
+  refine ⟨bdd m, ?_ ⟩
+  by_contra hm
+  apply lt_of_not_le at hm
   set M := (f p) ⊔ (f m) with hM
-  set k0 := Nat.ceil ( Real.logb  M (1/2) )+1 with hk
-  have copr : IsCoprime (p^k0 : ℤ) (m^k0) := by
+  set k0 := Nat.ceil ( Real.logb  M (1/2) ) + 1 with hk
+  have copr : IsCoprime (p ^ k0 : ℤ) (m ^ k0) := by
     apply IsCoprime.pow
     rw [Prime.coprime_iff_not_dvd pprime]
     exact_mod_cast hpm
-  obtain ⟨a,b,bezout⟩ := copr
-  constructor
-  · exact bdd m
-  · by_contra hm
-    apply lt_of_not_le at hm
-    have le_half x (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) :
-      x^k0 < 1/2 := by calc
-        x ^ k0 = x ^ (k0:ℝ) := by norm_cast
-        _ < x ^ Real.logb M (1 / 2) := by
-          apply Real.rpow_lt_rpow_of_exponent_gt hx0 hx1
-          rw [hk]
-          calc
-            Real.logb M (1 / 2) ≤ (Nat.ceil  (Real.logb  M (1/2)) :ℝ) := by
-              exact Nat.le_ceil (Real.logb M (1/2))
-            _ < ↑(⌈Real.logb M (1 / 2)⌉₊ + 1) := by
-              norm_cast
-              apply lt_add_one
-        _ ≤ x ^ (Real.logb x) (1/2) := by
-          apply Real.rpow_le_rpow_of_exponent_ge hx0
-          · linarith only [hx1]
-          · simp only [← Real.log_div_log]
-            ring_nf
-            simp only [one_div, Real.log_inv, neg_mul, neg_le_neg_iff]
-            rw [mul_le_mul_left]
-            · rw [inv_le_inv_of_neg]
-              · apply Real.log_le_log hx0 hxM
-              · rw [Real.log_neg_iff]
-                · rw [hM]
-                  rw [sup_lt_iff]
-                  constructor
-                  · exact hp1
-                  · exact hm
-                · rw [hM]
-                  rw [lt_sup_iff]
-                  left
-                  exact hp0
-              · rw [Real.log_neg_iff hx0]
-                exact hx1
-            · apply Real.log_pos
-              exact one_lt_two
-        _ = 1/2 := by
-          rw [Real.rpow_logb hx0]
-          · linarith
-          · simp only [one_div, inv_pos, Nat.ofNat_pos]
-    apply lt_irrefl (1 : ℝ)
-    calc
-      (1:ℝ) = f 1 := by rw [map_one]
-      _ = f (a * p ^ k0 + b * m ^ k0) := by
-        rw_mod_cast [bezout]
+  obtain ⟨a, b, bezout⟩ := copr
+  have le_half x (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) :
+    x^k0 < 1/2 := by calc
+      x ^ k0 = x ^ (k0 : ℝ) := by norm_cast
+      _ < x ^ Real.logb M (1 / 2) := by
+        apply Real.rpow_lt_rpow_of_exponent_gt hx0 hx1
+        rw [hk]
+        apply lt_of_le_of_lt (Nat.le_ceil (Real.logb M (1/2)))
         norm_cast
-      _ ≤ f (a * p ^ k0) + f (b * m ^ k0) := by apply f.add_le'
-      _ ≤ 1 * (f p) ^ k0 + 1 * (f m) ^ k0 := by
-        simp only [map_mul, map_pow, le_refl]
-        gcongr
-        all_goals rw [← f_of_abs_eq_f]; apply bdd
-      _ = (f p) ^ k0 + (f m) ^ k0 := by simp
-      _ < 1 := by
-        rw [← add_halves (a:=1)]
-        apply add_lt_add
-        · apply le_half _ hp0 hp1
-          rw [hM]
-          simp only [le_sup_left]
-        · apply le_half (f m) _ hm
+        apply lt_add_one
+      _ ≤ x ^ (Real.logb x) (1/2) := by
+        apply Real.rpow_le_rpow_of_exponent_ge hx0 (by linarith only [hx1])
+        simp only [← Real.log_div_log]
+        ring_nf
+        simp only [one_div, Real.log_inv, neg_mul, neg_le_neg_iff]
+        rw [mul_le_mul_left (Real.log_pos one_lt_two)]
+        rw [inv_le_inv_of_neg]
+        · exact Real.log_le_log hx0 hxM
+        · rw [Real.log_neg_iff]
           · rw [hM]
-            simp only [le_sup_right]
-          · apply map_pos_of_ne_zero
-            intro m0
-            apply hpm
-            rw_mod_cast [m0]
-            simp
+            rw [sup_lt_iff]
+            exact ⟨hp1, hm⟩
+          · rw [hM]
+            rw [lt_sup_iff]
+            left
+            exact hp0
+        · apply (Real.log_neg_iff hx0).2 hx1
+      _ = 1/2 := by
+        rw [Real.rpow_logb hx0 (by linarith only [hx1])]
+        simp only [one_div, inv_pos, Nat.ofNat_pos]
+  apply lt_irrefl (1 : ℝ)
+  calc
+    (1:ℝ) = f 1 := by rw [map_one]
+    _ = f (a * p ^ k0 + b * m ^ k0) := by
+      rw_mod_cast [bezout]
+      norm_cast
+    _ ≤ f (a * p ^ k0) + f (b * m ^ k0) := by apply f.add_le'
+    _ ≤ 1 * (f p) ^ k0 + 1 * (f m) ^ k0 := by
+      simp only [map_mul, map_pow, le_refl]
+      gcongr
+      all_goals rw [← f_of_abs_eq_f]; apply bdd
+    _ = (f p) ^ k0 + (f m) ^ k0 := by simp
+    _ < 1 := by
+      rw [← add_halves (a:=1)]
+      apply add_lt_add
+      · apply le_half _ hp0 hp1
+        rw [hM]
+        simp only [le_sup_left]
+      · apply le_half (f m) _ hm
+        · rw [hM]
+          simp only [le_sup_right]
+        · apply map_pos_of_ne_zero
+          intro m0
+          apply hpm
+          rw_mod_cast [m0]
+          simp only [dvd_zero]
 
 -- ## Non-archimedean case: step 4
 
@@ -945,7 +949,7 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     rw [← Real.rpow_natCast_mul (Real.rpow_nonneg (Nat.cast_nonneg p) _ ),
       ← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
     simp only [neg_mul]
-    rw [mul_inv_cancel (by linarith [h.1]), one_mul, Real.rpow_neg (Nat.cast_nonneg p), Real.rpow_natCast]
+    rw [mul_inv_cancel (by linarith only [h.1]), one_mul, Real.rpow_neg (Nat.cast_nonneg p), Real.rpow_natCast]
 end Nonarchimedean
 
 
