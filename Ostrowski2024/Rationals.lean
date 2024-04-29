@@ -297,7 +297,7 @@ lemma fn_le_kroot_log (n0 : ℕ)  (hn0 : 1 < n0)
       omega
   rw [← this]
   convert hnk
-  simp only [Real.rpow_nat_cast]
+  simp only [Real.rpow_natCast]
 
 /- intermediate lemma computing upper bound of `f ↑ n` in terms of `k`-th root of logarithm -/
 lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k)
@@ -323,7 +323,7 @@ lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : 
       · simp only [Nat.cast_pow]
         apply mul_le_mul (by simp only [le_refl]) ?_ ?_ (by linarith only [hn0])
         · rw [← Real.log_div_log, ← Real.log_div_log, mul_comm, mul_div, ← Real.log_rpow]
-          · apply div_le_div ?_ (by simp only [Real.log_pow, Real.rpow_nat_cast, le_refl]) ?_ (by simp only [le_refl])
+          · apply div_le_div ?_ (by simp only [Real.log_pow, Real.rpow_natCast, le_refl]) ?_ (by simp only [le_refl])
             · apply Real.log_nonneg (Real.one_le_rpow ?_ (by linarith only [hk]))
               norm_cast
               exact Nat.one_le_of_lt hn
@@ -506,7 +506,7 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
     _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
     _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
       apply mul_le_mul_of_nonneg_left
-      rw [←Real.rpow_nat_cast]
+      rw [←Real.rpow_natCast]
       apply Real.rpow_le_rpow_of_exponent_le (le_of_lt this)
       apply nat_log_le_real_log m n (by linarith [hmge]) hmge
       apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt this)
@@ -561,7 +561,7 @@ lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
     exact zero_le_expression
     apply rpow_nonneg (apply_nonneg f ↑m)
   · rw [← Real.rpow_le_rpow_iff (z:=k ) _  ]
-    · rw [← rpow_mul, triviality,rpow_nat_cast, rpow_one]
+    · rw [← rpow_mul, triviality, rpow_natCast, rpow_one]
       exact key
       exact our_prod_nonneg
     · apply rpow_nonneg
