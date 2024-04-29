@@ -141,7 +141,8 @@ lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_
               replace hia := List.mem_enumFrom _ hia
               push_cast
               rw[map_mul, map_pow]
-              exact mul_le_mul (le_of_lt (hcoeff _ hia.2.2)) (by simp) (by simp) ( by simp)
+              exact mul_le_mul (le_of_lt (hcoeff _ hia.2.2)) (by simp only [le_refl]) (by simp only [ge_iff_le,
+                apply_nonneg, pow_nonneg]) (by simp only [Nat.cast_nonneg])
 
 open BigOperators
 
@@ -451,10 +452,10 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
   cases' n with n
   · norm_cast
     rw [map_zero]
-    simp
+    exact zero_le_one
   · by_cases hn : n = 0
     norm_cast
-    simp[hn]
+    simp only [hn, Nat.reduceSucc, Nat.cast_one, map_one, le_refl]
     · have hn_ge_one : 1 < Nat.succ n := by omega
       specialize h_ex_const (Nat.succ n) hn_ge_one
       specialize prod_limit (Nat.succ n) hn_ge_one
@@ -522,7 +523,7 @@ lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k �
   refine rpow_le_rpow (rpow_nonneg hA k) hle ?_
   apply le_of_lt
   simp only [one_div, inv_pos]
-  assumption
+  exact hk
 
 
 lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
@@ -603,7 +604,7 @@ lemma ge_of_tendsto_mul {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ}
     exact fun b a => a
   · intro y hy
     simp only [Set.mem_setOf_eq] at hy
-    exact h y (by linarith)
+    exact h y (by linarith only [hy])
 
 
 
@@ -620,7 +621,7 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   set A := m * (f m) / ((f m) - 1)
 
   have : f m - 1 < m * (f m) := calc
-         f m - 1 < f m       := by linarith
+         f m - 1 < f m       := by simp only [sub_lt_self_iff, zero_lt_one]
          _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast))
                                   (by trivial) (by simp only [apply_nonneg])
 
@@ -629,14 +630,11 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
     rw [one_lt_div_iff]
     left
-    constructor
-    · linarith [notbdd_implies_all_gt_one notbdd m hmge]
-    · linarith
+    refine ⟨by linarith only [notbdd_implies_all_gt_one notbdd m hmge], this ⟩
 
-  have zero_lt_A : 0 < A := by linarith
-  refine le_of_param_upperbound zero_lt_A ?_
+  refine le_of_param_upperbound (by linarith only [one_lt_A]) ?_
   intro k hk
-  apply param_upperbound m n hmge hnge notbdd k hk
+  exact param_upperbound m n hmge hnge notbdd k hk
 
 
 lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t)  : t ≤ s := by
@@ -650,11 +648,11 @@ lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t)  : t �
         · rw [Real.rpow_logb] at hmn
           · exact hmn
           · simp only [Nat.cast_pos]
-            linarith
+            linarith only [hmge]
           · simp only [ne_eq, Nat.cast_eq_one]
-            linarith
+            linarith only [hmge]
           · simp only [Nat.cast_pos]
-            linarith
+            linarith only [hnge]
         · simp only [Nat.cast_nonneg]
       · simp only [Nat.cast_nonneg]
     · exact_mod_cast hnge
@@ -704,7 +702,7 @@ theorem notbdd_implies_equiv_real (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1)  : MulRi
       push_neg
       norm_cast
       simp only [not_false_eq_true, Int.reduceNegSucc, Int.cast_neg, Int.cast_one, true_and]
-      refine ⟨by  omega, by  omega, by  omega, by linarith, by linarith⟩
+      refine ⟨by  omega, by  omega, by  omega, by linarith only [hm], by linarith only [hm]⟩
     · by_cases none : n=1
       · rw [none]
         simp only [Nat.cast_one, map_one, Real.one_rpow]
@@ -712,22 +710,22 @@ theorem notbdd_implies_equiv_real (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1)  : MulRi
         have fngeone : 1 < f n := notbdd_implies_all_gt_one notbdd _ oneltn
         set t := Real.logb n (f n) with ht
         have hm' : (f m )= m ^ s := by
-          rw [hs,Real.rpow_logb _ _ (by linarith) ]
+          rw [hs,Real.rpow_logb _ _ (by linarith only [hm]) ]
           all_goals norm_cast
           all_goals omega
         have hn : (f n )= n ^ t := by
-          rw [ht,Real.rpow_logb _ _ (by linarith) ]
+          rw [ht,Real.rpow_logb _ _ (by linarith only [fngeone]) ]
           all_goals norm_cast
           all_goals omega
         have seqt : s = t := by
           exact symmetric_roles _ _ oneltm oneltn notbdd _ _ hm' hn
         rw [seqt,hn]
         simp only [Nat.cast_nonneg, mul_ring_norm_eq_abs, Nat.abs_cast, Rat.cast_natCast]
-        rw [← Real.rpow_mul (by linarith)]
+        rw [← Real.rpow_mul (by linarith only [nzero])]
         convert Real.rpow_one _
         apply mul_inv_cancel
         rw [ht]
-        exact Real.logb_ne_zero_of_pos_of_ne_one (by assumption_mod_cast) (by positivity) (by linarith)
+        exact Real.logb_ne_zero_of_pos_of_ne_one (by assumption_mod_cast) (by positivity) (by linarith only [fngeone])
 
 
 end Archimedean
@@ -856,11 +854,9 @@ lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m )  : f m = 1 := by
         rw [inv_le_inv_of_neg]
         · exact Real.log_le_log hx0 hxM
         · rw [Real.log_neg_iff]
-          · rw [hM]
-            rw [sup_lt_iff]
+          · rw [hM, sup_lt_iff]
             exact ⟨hp1, hm⟩
-          · rw [hM]
-            rw [lt_sup_iff]
+          · rw [hM, lt_sup_iff]
             left
             exact hp0
         · apply (Real.log_neg_iff hx0).2 hx1
