@@ -2,9 +2,9 @@
 
 
 import Mathlib.NumberTheory.Padics.PadicNorm
---import Ostrowski2024.Basic
+import Ostrowski2024.Basic
 
-
+import Mathlib.Data.Int.Cast.Basic
 import Mathlib.Order.Filter.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.Normed.Ring.Seminorm
@@ -27,8 +27,8 @@ variable {f g : MulRingNorm ℚ}
 
 lemma f_of_abs_eq_f {f: MulRingNorm R} (x : ℤ) : f (Int.natAbs x) = f x := by
   obtain ⟨n,rfl|rfl⟩ := Int.eq_nat_or_neg x
-  · simp only [Int.natAbs_ofNat, Int.cast_natCast]
-  · simp only [Int.natAbs_neg, Int.natAbs_ofNat, Int.cast_neg, Int.cast_natCast, map_neg_eq_map]
+  · simp only [Int.natAbs_ofNat, Int.cast_ofNat]
+  · simp only [Int.natAbs_neg, Int.natAbs_ofNat, Int.cast_neg, Int.cast_ofNat, map_neg_eq_map]
 
 -- I don't think this is needed anymore.
 --lemma norm_pos_of_ne_zero {x : ℚ} (h : x ≠ 0) : f x > 0 := map_pos_of_ne_zero f h
