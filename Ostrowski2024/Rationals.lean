@@ -737,7 +737,9 @@ section Nonarchimedean
 
 variable (bdd: ∀ n : ℕ, f n ≤ 1)
 
-lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧ ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
+ /- There exists a minimal positive integer with absolute value smaller than 1 -/
+lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧
+    ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
   have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
     by_contra h
     apply hf_nontriv
@@ -754,7 +756,7 @@ lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) �
   set P := {m : ℕ | 0 < f ↑m ∧ f ↑m < 1}
   have hPnonempty : Set.Nonempty P := by
     use n
-    refine ⟨map_pos_of_ne_zero f (Nat.cast_ne_zero.mpr hn1),lt_of_le_of_ne (bdd n) hn2 ⟩
+    refine ⟨map_pos_of_ne_zero f (Nat.cast_ne_zero.mpr hn1), lt_of_le_of_ne (bdd n) hn2⟩
   use sInf P
   refine ⟨Nat.sInf_mem hPnonempty, ?_⟩
   intro m hm
@@ -767,8 +769,7 @@ section steps_2_3
 variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
   (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
 
-lemma ne01_gt_1 {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) :
-    1 < a := by
+lemma one_lt_of_ne_zero_one {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) : 1 < a := by
   rcases a with _ | a
   · exact (ne_0 rfl).elim
   · rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ne_1
@@ -816,80 +817,76 @@ lemma p_is_prime : (Prime p) := by
     simp only [Nat.cast_mul, map_mul]
     rw [← one_mul 1]
     gcongr
-    · exact f_positive a b hab (ne01_gt_1 (neq_0 hba) b_neq_1)
-    · exact f_positive b a hba (ne01_gt_1 (neq_0 hab) a_neq_1)
+    · exact f_positive a b hab (one_lt_of_ne_zero_one (neq_0 hba) b_neq_1)
+    · exact f_positive b a hba (one_lt_of_ne_zero_one (neq_0 hab) a_neq_1)
 
 
 -- ## Step 3
-
-lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m )  : f m = 1 := by
+/-- a natural number not divible by p has absolute value 1 -/
+lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m ) : f m = 1 := by
   have pprime : Prime (p : ℤ)  := by
     rw [← Nat.prime_iff_prime_int]
-    exact Prime.nat_prime (p_is_prime _ hp0 hp1 hmin)
+    exact Prime.nat_prime (p_is_prime p hp0 hp1 hmin)
   rw [le_antisymm_iff]
   refine ⟨bdd m, ?_ ⟩
   by_contra hm
   apply lt_of_not_le at hm
   set M := (f p) ⊔ (f m) with hM
-  set k0 := Nat.ceil ( Real.logb  M (1/2) ) + 1 with hk
-  have copr : IsCoprime (p ^ k0 : ℤ) (m ^ k0) := by
+  set k := Nat.ceil ( Real.logb  M (1/2) ) + 1 with hk
+  have hcopr : IsCoprime (p ^ k : ℤ) (m ^ k) := by
     apply IsCoprime.pow
     rw [Prime.coprime_iff_not_dvd pprime]
     exact_mod_cast hpm
-  obtain ⟨a, b, bezout⟩ := copr
-  have le_half x (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) :
-    x^k0 < 1/2 := by calc
-      x ^ k0 = x ^ (k0 : ℝ) := by norm_cast
-      _ < x ^ Real.logb M (1 / 2) := by
-        apply Real.rpow_lt_rpow_of_exponent_gt hx0 hx1
-        rw [hk]
-        apply lt_of_le_of_lt (Nat.le_ceil (Real.logb M (1/2)))
-        norm_cast
-        apply lt_add_one
-      _ ≤ x ^ (Real.logb x) (1/2) := by
-        apply Real.rpow_le_rpow_of_exponent_ge hx0 (by linarith only [hx1])
-        simp only [← Real.log_div_log]
-        ring_nf
-        simp only [one_div, Real.log_inv, neg_mul, neg_le_neg_iff]
-        rw [mul_le_mul_left (Real.log_pos one_lt_two)]
-        rw [inv_le_inv_of_neg]
-        · exact Real.log_le_log hx0 hxM
-        · rw [Real.log_neg_iff]
-          · rw [hM, sup_lt_iff]
-            exact ⟨hp1, hm⟩
-          · rw [hM, lt_sup_iff]
-            left
-            exact hp0
-        · apply (Real.log_neg_iff hx0).2 hx1
-      _ = 1/2 := by
-        rw [Real.rpow_logb hx0 (by linarith only [hx1])]
-        simp only [one_div, inv_pos, Nat.ofNat_pos]
+  obtain ⟨a, b, bezout⟩ := hcopr
+  have le_half x (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) : x ^ k < 1/2 := by
+    calc
+    x ^ k = x ^ (k : ℝ) := by norm_cast
+    _ < x ^ Real.logb M (1 / 2) := by
+      apply Real.rpow_lt_rpow_of_exponent_gt hx0 hx1
+      rw [hk]
+      apply lt_of_le_of_lt (Nat.le_ceil (Real.logb M (1/2)))
+      norm_cast
+      exact lt_add_one ⌈Real.logb M (1 / 2)⌉₊
+    _ ≤ x ^ Real.logb x (1/2) := by
+      apply Real.rpow_le_rpow_of_exponent_ge hx0 (le_of_lt hx1)
+      simp only [← Real.log_div_log]
+      ring_nf
+      simp only [one_div, Real.log_inv, neg_mul, neg_le_neg_iff]
+      rw [mul_le_mul_left (Real.log_pos one_lt_two)]
+      rw [inv_le_inv_of_neg _ ((Real.log_neg_iff hx0).2 hx1)]
+      · exact Real.log_le_log hx0 hxM
+      · rw [Real.log_neg_iff]
+        · rw [hM, sup_lt_iff]
+          exact ⟨hp1, hm⟩
+        · rw [hM, lt_sup_iff]
+          left
+          exact hp0
+    _ = 1/2 := by
+      rw [Real.rpow_logb hx0 (ne_of_lt hx1)]
+      simp only [one_div, inv_pos, Nat.ofNat_pos]
   apply lt_irrefl (1 : ℝ)
   calc
     (1:ℝ) = f 1 := by rw [map_one]
-    _ = f (a * p ^ k0 + b * m ^ k0) := by
+    _ = f (a * p ^ k + b * m ^ k) := by
       rw_mod_cast [bezout]
       norm_cast
-    _ ≤ f (a * p ^ k0) + f (b * m ^ k0) := by apply f.add_le'
-    _ ≤ 1 * (f p) ^ k0 + 1 * (f m) ^ k0 := by
+    _ ≤ f (a * p ^ k) + f (b * m ^ k) := f.add_le' (a * p ^ k) (b * m ^ k)
+    _ ≤ 1 * (f p) ^ k + 1 * (f m) ^ k := by
       simp only [map_mul, map_pow, le_refl]
       gcongr
       all_goals rw [← f_of_abs_eq_f]; apply bdd
-    _ = (f p) ^ k0 + (f m) ^ k0 := by simp
+    _ = (f p) ^ k + (f m) ^ k := by simp only [one_mul]
     _ < 1 := by
       rw [← add_halves (a:=1)]
       apply add_lt_add
-      · apply le_half _ hp0 hp1
-        rw [hM]
-        simp only [le_sup_left]
-      · apply le_half (f m) _ hm
-        · rw [hM]
-          simp only [le_sup_right]
-        · apply map_pos_of_ne_zero
-          intro m0
-          apply hpm
-          rw_mod_cast [m0]
-          simp only [dvd_zero]
+      · apply le_half (f ↑p) hp0 hp1
+        exact le_sup_left
+      · apply le_half (f m) _ hm le_sup_right
+        apply map_pos_of_ne_zero
+        intro m0
+        apply hpm
+        rw_mod_cast [m0]
+        exact dvd_zero p
 
 -- ## Non-archimedean case: step 4
 
@@ -902,8 +899,7 @@ lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
     simp only [Nat.one_lt_cast]
     exact Nat.Prime.one_lt pprime
   · simp only [neg_neg]
-    apply (Real.rpow_logb _ _ hp0).symm
-    exact_mod_cast Nat.Prime.pos pprime
+    apply (Real.rpow_logb (by exact_mod_cast Nat.Prime.pos pprime) _ hp0).symm
     simp only [ne_eq, Nat.cast_eq_one,Nat.Prime.ne_one pprime]
     trivial
 
@@ -920,7 +916,7 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
   have hprime : Prime p := p_is_prime p hfp.1 hfp.2 hmin
   use p
   have hprime_fact : Fact (Nat.Prime p) := fact_iff.2 (Prime.nat_prime hprime)
-  use hprime_fact
+  use (hprime_fact)
   obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
   rw [← NormRat_equiv_iff_equiv_on_Nat]
   use (t⁻¹)
@@ -939,14 +935,15 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     rw [hnpm]
     simp only [Nat.cast_mul, Nat.cast_pow, map_mul, map_pow, mul_ring_norm_eq_padic_norm,
       padicNorm.padicNorm_p_of_prime, Rat.cast_inv, Rat.cast_natCast, inv_pow]
-    rw [not_divisible_norm_one bdd p hfp.1 hfp.2 hmin m hpm,h.2]
-    rw [←padicNorm.nat_eq_one_iff] at hpm
+    rw [not_divisible_norm_one bdd p hfp.1 hfp.2 hmin m hpm, h.2]
+    rw [← padicNorm.nat_eq_one_iff] at hpm
     rw [hpm]
     simp only [mul_one, Rat.cast_one]
     rw [← Real.rpow_natCast_mul (Real.rpow_nonneg (Nat.cast_nonneg p) _ ),
       ← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
     simp only [neg_mul]
-    rw [mul_inv_cancel (by linarith only [h.1]), one_mul, Real.rpow_neg (Nat.cast_nonneg p), Real.rpow_natCast]
+    rw [mul_inv_cancel (by linarith only [h.1]), one_mul, Real.rpow_neg (Nat.cast_nonneg p),
+      Real.rpow_natCast]
 end Nonarchimedean
 
 
