@@ -66,14 +66,15 @@ def mulRingNorm_padic (p : ℕ) [hp : Fact (Nat.Prime p)] : MulRingNorm ℚ :=
 @[simp] lemma mul_ring_norm_eq_padic_norm (p : ℕ) [Fact (Nat.Prime p)] (r : ℚ) :
   mulRingNorm_padic p r = padicNorm p r := rfl
 
-lemma mul_ring_norm.padic_is_nonarchimedean (p : ℕ) [hp : Fact (Nat.Prime p)] (a b : ℚ) :
+--Not used
+/- lemma mul_ring_norm.padic_is_nonarchimedean (p : ℕ) [hp : Fact (Nat.Prime p)] (a b : ℚ) :
     mulRingNorm_padic p (a + b) ≤ max (mulRingNorm_padic p a) (mulRingNorm_padic p b) := by
   rw [mul_ring_norm_eq_padic_norm]
   rw [mul_ring_norm_eq_padic_norm]
   rw [mul_ring_norm_eq_padic_norm]
   norm_cast
   exact padicNorm.nonarchimedean
-  done
+  done -/
 
 end Padic
 
@@ -108,7 +109,8 @@ lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) (y : F ) (hy : y 
     simp only [mul_one, sub_add_sub_cancel']
 
 /-Triangle inequality for absolute values applied to Lists-/
-lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).sum := by
+lemma MulRingNorm_sum_le_sum_MulRingNorm {R : Type*} [Ring R] (l : List R) (f : MulRingNorm R) :
+    f l.sum ≤ (l.map f).sum := by
   induction l with
   | nil => simp only [List.sum_nil, map_zero, List.map_nil, le_refl]
   | cons head tail ih =>
@@ -118,7 +120,7 @@ lemma flist_triang (l : List ℚ) (f : MulRingNorm ℚ) : f l.sum ≤ (l.map f).
 
 /- #find_home! list_mul_sum
 #find_home! list_geom
-#find_home! flist_triang -/
+#find_home! MulRingNorm_sum_le_sum_MulRingNorm -/
 
 /-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by
     `n0 + n0 |n0| + n0 |n0|^2 + ...`-/
@@ -133,7 +135,7 @@ lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_
         _ = f (L'.sum) := by
           rw [Nat.ofDigits_eq_sum_mapIdx, hL']
           norm_cast
-        _ ≤ (L'.map f).sum := flist_triang _ _
+        _ ≤ (L'.map f).sum := MulRingNorm_sum_le_sum_MulRingNorm _ _
         _ ≤ (L.mapIdx fun i _ => n0 * (f n0) ^ i).sum := by
               simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
               apply List.sum_le_sum
@@ -154,18 +156,18 @@ open BigOperators
     If `a :ℝ` is bounded above by a function `g : ℕ → ℝ` for every `k : ℕ` then it is less or equal than
     the limit `lim_{k → ∞} g(k)`-/
 
-lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a ≤ g k)
+/- lemma forall_le_limit (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ),  a ≤ g k)
     (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
   set f:= fun _ : ℕ ↦ (a : ℝ)
   have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
-  exact le_of_tendsto_of_tendsto' hflim hg ha
+  exact le_of_tendsto_of_tendsto' hflim hg ha -/
 
 /- For the applications we need the same statement with the extra hypothesis that ` a ≤ g(k)` holds
     for every `k > 0`. This is done using the notion of `eventually less`
 -/
-lemma forall_le_limit' (a : ℝ) (g: ℕ → ℝ) (l:ℝ) (ha: ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
-  (hg: Filter.Tendsto g Filter.atTop (nhds l) ): a ≤ l := by
-  set f:= fun _ : ℕ ↦ (a : ℝ) with hf
+lemma forall_le_limit (a : ℝ) (g : ℕ → ℝ) (l : ℝ) (ha : ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
+  (hg : Filter.Tendsto g Filter.atTop (nhds l) ) : a ≤ l := by
+  set f := fun _ : ℕ ↦ (a : ℝ) with hf
   have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
   apply le_of_tendsto_of_tendsto hflim hg _
   rw [Filter.EventuallyLE, Filter.eventually_atTop]
@@ -357,9 +359,13 @@ open BigOperators
 
 
 
-lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : ℕ) (hn: 1 < n), f n > 1 := by
+lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n : ℕ) (hn : 1 < n),
+   f n > 1 := by
   contrapose! notbdd
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
+  intro n
+  cases' n with n; simp only [Nat.zero_eq, CharP.cast_eq_zero, map_zero, zero_le_one]
+  by_cases hn : n = 0; norm_cast; simp only [hn, Nat.reduceSucc, Nat.cast_one, map_one, le_refl]
   have hnk {n : ℕ} (hn : 1 < n) {k : ℕ} (hk : 0 < k)  : (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
     set L := Nat.digits n0 (n^k) with hL
@@ -390,7 +396,7 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
       _ = f (L'.sum) := by
         rw [Nat.ofDigits_eq_sum_mapIdx, hL']
         norm_cast
-      _ ≤ (L'.map f).sum := flist_triang _ _
+      _ ≤ (L'.map f).sum := MulRingNorm_sum_le_sum_MulRingNorm _ _
       _ ≤ (L.mapIdx fun _ _ => (n0 : ℝ)).sum := by
         simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
         apply List.sum_le_sum
@@ -428,13 +434,10 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
   have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k),
       f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := fn_le_kroot_log n0 hn0_ge2 hnk
 
-  have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k),
+  have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk : 0 < k),
       f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
     intro n hn k hk
-    apply fn_le_mul_kroot f n0 hn0_ge2
-    · exact hn
-    · exact hk
-    · exact hkroot n hn k hk
+    exact fn_le_mul_kroot f n0 hn0_ge2 n hn k hk (hkroot n hn k hk)
 
   have prod_limit : ∀ (n : ℕ), 1 < n →
       Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)))
@@ -448,21 +451,12 @@ lemma notbdd_implies_all_gt_one (notbdd: ¬ ∀(n : ℕ), f n ≤ 1) : ∀(n : �
             := Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
     simp at hprod
     exact hprod
-
-  intro n
-  cases' n with n
-  · norm_cast
-    rw [map_zero]
-    exact zero_le_one
-  · by_cases hn : n = 0
-    norm_cast
-    simp only [hn, Nat.reduceSucc, Nat.cast_one, map_one, le_refl]
-    · have hn_ge_one : 1 < Nat.succ n := by omega
-      specialize h_ex_const (Nat.succ n) hn_ge_one
-      specialize prod_limit (Nat.succ n) hn_ge_one
-      refine' forall_le_limit' (f ↑(Nat.succ n))
-        (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(Nat.succ n)) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) 1
-        h_ex_const prod_limit
+  --have hn_ge_one : 1 < Nat.succ n := by exact Nat.sub_ne_zero_iff_lt.mp hn
+  specialize h_ex_const (Nat.succ n) (Nat.sub_ne_zero_iff_lt.mp hn)
+  specialize prod_limit (Nat.succ n) (Nat.sub_ne_zero_iff_lt.mp hn)
+  refine' forall_le_limit (f ↑(Nat.succ n))
+    (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(Nat.succ n)) + 1)) ^ ((k:ℝ)⁻¹) * ((k)^((k:ℝ)⁻¹))) 1
+    h_ex_const prod_limit
 
 -- ## step 2
 -- given m,n \geq 2 and |m|=m^s, |n|=n^t for s,t >0, prove t \leq s
