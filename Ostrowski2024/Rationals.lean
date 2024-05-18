@@ -272,7 +272,7 @@ lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 
 /-
 The lemma formalizes taking the `k`-th root in the inequality `f ↑n ^ k ≤ ↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1)`
 -/
-lemma fn_le_kroot_log (n0 : ℕ)  (hn0 : 1 < n0)
+/- lemma fn_le_kroot_log (n0 : ℕ)  (hn0 : 1 < n0)
     (hnk : ∀ {n : ℕ}, 1 < n → ∀ {k : ℕ}, 0 < k → f ↑n ^ k ≤ ↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1)):
     ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
   --intro n0
@@ -299,9 +299,9 @@ lemma fn_le_kroot_log (n0 : ℕ)  (hn0 : 1 < n0)
       omega
   rw [← this]
   convert hnk
-  simp only [Real.rpow_natCast]
+  simp only [Real.rpow_natCast] -/
 
-/- intermediate lemma computing upper bound of `f ↑ n` in terms of `k`-th root of logarithm -/
+/- /- intermediate lemma computing upper bound of `f ↑ n` in terms of `k`-th root of logarithm -/
 lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k)
     (hkroot : f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹),
     f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
@@ -352,10 +352,10 @@ lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : 
       apply Real.logb_nonneg (by norm_cast)
       norm_cast
       exact Nat.one_le_of_lt hn
-
+ -/
   /- set d := Nat.log m n with hd
   have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry -/
-open BigOperators
+open BigOperators Nat
 
 
 
@@ -366,6 +366,9 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
   intro n
   cases' n with n; simp only [Nat.zero_eq, CharP.cast_eq_zero, map_zero, zero_le_one]
   by_cases hn : n = 0; norm_cast; simp only [hn, Nat.reduceSucc, Nat.cast_one, map_one, le_refl]
+  have h_one_lt_succ_n : 1 < Nat.succ n := by exact Nat.sub_ne_zero_iff_lt.mp hn
+
+
   have hnk {n : ℕ} (hn : 1 < n) {k : ℕ} (hk : 0 < k)  : (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
     set L := Nat.digits n0 (n^k) with hL
@@ -431,15 +434,62 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
         · simp_all only [ne_eq, not_false_eq_true, pow_eq_zero_iff', not_and, not_not,
           not_true_eq_false, implies_true, List.mem_map, Prod.exists, Function.uncurry_apply_pair,
           exists_and_right, and_imp, forall_exists_index, forall_const]
-  have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k),
-      f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := fn_le_kroot_log n0 hn0_ge2 hnk
 
-  have  h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk : 0 < k),
+  have hkroot : ∀ (k : ℕ) (hk: 0 < k),
+      f (succ n) ≤ (↑n0 * (Real.logb (↑n0) ((succ n) ^ k) + 1))^(k:ℝ)⁻¹ := by
+    intro k hk
+    specialize hnk h_one_lt_succ_n hk
+    have h1:  (f ↑(succ n) ^ (k:ℝ ))^(k:ℝ)⁻¹ = f ↑(succ n)  := by
+      apply Real.rpow_rpow_inv (apply_nonneg f ↑(succ n))
+      simp only [ne_eq, cast_eq_zero]
+      exact Nat.pos_iff_ne_zero.mp hk
+    rw [← h1]
+    apply Real.rpow_le_rpow
+    simp only [cast_succ, Real.rpow_natCast, ge_iff_le, apply_nonneg, pow_nonneg]
+    exact_mod_cast hnk
+    simp only [inv_nonneg, cast_nonneg]
+
+  /- have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k),
+      f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := fn_le_kroot_log n0 hn0_ge2 hnk -/
+
+  have h_ex_const : ∀ (k : ℕ) (hk : 0 < k),
+      f (succ n) ≤ (n0 * (Real.logb (n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
+    intro k hk
+    apply le_trans (hkroot k hk)
+    simp only [cast_succ]
+    have haux (h : ℕ) : 0 ≤ n0 * (Real.logb (n0) ((n + 1)^h) + 1) := by
+      apply mul_nonneg (cast_nonneg n0) (add_nonneg ?_ Real.instStrictOrderedCommRingReal.proof_3)
+      apply Real.logb_nonneg (one_lt_cast.mpr hn0_ge2)
+      apply one_le_pow_of_one_le
+      rw [le_add_iff_nonneg_left]
+      exact cast_nonneg n
+    rw [← Real.mul_rpow (?_) (cast_nonneg k)]
+    swap; specialize haux 1; simp only [pow_one] at haux; exact haux
+    apply Real.rpow_le_rpow (haux k) ?_ (by simp only [inv_nonneg, cast_nonneg])
+    rw [mul_assoc]
+    apply mul_le_mul_of_nonneg_left ?_ (cast_nonneg n0)
+    rw [Real.logb_pow (cast_add_one_pos n), add_mul, mul_comm]
+    simp only [one_mul, add_le_add_iff_left, one_le_cast]
+    exact hk
+
+ /-  have h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk : 0 < k),
       f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
     intro n hn k hk
-    exact fn_le_mul_kroot f n0 hn0_ge2 n hn k hk (hkroot n hn k hk)
+    exact fn_le_mul_kroot f n0 hn0_ge2 n hn k hk (hkroot n hn k hk) -/
 
-  have prod_limit : ∀ (n : ℕ), 1 < n →
+  have prod_limit :
+      Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)))
+      Filter.atTop (nhds 1) := by
+    have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹))
+        Filter.atTop (nhds 1) := one_lim_kroot_log_expr n0 (succ n) hn0_ge2 h_one_lt_succ_n
+    have hprod :  Filter.Tendsto (fun k : ℕ ↦
+        (n0 * (Real.logb (n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds (1*1))
+            := Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
+    rw [mul_one] at hprod
+    exact hprod
+
+
+/-   have prod_limit : ∀ (n : ℕ), 1 < n →
       Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)))
       Filter.atTop (nhds 1) := by
     intro n hn
@@ -450,12 +500,12 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
         (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds (1*1))
             := Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
     simp at hprod
-    exact hprod
-  --have hn_ge_one : 1 < Nat.succ n := by exact Nat.sub_ne_zero_iff_lt.mp hn
-  specialize h_ex_const (Nat.succ n) (Nat.sub_ne_zero_iff_lt.mp hn)
-  specialize prod_limit (Nat.succ n) (Nat.sub_ne_zero_iff_lt.mp hn)
-  refine' forall_le_limit (f ↑(Nat.succ n))
-    (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(Nat.succ n)) + 1)) ^ ((k:ℝ)⁻¹) * ((k)^((k:ℝ)⁻¹))) 1
+    exact hprod -/
+
+
+  --specialize prod_limit (succ n) h_one_lt_succ_n
+  exact forall_le_limit (f ↑(succ n))
+    (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(succ n)) + 1)) ^ ((k:ℝ)⁻¹) * ((k)^((k:ℝ)⁻¹))) 1
     h_ex_const prod_limit
 
 -- ## step 2
@@ -507,7 +557,7 @@ lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n))
       exact mul_nonneg (by linarith only [hmge]) (by linarith only [this])
 
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
-  simp only [logb, log_pow, mul_div]
+  simp only [logb, Real.log_pow, mul_div]
 
 
 
