@@ -116,7 +116,13 @@ lemma MulRingNorm_sum_le_sum_MulRingNorm {R : Type*} [Ring R] (l : List R) (f : 
   | cons head tail ih =>
     simp only [List.sum_cons, List.map_cons]
     calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by apply f.add_le'
-      _ ≤ f head + List.sum (List.map (⇑f) tail) := by gcongr
+      _ ≤ f head + List.sum (List.map (⇑f) tail) := by simp only [add_le_add_iff_left, ih]
+
+lemma MulRingNorm_digit_lt_base {R : Type*} [Ring R] (f : MulRingNorm R) (m c n : ℕ)
+    (h_one_lt_m : 1 < m) (hcdig: c ∈ Nat.digits m (n)) : f c < m := by
+  apply lt_of_le_of_lt (MulRingNorm_nat_le_nat c f)
+  exact_mod_cast Nat.digits_lt_base h_one_lt_m hcdig
+
 
 /- #find_home! list_mul_sum
 #find_home! list_geom
@@ -149,8 +155,7 @@ lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_
 
 open BigOperators
 
-/- lemma fn_le_from_expansion (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) :
-    f n ≤ m * (∑ i in Finset.range (Nat.log m n + 1), (f m)^i) := by sorry -/
+
 
 /- ## Auxiliary lemma for limits
     If `a :ℝ` is bounded above by a function `g : ℕ → ℝ` for every `k : ℕ` then it is less or equal than
@@ -187,7 +192,8 @@ lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
 
 /- the function `(n0 * ((Real.logb n0 n) + 1))^k^⁻¹` tends to `1` as `k → ∞`-/
 lemma one_lim_kroot_log_expr (n0 n : ℕ) (hn0_ge2: 1 < n0) (hn : 1 < n) :
-    Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)) Filter.atTop (nhds 1) := by
+    Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹))
+    Filter.atTop (nhds 1) := by
   have hpos : 0 < (n0 * (Real.logb (↑ n0) (↑n) + 1)) := by
     rw[mul_pos_iff]
     left
@@ -206,24 +212,11 @@ lemma one_lim_kroot_log_expr (n0 n : ℕ) (hn0_ge2: 1 < n0) (hn : 1 < n) :
   · simp only [one_div]
   apply one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1)) hpos
 
-/-auxiliary lemma to compute the limit as `k → ∞` of the function `k : ℕ ↦ k^k`-/
-/- lemma bar : Filter.Tendsto (fun x : ℝ  ↦ ( x ^ (x)⁻¹)) Filter.atTop (nhds 1) →
-    Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
-  rw [Filter.tendsto_def,Filter.tendsto_def]
-  simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
-  intro h s1 hs1
-  rcases (h s1 hs1) with ⟨s2, hs2⟩
 
-  use (Nat.floor s2)+1
-  intro b hs2b
-  specialize hs2 b
-  have : s2 ≤ ↑b := by
-    calc s2 ≤ ⌊s2⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one s2)
-      _ ≤ ↑b := by exact_mod_cast hs2b
-  exact hs2 this -/
 
 /-extends the lemma `tendsto_rpow_div` when the function has natural input-/
-lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹))) Filter.atTop (nhds 1) := by
+lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹)))
+    Filter.atTop (nhds 1) := by
   rw [Filter.tendsto_def]
   simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
   intro N hN
@@ -239,10 +232,7 @@ lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)
   a ≤  ⌊a⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one a)
   _  ≤ ↑b := by exact_mod_cast hb
 
-  /- apply bar
-  convert_to Filter.Tendsto (fun x : ℝ ↦ (x ^ (1/x))) Filter.atTop (nhds 1)
-  · simp only [one_div]
-  apply tendsto_rpow_div -/
+
 
 -- ## step 1
 -- if |n|>1 for some n then |n|>1 for *all* n \geq 2 (by proving contrapositive)
@@ -269,93 +259,8 @@ lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 
   rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
   exact_mod_cast this
 
-/-
-The lemma formalizes taking the `k`-th root in the inequality `f ↑n ^ k ≤ ↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1)`
--/
-/- lemma fn_le_kroot_log (n0 : ℕ)  (hn0 : 1 < n0)
-    (hnk : ∀ {n : ℕ}, 1 < n → ∀ {k : ℕ}, 0 < k → f ↑n ^ k ≤ ↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1)):
-    ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k), f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
-  --intro n0
-  intro n hn k hk
-  -- have hnk_pos : 1 < (↑n ^ k) := by
-  --   apply one_lt_pow hn
-  --   linarith
-  -- have hlog_pos : 0 < (Real.logb (↑n0) (↑n ^ k)) := by
-  --   refine Real.logb_pos ?_ ?_
-  --   · norm_cast
-  --   · norm_cast
-  replace hnk : (f ↑n ^ k) ^ (k:ℝ)⁻¹ ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := by
-    apply @Real.rpow_le_rpow _ _ (k:ℝ)⁻¹
-    · apply pow_nonneg
-      exact apply_nonneg f _
-    · apply hnk hn hk
-    · apply le_of_lt
-      positivity
-  have : (f ↑n ^ (k:ℝ)) ^ (k:ℝ)⁻¹ = f ↑n := by
-    --norm_cast
-    apply Real.rpow_rpow_inv
-    · exact apply_nonneg f _
-    · simp
-      omega
-  rw [← this]
-  convert hnk
-  simp only [Real.rpow_natCast] -/
 
-/- /- intermediate lemma computing upper bound of `f ↑ n` in terms of `k`-th root of logarithm -/
-lemma fn_le_mul_kroot (f: MulRingNorm ℚ) (n0 : ℕ) (hn0 : 1 < n0) : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k)
-    (hkroot : f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹),
-    f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
-  -- intro n0
-  intro n hn k hk hkroot
-  -- replace hkroot := hkroot n hn k hk
-  rw [← Real.mul_rpow ?_ (by linarith only [hk])]
-  swap
-  · apply mul_nonneg (by linarith only [hn0])
-    apply add_nonneg (Real.logb_nonneg (by norm_cast) ?_) (Real.instStrictOrderedCommRingReal.proof_3)
-    norm_cast
-    exact Nat.one_le_of_lt hn
-  · rw [mul_add,add_mul]
-    simp only [mul_one, ge_iff_le]
-    rw [mul_assoc]
-    apply le_trans hkroot
-    rw_mod_cast [Real.rpow_le_rpow_iff ?_ ?_ (by simp only [inv_pos, Nat.cast_pos, hk])]
-    · push_cast
-      rw_mod_cast [mul_add]
-      apply add_le_add
-      · simp only [Nat.cast_pow]
-        apply mul_le_mul (by simp only [le_refl]) ?_ ?_ (by linarith only [hn0])
-        · rw [← Real.log_div_log, ← Real.log_div_log, mul_comm, mul_div, ← Real.log_rpow]
-          · apply div_le_div ?_ (by simp only [Real.log_pow, Real.rpow_natCast, le_refl]) ?_ (by simp only [le_refl])
-            · apply Real.log_nonneg (Real.one_le_rpow ?_ (by linarith only [hk]))
-              norm_cast
-              exact Nat.one_le_of_lt hn
-            · exact Real.log_pos (by norm_cast)
-          · simp only [Nat.cast_pos]
-            exact Nat.zero_lt_of_lt hn
-        · apply Real.logb_nonneg (by norm_cast)
-          norm_cast
-          apply Nat.one_le_pow
-          exact Nat.zero_lt_of_lt hn
-      · simp only [mul_one, Nat.cast_mul]
-        norm_cast
-        apply Nat.le_mul_of_pos_right _ hk
-    · apply mul_nonneg (by linarith only [hn0])
-      apply add_nonneg ?_ (Real.instStrictOrderedCommRingReal.proof_3)
-      apply Real.logb_nonneg (by norm_cast)
-      norm_cast
-      apply Nat.one_le_pow
-      exact Nat.zero_lt_of_lt hn
-    · simp only [Nat.cast_mul]
-      apply add_nonneg ?_ (mul_nonneg (by linarith only [hn0]) (by linarith only [hk]))
-      apply mul_nonneg (by linarith only [hn0])
-      apply mul_nonneg ?_ (by linarith only [hk])
-      apply Real.logb_nonneg (by norm_cast)
-      norm_cast
-      exact Nat.one_le_of_lt hn
- -/
-  /- set d := Nat.log m n with hd
-  have hnmd : f n ≤ m * (∑ i in Finset.range (d + 1), (f m)^i) := by sorry -/
-open BigOperators Nat
+open Nat
 
 
 
@@ -368,30 +273,23 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
   by_cases hn : n = 0; norm_cast; simp only [hn, Nat.reduceSucc, Nat.cast_one, map_one, le_refl]
   have h_one_lt_succ_n : 1 < Nat.succ n := by exact Nat.sub_ne_zero_iff_lt.mp hn
 
-
-  have hnk {n : ℕ} (hn : 1 < n) {k : ℕ} (hk : 0 < k)  : (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
+  have hnk {n : ℕ} (hn : 1 < n) {k : ℕ} (hk : 0 < k) :
+      (f n)^k ≤ (n0 * (Real.logb n0 (n^k)  + 1)) := by
     /- L is the string of digits of `n` modulo `n0`-/
     set L := Nat.digits n0 (n^k) with hL
     /- d is the number of digits (starting at 0)-/
     set d := L.length - 1 with hd
     have hd_natlog : d = Nat.log n0 (n^k) := by
-      rw [hd, Nat.digits_len _ _ hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)), Nat.add_sub_cancel]
-    --have hnk : 0 ≤ ((n ^ k) :ℝ ) := by positivity
-    have hnknz : n^k ≠ 0 := by
-      simp only [ne_eq, pow_eq_zero_iff', not_and, not_not]
-      intro h
-      linarith only [h,hn]
+      rw [hd, Nat.digits_len n0 (n^k) hn0_ge2 (pow_ne_zero k (ne_zero_of_lt hn)),
+        Nat.add_sub_cancel]
+
     have hd_log : d ≤ Real.logb n0 (n^k) := by
       rw [hd_natlog]
       norm_cast
       apply nat_log_le_real_log n0 (n^k) ?_ hn0_ge2
-      omega
-    have hcoeff (c : ℕ) (hc: c ∈ Nat.digits n0 (n^k)) : f c < n0 := by
-      have hcltn0 : c < n0 := Nat.digits_lt_base hn0_ge2 hc
-      have := MulRingNorm_nat_le_nat c f
-      apply lt_of_le_of_lt
-      · exact this
-      · exact_mod_cast hcltn0
+      exact pow_pos (lt_of_succ_lt hn) k
+
+
     set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a => (a * n0 ^ i)) with hL'
     calc
     (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
@@ -399,41 +297,31 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
       _ = f (L'.sum) := by
         rw [Nat.ofDigits_eq_sum_mapIdx, hL']
         norm_cast
-      _ ≤ (L'.map f).sum := MulRingNorm_sum_le_sum_MulRingNorm _ _
+      _ ≤ (L'.map f).sum := MulRingNorm_sum_le_sum_MulRingNorm L' f
       _ ≤ (L.mapIdx fun _ _ => (n0 : ℝ)).sum := by
         simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
         apply List.sum_le_sum
         rintro ⟨i,a⟩ hia
-        dsimp [Function.uncurry]
-        replace hia := List.mem_enumFrom _ hia
-        have ha := hcoeff _ hia.2.2
+        simp only [Function.comp_apply, Function.uncurry_apply_pair]
+        replace hia := List.mem_enumFrom L hia
+        have ha := MulRingNorm_digit_lt_base f n0 a (n^k) hn0_ge2 hia.2.2
         push_cast
-        rw[map_mul, map_pow]
-        calc f a * f n0 ^ i ≤ n0 * 1 := by
-              refine mul_le_mul ha.le ?_ ?_ ?_
-              · apply pow_le_one _ _ hfn0
-                · exact apply_nonneg f _
-              · apply pow_nonneg
-                exact apply_nonneg f _
-              · linarith only [hn0_ge2]
-          _ = n0 := mul_one _
+        rw [map_mul, map_pow]
+        exact mul_le_of_le_of_le_one_of_nonneg (le_of_lt ha)
+            (pow_le_one i (apply_nonneg f (↑ n0)) hfn0) (apply_nonneg f (↑ a))
       _ ≤ n0 * (Real.logb n0 (n ^ k) + 1) := by
         rw [List.mapIdx_eq_enum_map,
           List.eq_replicate_of_mem (a := (n0:ℝ))
             (l := List.map (Function.uncurry fun _ _ => ↑n0) (List.enum L)),
           List.sum_replicate, List.length_map, List.enum_length,
           nsmul_eq_mul, mul_comm]
-        refine mul_le_mul le_rfl ?_ (by simp only [Nat.cast_nonneg]) (by simp only [Nat.cast_nonneg])
-        · calc ↑(List.length L) ≤ ↑d + 1 := by
-                rw [hd]
-                norm_cast
-                omega
-               _ ≤ Real.logb (↑n0) (↑n ^ k) + 1 := by
-                simp
-                exact hd_log
-        · simp_all only [ne_eq, not_false_eq_true, pow_eq_zero_iff', not_and, not_not,
-          not_true_eq_false, implies_true, List.mem_map, Prod.exists, Function.uncurry_apply_pair,
-          exists_and_right, and_imp, forall_exists_index, forall_const]
+        · apply mul_le_mul le_rfl ?_ (cast_nonneg (List.length L)) (cast_nonneg n0)
+          apply le_add_of_le_add_right ?_ hd_log
+          norm_cast
+          rw [hd]
+          omega
+        · simp_all only [List.mem_map, Prod.exists, Function.uncurry_apply_pair, exists_and_right,
+          and_imp, implies_true, forall_exists_index, forall_const]
 
   have hkroot : ∀ (k : ℕ) (hk: 0 < k),
       f (succ n) ≤ (↑n0 * (Real.logb (↑n0) ((succ n) ^ k) + 1))^(k:ℝ)⁻¹ := by
@@ -448,9 +336,6 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
     simp only [cast_succ, Real.rpow_natCast, ge_iff_le, apply_nonneg, pow_nonneg]
     exact_mod_cast hnk
     simp only [inv_nonneg, cast_nonneg]
-
-  /- have hkroot : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk: 0 < k),
-      f ↑n ≤ (↑n0 * (Real.logb (↑n0) (↑n ^ k) + 1))^(k:ℝ)⁻¹ := fn_le_kroot_log n0 hn0_ge2 hnk -/
 
   have h_ex_const : ∀ (k : ℕ) (hk : 0 < k),
       f (succ n) ≤ (n0 * (Real.logb (n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
@@ -472,11 +357,6 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
     simp only [one_mul, add_le_add_iff_left, one_le_cast]
     exact hk
 
- /-  have h_ex_const : ∀ (n : ℕ) (hn : 1 < n) (k : ℕ) (hk : 0 < k),
-      f ↑ n ≤ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)) := by
-    intro n hn k hk
-    exact fn_le_mul_kroot f n0 hn0_ge2 n hn k hk (hkroot n hn k hk) -/
-
   have prod_limit :
       Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)))
       Filter.atTop (nhds 1) := by
@@ -488,22 +368,6 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
     rw [mul_one] at hprod
     exact hprod
 
-
-/-   have prod_limit : ∀ (n : ℕ), 1 < n →
-      Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)))
-      Filter.atTop (nhds 1) := by
-    intro n hn
-    have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹))
-        Filter.atTop (nhds 1) := one_lim_kroot_log_expr n0 n hn0_ge2 hn
-
-    have hprod :  Filter.Tendsto (fun k : ℕ ↦
-        (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹))) Filter.atTop (nhds (1*1))
-            := Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
-    simp at hprod
-    exact hprod -/
-
-
-  --specialize prod_limit (succ n) h_one_lt_succ_n
   exact forall_le_limit (f ↑(succ n))
     (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑(succ n)) + 1)) ^ ((k:ℝ)⁻¹) * ((k)^((k:ℝ)⁻¹))) 1
     h_ex_const prod_limit
@@ -519,23 +383,17 @@ variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n
 
 lemma main_inequality : f n ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb m n)) := by
   obtain hm := notbdd_implies_all_gt_one notbdd
-  have : 1< f m := by simp only [hm m hmge]
+  have : 1 < f m := by simp only [hm m hmge]
   let d := Nat.log m n
   have hd_length : d + 1  = (Nat.digits m (n)).length := by
-    rw [Nat.digits_len _ _ hmge (by linarith only [hnge])]
-  /- have hsum : ∑ i in Finset.range (d + 1), f ↑m ^ i = (f ↑m ^ (d+1) - 1)/(f ↑m - 1) := by
-    rw [geom_sum_eq]
-    apply ne_of_gt
-    linarith -/
-  have hcoeff (k c : ℕ)  (hc: c ∈ Nat.digits m (n^k)) : f c < m := by
-      have hcltn0 : c < m := Nat.digits_lt_base hmge hc
-      have := MulRingNorm_nat_le_nat c f
-      apply lt_of_le_of_lt
-      · exact this
-      · exact_mod_cast hcltn0
+    rw [Nat.digits_len m n hmge (by linarith only [hnge])]
+
   have h : ∀ k, 0 < k → (f n)^k ≤ ((Nat.digits m (n^k)).mapIdx fun i _ => m * (f m) ^ i).sum  := by
     intro k hk
-    exact mulringnorm_n_pow_k_le_sum_digits_n0 _ _ hmge _ hnge _ hk (hcoeff k )
+    apply mulringnorm_n_pow_k_le_sum_digits_n0 f m hmge n hnge k hk
+    intro c hc
+    exact MulRingNorm_digit_lt_base f m c (n ^ k) hmge hc
+
   calc f ↑n ≤ ((Nat.digits m (n)).mapIdx fun i _ => m * (f m) ^ i).sum := by
         specialize h 1 zero_lt_one
         simp only [pow_one] at h
