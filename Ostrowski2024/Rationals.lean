@@ -173,8 +173,8 @@ open BigOperators
 lemma forall_le_limit (a : ℝ) (g : ℕ → ℝ) (l : ℝ) (ha : ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
   (hg : Filter.Tendsto g Filter.atTop (nhds l) ) : a ≤ l := by
   set f := fun _ : ℕ ↦ (a : ℝ) with hf
-  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := by exact tendsto_const_nhds
-  apply le_of_tendsto_of_tendsto hflim hg _
+  have hflim : Filter.Tendsto f Filter.atTop (nhds a) := tendsto_const_nhds
+  apply le_of_tendsto_of_tendsto hflim hg
   rw [Filter.EventuallyLE, Filter.eventually_atTop]
   use 1
   intro m hm
@@ -194,23 +194,11 @@ lemma one_lim_of_roots (C : ℝ) (hC : 0 < C) : Filter.Tendsto
 lemma one_lim_kroot_log_expr (n0 n : ℕ) (hn0_ge2: 1 < n0) (hn : 1 < n) :
     Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ ((k:ℝ)⁻¹))
     Filter.atTop (nhds 1) := by
-  have hpos : 0 < (n0 * (Real.logb (↑ n0) (↑n) + 1)) := by
-    rw[mul_pos_iff]
-    left
-    constructor
-    norm_cast
-    exact (lt_trans zero_lt_one hn0_ge2)
-    calc
-    0 < Real.logb ↑n0 ↑n := by
-      rw[Real.logb_pos_iff ?_ ?_]
-      simp[hn]
-      simp[hn0_ge2]
-      simp
-      exact (lt_trans zero_lt_one hn)
-    _ < Real.logb ↑n0 ↑n + 1 := lt_add_of_pos_right (Real.logb ↑n0 ↑n) zero_lt_one
-  convert_to Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (↑n) + 1)) ^ (1/(k:ℝ))) Filter.atTop (nhds 1)
-  · simp only [one_div]
-  apply one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1)) hpos
+  simp_rw [← one_div]
+  apply one_lim_of_roots (n0 * (Real.logb (↑ n0) (↑n) + 1))
+  apply mul_pos (by exact_mod_cast (lt_trans zero_lt_one hn0_ge2))
+  apply add_pos ?_ Real.zero_lt_one
+  exact Real.logb_pos (by exact_mod_cast  hn0_ge2) (by exact_mod_cast  hn)
 
 
 
@@ -223,14 +211,12 @@ lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)
   let h := tendsto_rpow_div
   rw [Filter.tendsto_def] at h
   simp only [one_div, Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
-  rcases (h N hN) with ⟨a, ha ⟩
+  rcases (h N hN) with ⟨a, ha⟩
   use (Nat.floor a)+1
   intro b hb
   specialize ha b
   apply ha
-  calc
-  a ≤  ⌊a⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one a)
-  _  ≤ ↑b := by exact_mod_cast hb
+  exact le_trans (le_of_lt (Nat.lt_floor_add_one a)) (by exact_mod_cast hb)
 
 
 
@@ -348,7 +334,7 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
       apply one_le_pow_of_one_le
       rw [le_add_iff_nonneg_left]
       exact cast_nonneg n
-    rw [← Real.mul_rpow (?_) (cast_nonneg k)]
+    rw [← Real.mul_rpow ?_ (cast_nonneg k)]
     swap; specialize haux 1; simp only [pow_one] at haux; exact haux
     apply Real.rpow_le_rpow (haux k) ?_ (by simp only [inv_nonneg, cast_nonneg])
     rw [mul_assoc]
@@ -358,7 +344,7 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
     exact hk
 
   have prod_limit :
-      Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹)* ((k)^((k:ℝ)⁻¹)))
+      Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹)*((k)^((k:ℝ)⁻¹)))
       Filter.atTop (nhds 1) := by
     have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n0 * (Real.logb (↑ n0) (succ n) + 1)) ^ ((k:ℝ)⁻¹))
         Filter.atTop (nhds 1) := one_lim_kroot_log_expr n0 (succ n) hn0_ge2 h_one_lt_succ_n
@@ -678,49 +664,49 @@ lemma one_lt_of_ne_zero_one {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) : 1 < a 
     exact Nat.succ_lt_succ ne_1
 
 lemma p_is_prime : (Prime p) := by
-  have neq_0 {a b : ℕ} (hab : p = a * b) : a ≠ 0 := by
-    intro an0
-    rw [an0] at hab
-    simp at hab
-    rw [hab] at hp0
-    rw_mod_cast [map_zero] at hp0
-    simp at hp0
-  have f_positive (a b : ℕ) (hab : p = a * b) (one_lt_b : 1 < b) : 1 ≤ f a := by
-    by_contra ca
-    apply lt_of_not_ge at ca
-    apply (@not_le_of_gt _ _ p a)
-    · rw [hab]
-      nth_rw 2 [← mul_one a]
-      apply Nat.mul_lt_mul_of_pos_left
-      · exact one_lt_b
-      · simp only [pos_iff_ne_zero]
-        apply neq_0 hab
-    · apply hmin
-      constructor
-      · apply map_pos_of_ne_zero
-        exact_mod_cast (neq_0 hab)
-      · exact ca
   rw [← irreducible_iff_prime]
   constructor
-  · simp only [Nat.isUnit_iff]
+  · rw [Nat.isUnit_iff]
     intro p1
     rw [p1] at hp1
     simp only [Nat.cast_one, map_one, lt_self_iff_false] at hp1
   · intro a b hab
-    have hba : p = b * a := by
-      rw [mul_comm]
-      exact hab
-    simp only [Nat.isUnit_iff]
+    rw [Nat.isUnit_iff, Nat.isUnit_iff]
     by_contra con
     push_neg at con
     obtain ⟨a_neq_1,b_neq_1⟩ := con
     apply not_le_of_lt hp1
     rw [hab]
     simp only [Nat.cast_mul, map_mul]
-    rw [← one_mul 1]
-    gcongr
-    · exact f_positive a b hab (one_lt_of_ne_zero_one (neq_0 hba) b_neq_1)
-    · exact f_positive b a hba (one_lt_of_ne_zero_one (neq_0 hab) a_neq_1)
+
+
+    have neq_0 {a b : ℕ} (hab : p = a * b) : a ≠ 0 := by
+      intro an0
+      rw [an0, zero_mul] at hab
+      rw [hab] at hp0
+      rw_mod_cast [map_zero] at hp0
+      simp only [lt_self_iff_false] at hp0
+
+    have one_le_f (a b : ℕ) (hab : p = a * b) (one_lt_b : 1 < b) : 1 ≤ f a := by
+      by_contra ca
+      apply lt_of_not_ge at ca
+      --apply @not_le_of_lt _ _ p a
+      apply (@not_le_of_gt _ _ p a)
+      · rw [hab, gt_iff_lt]
+        exact lt_mul_of_one_lt_right ((pos_iff_ne_zero ).2 (neq_0 hab)) one_lt_b
+      · apply hmin
+        refine ⟨?_ ,ca ⟩
+        apply map_pos_of_ne_zero
+        exact_mod_cast (neq_0 hab)
+
+    have hba : p = b * a := by
+      rw [mul_comm]
+      exact hab
+
+    apply one_le_mul_of_one_le_of_one_le
+
+    · exact one_le_f a b hab (one_lt_of_ne_zero_one (neq_0 hba) b_neq_1)
+    · exact one_le_f b a hba (one_lt_of_ne_zero_one (neq_0 hab) a_neq_1)
 
 
 -- ## Step 3
@@ -796,11 +782,11 @@ lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
   use - Real.logb p (f p)
   have pprime : Nat.Prime p := (Prime.nat_prime (p_is_prime p hp0 hp1 hmin))
   constructor
-  · simp only [Left.neg_pos_iff]
+  · rw [Left.neg_pos_iff]
     apply Real.logb_neg _ hp0 hp1
-    simp only [Nat.one_lt_cast]
+    rw [Nat.one_lt_cast]
     exact Nat.Prime.one_lt pprime
-  · simp only [neg_neg]
+  · rw [neg_neg]
     apply (Real.rpow_logb (by exact_mod_cast Nat.Prime.pos pprime) _ hp0).symm
     simp only [ne_eq, Nat.cast_eq_one,Nat.Prime.ne_one pprime]
     trivial
