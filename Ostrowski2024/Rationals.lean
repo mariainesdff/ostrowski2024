@@ -282,7 +282,7 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
   rcases notbdd with ⟨n0, hn0_ge2, hfn0⟩
   intro n
   cases' n with n; simp only [Nat.zero_eq, CharP.cast_eq_zero, map_zero, zero_le_one]
-  by_cases hn : n = 0; norm_cast; simp only [hn, Nat.reduceSucc, Nat.cast_one, map_one, le_refl]
+  by_cases hn : n = 0; norm_cast; simp only [hn, zero_add, cast_one, map_one, le_refl]
   have h_one_lt_succ_n : 1 < Nat.succ n := by exact Nat.sub_ne_zero_iff_lt.mp hn
 
   have hnk {n : ℕ} (hn : 1 < n) {k : ℕ} (hk : 0 < k) :
@@ -355,7 +355,7 @@ lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ (n 
     apply le_trans (hkroot k hk)
     simp only [cast_succ]
     have haux (h : ℕ) : 0 ≤ n0 * (Real.logb (n0) ((n + 1)^h) + 1) := by
-      apply mul_nonneg (cast_nonneg n0) (add_nonneg ?_ Real.instStrictOrderedCommRingReal.proof_3)
+      apply mul_nonneg (cast_nonneg n0) (add_nonneg ?_ (zero_le_one' ℝ))
       apply Real.logb_nonneg (one_lt_cast.mpr hn0_ge2)
       apply one_le_pow_of_one_le
       rw [le_add_iff_nonneg_left]
