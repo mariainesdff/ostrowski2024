@@ -648,7 +648,9 @@ end Archimedean
 
 section Nonarchimedean
 
--- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |p| < 1`
+section step_1
+
+-- ## Non-archimedean: step 1 define `p = smallest n s. t. 0 < |n| < 1`
 
 variable (bdd: ∀ n : ℕ, f n ≤ 1)
 
@@ -665,20 +667,18 @@ lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) �
     · rw [hn0]
       simp only [CharP.cast_eq_zero, map_zero]
     · push_neg at hn0
-      simp only [MulRingNorm.apply_one, Nat.cast_eq_zero, hn0, ↓reduceIte]
-      exact h n hn0
+      simp only [MulRingNorm.apply_one, Nat.cast_eq_zero, hn0, ↓reduceIte, h n hn0]
   obtain ⟨n,hn1,hn2⟩ := hn
   set P := {m : ℕ | 0 < f ↑m ∧ f ↑m < 1}
   have hPnonempty : Set.Nonempty P := by
     use n
-    refine ⟨map_pos_of_ne_zero f (Nat.cast_ne_zero.mpr hn1), lt_of_le_of_ne (bdd n) hn2⟩
+    exact ⟨map_pos_of_ne_zero f (Nat.cast_ne_zero.mpr hn1), lt_of_le_of_ne (bdd n) hn2⟩
   use sInf P
   refine ⟨Nat.sInf_mem hPnonempty, ?_⟩
   intro m hm
   exact Nat.sInf_le hm
-  done
 
-section steps_2_3
+section steps_2_3_4
 -- ## Non-archimedean case: Step 2. p is prime
 
 variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
@@ -695,25 +695,21 @@ lemma p_is_prime : (Prime p) := by
   constructor
   · rw [Nat.isUnit_iff]
     intro p1
-    rw [p1] at hp1
-    simp only [Nat.cast_one, map_one, lt_self_iff_false] at hp1
+    simp only [p1, Nat.cast_one, map_one, lt_self_iff_false] at hp1
   · intro a b hab
     rw [Nat.isUnit_iff, Nat.isUnit_iff]
     by_contra con
     push_neg at con
-    obtain ⟨a_neq_1,b_neq_1⟩ := con
+    obtain ⟨a_neq_1, b_neq_1⟩ := con
     apply not_le_of_lt hp1
     rw [hab]
     simp only [Nat.cast_mul, map_mul]
-
-
     have neq_0 {a b : ℕ} (hab : p = a * b) : a ≠ 0 := by
       intro an0
       rw [an0, zero_mul] at hab
       rw [hab] at hp0
       rw_mod_cast [map_zero] at hp0
       simp only [lt_self_iff_false] at hp0
-
     have one_le_f (a b : ℕ) (hab : p = a * b) (one_lt_b : 1 < b) : 1 ≤ f a := by
       by_contra ca
       apply lt_of_not_ge at ca
@@ -722,7 +718,7 @@ lemma p_is_prime : (Prime p) := by
       · rw [hab, gt_iff_lt]
         exact lt_mul_of_one_lt_right ((pos_iff_ne_zero ).2 (neq_0 hab)) one_lt_b
       · apply hmin
-        refine ⟨?_ ,ca ⟩
+        refine ⟨?_ ,ca⟩
         apply map_pos_of_ne_zero
         exact_mod_cast (neq_0 hab)
 
@@ -820,7 +816,8 @@ lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
 
 
 
-end steps_2_3
+end steps_2_3_4
+
 -- ## Non-archimedean case: end goal
 /--
   If `f` is bounded and not trivial, then it is equivalent to a p-adic absolute value.
