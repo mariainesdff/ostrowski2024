@@ -678,10 +678,12 @@ lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) �
   intro m hm
   exact Nat.sInf_le hm
 
+end step_1
+
 section steps_2_3_4
 -- ## Non-archimedean case: Step 2. p is prime
 
-variable  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
+variable (bdd: ∀ n : ℕ, f n ≤ 1)  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
   (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
 
 lemma one_lt_of_ne_zero_one {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) : 1 < a := by
@@ -691,7 +693,7 @@ lemma one_lt_of_ne_zero_one {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) : 1 < a 
     exact Nat.succ_lt_succ ne_1
 
 lemma p_is_prime : (Prime p) := by
-  rw [← irreducible_iff_prime]
+  rw [← Nat.irreducible_iff_prime]
   constructor
   · rw [Nat.isUnit_iff]
     intro p1
@@ -713,7 +715,6 @@ lemma p_is_prime : (Prime p) := by
     have one_le_f (a b : ℕ) (hab : p = a * b) (one_lt_b : 1 < b) : 1 ≤ f a := by
       by_contra ca
       apply lt_of_not_ge at ca
-      --apply @not_le_of_lt _ _ p a
       apply (@not_le_of_gt _ _ p a)
       · rw [hab, gt_iff_lt]
         exact lt_mul_of_one_lt_right ((pos_iff_ne_zero ).2 (neq_0 hab)) one_lt_b
@@ -731,13 +732,9 @@ lemma p_is_prime : (Prime p) := by
     · exact one_le_f a b hab (one_lt_of_ne_zero_one (neq_0 hba) b_neq_1)
     · exact one_le_f b a hba (one_lt_of_ne_zero_one (neq_0 hab) a_neq_1)
 
-
 -- ## Step 3
 /-- a natural number not divible by p has absolute value 1 -/
 lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m ) : f m = 1 := by
-  have pprime : Prime (p : ℤ)  := by
-    rw [← Nat.prime_iff_prime_int]
-    exact Prime.nat_prime (p_is_prime p hp0 hp1 hmin)
   rw [le_antisymm_iff]
   refine ⟨bdd m, ?_ ⟩
   by_contra hm
@@ -745,8 +742,8 @@ lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m ) : f m = 1 := by
   set M := (f p) ⊔ (f m) with hM
   set k := Nat.ceil ( Real.logb  M (1/2) ) + 1 with hk
   have hcopr : IsCoprime (p ^ k : ℤ) (m ^ k) := by
-    apply IsCoprime.pow
-    rw [Prime.coprime_iff_not_dvd pprime]
+    apply IsCoprime.pow (Nat.Coprime.isCoprime _)
+    rw [Nat.Prime.coprime_iff_not_dvd (Prime.nat_prime (p_is_prime p hp0 hp1 hmin))]
     exact_mod_cast hpm
   obtain ⟨a, b, bezout⟩ := hcopr
   have le_half x (hx0 : 0 < x) (hx1 : x < 1) (hxM : x ≤ M) : x ^ k < 1/2 := by
@@ -856,6 +853,7 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     simp only [neg_mul]
     rw [mul_inv_cancel (by linarith only [h.1]), one_mul, Real.rpow_neg (Nat.cast_nonneg p),
       Real.rpow_natCast]
+
 end Nonarchimedean
 
 
@@ -870,4 +868,5 @@ theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
     apply bdd_implies_equiv_padic bdd hf_nontriv
   · left
     apply notbdd_implies_equiv_real bdd
+
 end Rational
