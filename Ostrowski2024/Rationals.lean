@@ -654,10 +654,11 @@ section step_1
 
 variable (bdd: ∀ n : ℕ, f n ≤ 1)
 
- /- There exists a minimal positive integer with absolute value smaller than 1 -/
+ /-- There exists a minimal positive integer with absolute value smaller than 1 -/
 lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧
     ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
   have hn : ∃ (n : ℕ), n ≠ 0 ∧ f n ≠ 1 := by
+  -- there is a positive integer with absolute value different from one
     by_contra h
     apply hf_nontriv
     push_neg at h
@@ -686,12 +687,13 @@ section steps_2_3_4
 variable (bdd: ∀ n : ℕ, f n ≤ 1)  (p : ℕ)  (hp0 : 0 < f p)  (hp1 : f p < 1)
   (hmin : ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m)
 
-lemma one_lt_of_ne_zero_one {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) : 1 < a := by
+private lemma one_lt_of_ne_zero_one {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) : 1 < a := by
   rcases a with _ | a
   · exact (ne_0 rfl).elim
   · rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ne_1
     exact Nat.succ_lt_succ ne_1
 
+ /-- The minimal positive integer with absolute value smaller than 1 is a prime number-/
 lemma p_is_prime : (Prime p) := by
   rw [← Nat.irreducible_iff_prime]
   constructor
@@ -722,13 +724,10 @@ lemma p_is_prime : (Prime p) := by
         refine ⟨?_ ,ca⟩
         apply map_pos_of_ne_zero
         exact_mod_cast (neq_0 hab)
-
     have hba : p = b * a := by
       rw [mul_comm]
       exact hab
-
     apply one_le_mul_of_one_le_of_one_le
-
     · exact one_le_f a b hab (one_lt_of_ne_zero_one (neq_0 hba) b_neq_1)
     · exact one_le_f b a hba (one_lt_of_ne_zero_one (neq_0 hab) a_neq_1)
 
@@ -808,8 +807,7 @@ lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
     exact Nat.Prime.one_lt pprime
   · rw [neg_neg]
     apply (Real.rpow_logb (by exact_mod_cast Nat.Prime.pos pprime) _ hp0).symm
-    simp only [ne_eq, Nat.cast_eq_one,Nat.Prime.ne_one pprime]
-    trivial
+    simp only [ne_eq, Nat.cast_eq_one,Nat.Prime.ne_one pprime, not_false_eq_true]
 
 
 
@@ -826,7 +824,7 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
   use p
   have hprime_fact : Fact (Nat.Prime p) := fact_iff.2 (Prime.nat_prime hprime)
   use (hprime_fact)
-  obtain ⟨t,h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
+  obtain ⟨t, h⟩ := abs_p_eq_p_minus_t p hfp.1 hfp.2 hmin
   rw [← NormRat_equiv_iff_equiv_on_Nat]
   use (t⁻¹)
   refine ⟨by simp only [one_div, inv_pos, h.1], ?_ ⟩
