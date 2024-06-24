@@ -17,7 +17,7 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 ring_norm, ostrowski
 -/
 
-set_option autoImplicit false
+--set_option autoImplicit false
 
 /-!
 Throughout this file, `f` is an arbitrary absolute value.
@@ -32,7 +32,7 @@ section Real
 
 /-- The usual absolute value on ℚ. -/
 def mulRingNorm_real : MulRingNorm ℚ :=
-{ toFun    := λ x : ℚ => |x|
+{ toFun    := fun x : ℚ ↦ |x|
   map_zero' := by simp only [Rat.cast_zero, abs_zero]
   add_le'   := norm_add_le
   neg'      := norm_neg
@@ -113,36 +113,9 @@ lemma MulRingNorm_digit_lt_base {R : Type*} [Ring R] (f : MulRingNorm R) (m c n 
   apply lt_of_le_of_lt (MulRingNorm_nat_le_nat c f)
   exact_mod_cast Nat.digits_lt_base h_one_lt_m hcdig
 
-
-/- #find_home! list_mul_sum
-#find_home! list_geom
-#find_home! MulRingNorm_sum_le_sum_MulRingNorm -/
-
-/- /-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by
+/-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by
     `n0 + n0 |n0| + n0 |n0|^2 + ...`-/
-lemma mulringnorm_n_pow_k_le_sum_digits_n0 (f: MulRingNorm ℚ) (n0 : ℕ) (hn0_ge2: 1 < n0)
-    (n : ℕ) (hn: 1 < n)  (k : ℕ) (hk: 0 < k) (hcoeff: ∀ c ∈ Nat.digits n0 (n ^ k), f ↑c < ↑n0):
-    (f n)^k ≤ ((Nat.digits n0 (n^k)).mapIdx fun i _ => n0 * (f n0) ^ i).sum := by
-  set L := Nat.digits n0 (n ^ k) with hL
-  set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a => (a * n0 ^ i)) with hL'
-  calc
-  (f n)^k = f ((Nat.ofDigits n0 L : ℕ) : ℚ) := by
-          rw[← map_pow, hL, Nat.ofDigits_digits n0 (n^k), ← Nat.cast_pow]
-        _ = f (L'.sum) := by
-          rw [Nat.ofDigits_eq_sum_mapIdx, hL']
-          norm_cast
-        _ ≤ (L'.map f).sum := MulRingNorm_sum_le_sum_MulRingNorm L' f
-        _ ≤ (L.mapIdx fun i _ => n0 * (f n0) ^ i).sum := by
-              simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
-              apply List.sum_le_sum
-              rintro ⟨i,a⟩ hia
-              dsimp [Function.uncurry]
-              replace hia := List.mem_enumFrom L hia
-              push_cast
-              rw[map_mul, map_pow]
-              exact mul_le_mul (le_of_lt (hcoeff a hia.2.2)) (by simp only [le_refl]) (by simp only [ge_iff_le,
-                apply_nonneg, pow_nonneg]) (by simp only [Nat.cast_nonneg])
- -/
+
 lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
     f n ≤ ((Nat.digits m n).mapIdx fun i _ => m * (f m) ^ i).sum := by
   set L := Nat.digits m n with hL
@@ -165,17 +138,10 @@ lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
       apply mul_le_mul_of_nonneg_right (le_of_lt (hcoef a hia.2.2)) (by simp only [ge_iff_le,
         apply_nonneg, pow_nonneg])
 
-
-
-
-
-
 open BigOperators
 
-
-
 /- ## Auxiliary lemma for limits-/
-/--    If `a : ℝ` is bounded above by a function `g : ℕ → ℝ` for every `0 < k` then it is less or
+/-- If `a : ℝ` is bounded above by a function `g : ℕ → ℝ` for every `0 < k` then it is less or
 equal than the limit `lim_{k → ∞} g(k)`-/
 lemma le_of_limit_le (a : ℝ) (g : ℕ → ℝ) (l : ℝ) (ha : ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
   (hg : Filter.Tendsto g Filter.atTop (nhds l) ) : a ≤ l := by
@@ -193,7 +159,7 @@ lemma tendsto_root_atTop_nhds_one (C : ℝ) (hC : 0 < C) : Filter.Tendsto
   simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
 
-/-- the function `(n₀ * ((Real.logb n₀ n) + 1))^(k⁻¹)` tends to `1` as `k → ∞`-/
+/-- The function `(n₀ * ((Real.logb n₀ n) + 1))^(k⁻¹)` tends to `1` as `k → ∞`. -/
 lemma tendsto_root_mul_log_add_one_atTop_nhds_one (n₀ n : ℕ) (hn₀ : 1 < n₀) (hn : 1 < n) :
     Filter.Tendsto (fun k : ℕ ↦ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹)
     Filter.atTop (nhds 1) := by
@@ -221,60 +187,52 @@ lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)
 -- ## step 1
 --
 
-/-`Nat.log` is less or equal then `Real.log`-/
-lemma nat_log_le_real_log (n0 n : ℕ) (hn : 0 < n) (hn0 : 1 < n0) : Nat.log n0 n ≤ Real.logb n0 n := by
-  have hnat : n0 ^ (Nat.log n0 n) ≤ n := by
-    apply Nat.pow_log_le_self
-    have : n ≠ 0 := by
-      apply ne_of_gt
-      assumption
-    assumption
-  have hreal : (n0:ℝ) ^ (Real.logb n0 n) = n := by
-    rw [Real.rpow_logb]
-    norm_cast
-    linarith only [hn0]
-    simp only [ne_eq, Nat.cast_eq_one]
-    linarith only [hn0]
-    exact_mod_cast hn
-  have : n0 ^ (Nat.log n0 n) ≤ (n0 : ℝ)^(Real.logb n0 n ) := by
-    rw [hreal]
-    exact_mod_cast hnat
-  have hn0_gt1R : 1 < (n0:ℝ) := by exact_mod_cast hn0
-  rw [← Real.rpow_le_rpow_left_iff hn0_gt1R]
-  exact_mod_cast this
+/-- `Nat.log` is less or equal then `Real.log`. -/
+lemma nat_log_le_real_log (a b : ℕ) (_ : 0 < a) (hb : 1 < b) : Nat.log b a ≤ Real.logb b a := by
+  apply le_trans _ (Int.floor_le ((b : ℝ).logb (a : ℝ)))
+  simp only [Real.floor_logb_natCast hb (Nat.cast_nonneg a), Int.log_natCast, Int.cast_natCast,
+     le_refl]
 
 open Nat
 
-/-- If `|n|>1` for some `n` then `|n|>1` for all `n ≥ 2`.-/
-lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) : ∀ n : ℕ, 1 < n → 1 < f n  := by
+lemma List.sum_le_of_entry_le (l : List ℝ) (m : ℝ)
+    (h : ∀ a ∈ l, a ≤ m) : l.sum ≤ m * l.length := by
+  induction l with
+  | nil => simp only [List.sum_nil, List.length_nil, cast_zero, mul_zero, le_refl]
+  | cons head tail ih =>
+    simp only [List.sum_cons, List.length_cons, succ_eq_add_one, cast_add, cast_one, mul_add,
+      mul_one, add_comm]
+    simp only [List.mem_cons, forall_eq_or_imp] at h
+    gcongr
+    exact h.1
+    exact ih h.2
+
+/-- If `f n > 1` for some `n` then `f n > 1` for all `n ≥ 2`.-/
+lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 < n₀ → 1 < f n₀ := by
   contrapose! notbdd with h
-  rcases h with ⟨n₀, hn₀, hfn₀⟩
+  rcases h with ⟨hn₀, hfn₀⟩
   intro n
   have h_ineq1 {m : ℕ} (hm : 1 ≤ m) : f m ≤ n₀ * (Real.logb n₀ m + 1) := by
     /- L is the string of digits of `n` in the base `n₀`-/
     set L := Nat.digits n₀ m
     calc
-    f m ≤ ((Nat.digits n₀ m).mapIdx fun i _ => n₀ * (f n₀) ^ i).sum :=
-      MulRingNorm_n_le_sum_digits m hn₀
+    f m ≤ (L.mapIdx fun i _ ↦ n₀ * (f n₀) ^ i).sum := MulRingNorm_n_le_sum_digits m hn₀
     _ ≤ (L.mapIdx fun _ _ ↦ (n₀ : ℝ)).sum := by
       simp only [List.mapIdx_eq_enum_map, List.map_map]
       apply List.sum_le_sum
       rintro ⟨i,a⟩ _
       simp only [Function.comp_apply, Function.uncurry_apply_pair]
-      exact mul_le_of_le_of_le_one' (mod_cast le_refl ↑n₀) (pow_le_one i (apply_nonneg f ↑n₀) hfn₀)
+      exact mul_le_of_le_of_le_one' (mod_cast le_refl n₀) (pow_le_one i (apply_nonneg f ↑n₀) hfn₀)
         (pow_nonneg (apply_nonneg f ↑n₀) i) (cast_nonneg n₀)
     _ ≤ n₀ * (Real.logb n₀ m + 1) := by
-      rw [List.mapIdx_eq_enum_map,
-          List.eq_replicate_of_mem (a := (n₀ : ℝ))
-            (l := List.map (Function.uncurry fun _ _ => n₀) (List.enum L)),
-          List.sum_replicate, List.length_map, List.enum_length, nsmul_eq_mul, mul_comm]
+      rw [List.mapIdx_eq_enum_map, List.eq_replicate_of_mem (a := (n₀ : ℝ))
+        (l := List.map (Function.uncurry fun _ _ => n₀) (List.enum L)),
+        List.sum_replicate, List.length_map, List.enum_length, nsmul_eq_mul, mul_comm]
       · rw [Nat.digits_len n₀ m hn₀ (not_eq_zero_of_lt hm)]
         apply mul_le_mul_of_nonneg_left _ (cast_nonneg n₀)
         push_cast
         simp only [add_le_add_iff_right]
-        apply le_trans _ (Int.floor_le ((n₀ : ℝ).logb m))
-        simp only [Real.floor_logb_natCast hn₀ (cast_nonneg m), Int.log_natCast, Int.cast_natCast,
-          le_refl]
+        exact nat_log_le_real_log m n₀ hm hn₀
       · simp_all only [List.mem_map, Prod.exists, Function.uncurry_apply_pair, exists_and_right,
           and_imp, implies_true, forall_exists_index, forall_const]
   -- For h_ineq2 we need to exclude the case n = 0.
@@ -343,9 +301,9 @@ lemma main_inequality : f n ≤ (m * f m / (f m - 1)) * (f m ^ (logb m n)) := by
     _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
     _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
       apply mul_le_mul_of_nonneg_left
-      rw [←Real.rpow_natCast]
+      rw [← Real.rpow_natCast]
       apply Real.rpow_le_rpow_of_exponent_le (le_of_lt hfm)
-      apply nat_log_le_real_log m n (by linarith [hmge]) hmge
+      apply nat_log_le_real_log n m (zero_lt_of_lt hnge) hmge
       apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt hfm)
       exact mul_nonneg (by linarith only [hmge]) (by linarith only [hfm])
 
