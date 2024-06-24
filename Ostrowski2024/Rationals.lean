@@ -208,7 +208,7 @@ lemma List.sum_le_of_entry_le (l : List ℝ) (m : ℝ)
     exact ih h.2
 
 /-- If `f n > 1` for some `n` then `f n > 1` for all `n ≥ 2`.-/
-lemma notbdd_implies_all_gt_one (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 < n₀ → 1 < f n₀ := by
+lemma one_lt_of_notbdd (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 < n₀ → 1 < f n₀ := by
   contrapose! notbdd with h
   rcases h with ⟨hn₀, hfn₀⟩
   intro n
@@ -273,39 +273,32 @@ section Step2
 open Real
 open BigOperators
 
-variable (m n : ℕ) (hmge : 1 < m) (hnge : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
+variable (m n : ℕ) (hm : 1 < m) (hn : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
 lemma main_inequality : f n ≤ (m * f m / (f m - 1)) * (f m ^ (logb m n)) := by
-  obtain hm := notbdd_implies_all_gt_one notbdd
-  have hfm : 1 < f m := hm m hmge
+  obtain h := one_lt_of_notbdd notbdd
+  have hfm : 1 < f m := h m hm
   let d := Nat.log m n
-  have hd_length : d + 1  = (Nat.digits m (n)).length := by
-    rw [Nat.digits_len m n hmge (not_eq_zero_of_lt hnge)]
-
-/-   have h11 : ∀ k, 0 < k → (f n)^k ≤ ((Nat.digits m (n^k)).mapIdx fun i _ => m * (f m) ^ i).sum  := by
-    intro k hk
-    apply mulringnorm_n_pow_k_le_sum_digits_n0 f m hmge n hnge k hk
-    intro c hc
-    exact MulRingNorm_digit_lt_base f m c (n ^ k) hmge hc
- -/
-
-  calc f ↑n ≤ ((Nat.digits m (n)).mapIdx fun i _ => m * (f m) ^ i).sum :=
-    MulRingNorm_n_le_sum_digits n hmge
-    _ = m * ((Nat.digits m (n)).mapIdx fun i _ =>  (f m) ^ i).sum := by apply list_mul_sum
+  have hd_length : d + 1  = (Nat.digits m (n)).length :=
+    (Nat.digits_len m n hm (not_eq_zero_of_lt hn)).symm
+  calc f n ≤ ((Nat.digits m (n)).mapIdx fun i _ => m * (f m) ^ i).sum :=
+    MulRingNorm_n_le_sum_digits n hm
+    _ = m * ((Nat.digits m (n)).mapIdx fun i _ =>  (f m) ^ i).sum :=
+      list_mul_sum (m.digits n) (f ↑m) ↑m
     _ = m * ((f ↑m ^ (d+1) - 1)/(f ↑m - 1)) := by
       rw [list_geom, hd_length]
-      exact ne_of_gt (hm m hmge)
+      exact ne_of_gt (h m hm)
     _ ≤ m * ((f ↑m ^ (d+1))/(f ↑m - 1)) := by
       apply mul_le_mul_of_nonneg_left _ (Nat.cast_nonneg m)
-      exact div_le_div_of_nonneg_right (by linarith only [hmge, hfm]) (by linarith only [hfm])
+      exact div_le_div_of_nonneg_right (by linarith only [hm, hfm]) (by linarith only [hfm])
     _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
     _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
       apply mul_le_mul_of_nonneg_left
       rw [← Real.rpow_natCast]
       apply Real.rpow_le_rpow_of_exponent_le (le_of_lt hfm)
-      apply nat_log_le_real_log n m (zero_lt_of_lt hnge) hmge
+      apply nat_log_le_real_log n m (zero_lt_of_lt hn) hm
       apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt hfm)
-      exact mul_nonneg (by linarith only [hmge]) (by linarith only [hfm])
+      exact mul_nonneg (by linarith only [hm]) (by linarith only [hfm])
 
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
   simp only [logb, Real.log_pow, mul_div]
@@ -330,11 +323,11 @@ lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
     (f n) ^ k
     = f (↑(n ^ k)) := by simp only [map_pow, Nat.cast_pow]
     _ ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
-        main_inequality m (n ^ k) hmge (one_lt_pow hnge hk ) notbdd
+        main_inequality m (n ^ k) hm (one_lt_pow hn hk) notbdd
     _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
       by { push_cast; rw [logb_pow]}
-  obtain hm := notbdd_implies_all_gt_one notbdd
-  have : 1< f m := by simp only [hm m hmge]
+  obtain h := one_lt_of_notbdd notbdd
+  have : 1< f m := by simp only [h m hm]
   have  zero_le_expression: 0 ≤ ↑m * f ↑m / (f ↑m - 1) := by
     apply div_nonneg _ (by linarith only [this])
     apply mul_nonneg (Nat.cast_nonneg m) (apply_nonneg f ↑m)
@@ -426,39 +419,39 @@ lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
     rw [one_lt_div_iff]
     left
-    refine ⟨by linarith only [notbdd_implies_all_gt_one notbdd m hmge], this ⟩
+    refine ⟨by linarith only [one_lt_of_notbdd notbdd m hm], this ⟩
 
   refine le_of_param_upperbound (by linarith only [one_lt_A]) ?_
   intro k hk
-  exact param_upperbound m n hmge hnge notbdd k hk
+  exact param_upperbound m n hm hn notbdd k hk
 
 
-lemma compare_exponents (s t : ℝ) (hm : f m = m ^ s) (hn : f n = n ^ t)  : t ≤ s := by
-    have hmn : f n ≤ (f m)^(Real.logb m n) := key_inequality m n hmge hnge notbdd
-    rw [← Real.rpow_le_rpow_left_iff (x:= n)]
-    · rw[← hn]
-      rw [hm] at hmn
+lemma compare_exponents (s t : ℝ) (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t ≤ s := by
+    have hmn : f n ≤ (f m)^(Real.logb m n) := key_inequality m n hm hn notbdd
+    rw [← Real.rpow_le_rpow_left_iff (x:=n)]
+    · rw[← hfn]
+      rw [hfm] at hmn
       rw [← Real.rpow_mul] at hmn
       · rw [mul_comm] at hmn
         rw [Real.rpow_mul] at hmn
         · rw [Real.rpow_logb] at hmn
           · exact hmn
           · simp only [Nat.cast_pos]
-            linarith only [hmge]
+            linarith only [hm]
           · simp only [ne_eq, Nat.cast_eq_one]
-            linarith only [hmge]
+            linarith only [hm]
           · simp only [Nat.cast_pos]
-            linarith only [hnge]
+            linarith only [hn]
         · simp only [Nat.cast_nonneg]
       · simp only [Nat.cast_nonneg]
-    · exact_mod_cast hnge
+    · exact_mod_cast hn
 
 
 lemma symmetric_roles (s t : ℝ)
-  (hm : f m = m ^ s) (hn : f n = n ^ t) : s = t := by
+  (hfm : f m = m ^ s) (hfn : f n = n ^ t) : s = t := by
   apply le_antisymm
-  refine compare_exponents _ _ hnge hmge notbdd t s hn hm
-  refine compare_exponents _ _ hmge hnge notbdd s t  hm hn
+  refine compare_exponents _ _ hn hm notbdd t s hfn hfm
+  refine compare_exponents _ _ hm hn notbdd s t  hfm hfn
 
 end Step2
 
@@ -503,7 +496,7 @@ theorem notbdd_implies_equiv_real (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1)  : MulRi
       · rw [none]
         simp only [Nat.cast_one, map_one, Real.one_rpow]
       · have oneltn : 1 < n := by omega
-        have fngeone : 1 < f n := notbdd_implies_all_gt_one notbdd _ oneltn
+        have fngeone : 1 < f n := one_lt_of_notbdd notbdd _ oneltn
         set t := Real.logb n (f n) with ht
         have hm' : (f m )= m ^ s := by
           rw [hs,Real.rpow_logb _ _ (by linarith only [hm]) ]
