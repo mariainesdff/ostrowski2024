@@ -98,7 +98,7 @@ lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) (y : F ) (hy : y 
     rw [mul_div,← same_add_div (sub_ne_zero.2 hy), mul_sub]
     simp only [mul_one, sub_add_sub_cancel']
 
-/-Triangle inequality for absolute values applied to Lists-/
+/- Triangle inequality for absolute values applied to a List. -/
 lemma mulRingNorm_sum_le_sum_mulRingNorm {R : Type*} [Ring R] (l : List R) (f : MulRingNorm R) :
     f l.sum ≤ (l.map f).sum := by
   induction l with
@@ -113,9 +113,8 @@ lemma MulRingNorm_digit_lt_base {R : Type*} [Ring R] (f : MulRingNorm R) (m c n 
   apply lt_of_le_of_lt (MulRingNorm_nat_le_nat c f)
   exact_mod_cast Nat.digits_lt_base h_one_lt_m hcdig
 
-/-Given an two integers `n n0` the absolute value of `n` raised to the `k`-th power is bounded by
-    `n0 + n0 |n0| + n0 |n0|^2 + ...`-/
-
+/-- Given an two integers `n m` the absolute value of `n` is bounded by
+    `m + m * f m + m * (f m) ^ 2 + ... + m * (f m) ^ d`.-/
 lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
     f n ≤ ((Nat.digits m n).mapIdx fun i _ => m * (f m) ^ i).sum := by
   set L := Nat.digits m n with hL
@@ -169,7 +168,7 @@ lemma tendsto_root_mul_log_add_one_atTop_nhds_one (n₀ n : ℕ) (hn₀ : 1 < n�
   exact add_pos (Real.logb_pos (mod_cast hn₀) (mod_cast hn)) Real.zero_lt_one
 
 /-extends the lemma `tendsto_rpow_div` when the function has natural input-/
-lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)⁻¹)))
+lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
     Filter.atTop (nhds 1) := by
   rw [Filter.tendsto_def]
   simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
@@ -178,11 +177,11 @@ lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ ((k:ℝ) ^ ((k:ℝ)
   rw [Filter.tendsto_def] at h
   simp only [one_div, Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
   rcases (h N hN) with ⟨a, ha⟩
-  use (Nat.floor a)+1
+  use (Nat.floor a) + 1
   intro b hb
   specialize ha b
   apply ha
-  exact le_trans (le_of_lt (Nat.lt_floor_add_one a)) (by exact_mod_cast hb)
+  exact le_trans (le_of_lt (Nat.lt_floor_add_one a)) (mod_cast hb)
 
 -- ## step 1
 --
