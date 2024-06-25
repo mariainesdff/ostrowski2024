@@ -80,11 +80,9 @@ lemma list_mul_sum {R : Type*} [CommSemiring R] {T : Type*} (l : List T) (y : R)
   | nil => simp only [List.mapIdx_nil, List.sum_nil, mul_zero, forall_const]
   | cons head tail ih =>
     intro x
-    simp only [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons]
-    rw [mul_add]
-    simp only [mul_one, add_right_inj]
+    simp_rw [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons, mul_add, mul_one]
     have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
-    simp_rw [this, ← mul_assoc, ih,← mul_assoc]
+    simp_rw [this, ← mul_assoc, ih, ← mul_assoc]
 
 /- Geometric sum for lists -/
 lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) (y : F ) (hy : y ≠ 1) :
@@ -95,8 +93,7 @@ lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) (y : F ) (hy : y 
     simp only [List.mapIdx_cons, pow_zero, List.sum_cons, List.length_cons]
     have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
     simp_rw [this,list_mul_sum, ih]
-    rw [mul_div,← same_add_div (sub_ne_zero.2 hy), mul_sub]
-    simp only [mul_one, sub_add_sub_cancel']
+    simp only [mul_div,← same_add_div (sub_ne_zero.2 hy), mul_sub, mul_one, sub_add_sub_cancel']
 
 /- Triangle inequality for absolute values applied to a List. -/
 lemma mulRingNorm_sum_le_sum_mulRingNorm {R : Type*} [Ring R] (l : List R) (f : MulRingNorm R) :
@@ -170,18 +167,14 @@ lemma tendsto_root_mul_log_add_one_atTop_nhds_one (n₀ n : ℕ) (hn₀ : 1 < n�
 /-extends the lemma `tendsto_rpow_div` when the function has natural input-/
 lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
     Filter.atTop (nhds 1) := by
-  rw [Filter.tendsto_def]
-  simp only [Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
+  simp only [Filter.tendsto_def, Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
   intro N hN
   let h := tendsto_rpow_div
-  rw [Filter.tendsto_def] at h
-  simp only [one_div, Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
+  simp only [Filter.tendsto_def, one_div, Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
   rcases (h N hN) with ⟨a, ha⟩
   use (Nat.floor a) + 1
   intro b hb
-  specialize ha b
-  apply ha
-  exact le_trans (le_of_lt (Nat.lt_floor_add_one a)) (mod_cast hb)
+  exact (ha b) (le_trans (le_of_lt (Nat.lt_floor_add_one a)) (mod_cast hb))
 
 -- ## step 1
 --
@@ -274,36 +267,32 @@ open BigOperators
 
 variable (m n : ℕ) (hm : 1 < m) (hn : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
-lemma main_inequality : f n ≤ (m * f m / (f m - 1)) * (f m ^ (logb m n)) := by
-  obtain h := one_lt_of_notbdd notbdd
-  have hfm : 1 < f m := h m hm
+private lemma main_inequality : f n ≤ (m * f m / (f m - 1)) * (f m ^ logb m n) := by
+  have hfm : 1 < f m := one_lt_of_notbdd notbdd m hm
   let d := Nat.log m n
-  have hd_length : d + 1  = (Nat.digits m (n)).length :=
-    (Nat.digits_len m n hm (not_eq_zero_of_lt hn)).symm
-  calc f n ≤ ((Nat.digits m (n)).mapIdx fun i _ => m * (f m) ^ i).sum :=
+  calc f n ≤ ((Nat.digits m n).mapIdx fun i _ ↦ m * (f m) ^ i).sum :=
     MulRingNorm_n_le_sum_digits n hm
-    _ = m * ((Nat.digits m (n)).mapIdx fun i _ =>  (f m) ^ i).sum :=
-      list_mul_sum (m.digits n) (f ↑m) ↑m
-    _ = m * ((f ↑m ^ (d+1) - 1)/(f ↑m - 1)) := by
-      rw [list_geom, hd_length]
-      exact ne_of_gt (h m hm)
-    _ ≤ m * ((f ↑m ^ (d+1))/(f ↑m - 1)) := by
-      apply mul_le_mul_of_nonneg_left _ (Nat.cast_nonneg m)
-      exact div_le_div_of_nonneg_right (by linarith only [hm, hfm]) (by linarith only [hfm])
+    _ = m * ((Nat.digits m (n)).mapIdx fun i _ ↦ (f m) ^ i).sum :=
+      list_mul_sum (m.digits n) (f m) m
+    _ = m * ((f m ^ (d + 1) - 1) / (f m - 1)) := by
+      rw [list_geom _ (f m) (ne_of_gt (hfm)), (Nat.digits_len m n hm (not_eq_zero_of_lt hn)).symm]
+    _ ≤ m * ((f m ^ (d + 1))/(f m - 1)) := by gcongr; linarith only [hfm]; linarith only
     _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
     _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
-      apply mul_le_mul_of_nonneg_left
+      gcongr
+      exact div_nonneg (mul_nonneg (by linarith only [hm]) (by linarith only [hfm]))
+        (by linarith only [hfm])
       rw [← Real.rpow_natCast]
       apply Real.rpow_le_rpow_of_exponent_le (le_of_lt hfm)
       apply nat_log_le_real_log n m (zero_lt_of_lt hn) hm
-      apply div_nonneg _ (by simp only [sub_nonneg]; exact le_of_lt hfm)
-      exact mul_nonneg (by linarith only [hm]) (by linarith only [hfm])
+
+
 
 lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
   simp only [logb, Real.log_pow, mul_div]
 
 
-
+/-
 lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k ≤ B) : A ≤ B ^ (1/(k:ℝ)) := by
   have : (A ^ (k : ℝ)) ^ (1 / (k : ℝ)) = A := by
     rw [← rpow_mul, mul_one_div, div_self, rpow_one]; exact ne_of_gt hk; assumption
@@ -311,7 +300,7 @@ lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k �
   refine rpow_le_rpow (rpow_nonneg hA k) hle ?_
   apply le_of_lt
   simp only [one_div, inv_pos]
-  exact hk
+  exact hk -/
 
 
 lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
@@ -326,7 +315,7 @@ lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
     _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
       by { push_cast; rw [logb_pow]}
   obtain h := one_lt_of_notbdd notbdd
-  have : 1< f m := by simp only [h m hm]
+  have : 1 < f m := by simp only [h m hm]
   have  zero_le_expression: 0 ≤ ↑m * f ↑m / (f ↑m - 1) := by
     apply div_nonneg _ (by linarith only [this])
     apply mul_nonneg (Nat.cast_nonneg m) (apply_nonneg f ↑m)
@@ -407,7 +396,6 @@ lemma le_of_param_upperbound {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ),k �
 
 lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
   set A := m * (f m) / ((f m) - 1)
-
   have : f m - 1 < m * (f m) := calc
          f m - 1 < f m       := by simp only [sub_lt_self_iff, zero_lt_one]
          _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast))
