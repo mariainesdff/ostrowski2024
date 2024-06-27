@@ -352,69 +352,52 @@ lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
 -- TODO: can be generalized but we only need it here for sequences of reals.
 
 
-lemma ge_of_tendsto_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter ℕ} [Filter.NeBot x]
+lemma le_mul_of_le_fun_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter ℕ} [Filter.NeBot x]
   (lim : Filter.Tendsto C x (nhds limC)) (h : ∀ k, A ≤ (C k) * B) : A ≤ limC * B := by
     have limCB : Filter.Tendsto (fun k ↦ (C k) * B) x (nhds (limC * B)) := by
       refine Filter.Tendsto.mul_const B lim
     refine (ge_of_tendsto' limCB h)
 
 
- lemma le_of_param_upperbound {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
+ lemma le_of_le_mul_root {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
      A ≤ B := by
   rw [← one_mul B]
-  apply ge_of_tendsto_mul' (tendsto_root_atTop_nhds_one C hC)
+  apply le_mul_of_le_fun_mul' (tendsto_root_atTop_nhds_one C hC)
   exact hub
  -/
 
 open Filter
 
-lemma ge_of_tendsto_mul {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ}
-  (lim : Filter.Tendsto C Filter.atTop (nhds limC)) (h : ∀ k, k ≠ 0 → A ≤ (C k) * B) : A ≤ limC * B := by
-  have limCB : Filter.Tendsto (fun k ↦ (C k) * B) Filter.atTop (nhds (limC * B)) := by
-    refine Filter.Tendsto.mul_const B lim
-  apply (ge_of_tendsto limCB )
-  rw [Filter.eventually_iff_exists_mem]
+lemma le_mul_of_le_fun_mul {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} (lim : Tendsto C atTop (nhds limC))
+    (h : ∀ k, k ≠ 0 → A ≤ C k * B) : A ≤ limC * B := by
+  apply ge_of_tendsto (Tendsto.mul_const B lim)
+  rw [eventually_iff_exists_mem]
   use {b | 1 ≤ b}
   constructor
   · simp only [mem_atTop_sets, ge_iff_le, Set.mem_setOf_eq]
-    use 1
-    exact fun b a => a
-  · intro y hy
-    simp only [Set.mem_setOf_eq] at hy
-    exact h y (by linarith only [hy])
+    exact ⟨1, fun b a ↦ a⟩
+  · simp only [Set.mem_setOf_eq]
+    intro y hy
+    exact h y (not_eq_zero_of_lt hy)
 
-
-
-
-lemma le_of_param_upperbound {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ),k ≠ 0 →  A ≤ C ^ (1 / (k:ℝ)) * B) :
-     A ≤ B := by
-  let K:= fun x : ℕ  => C ^ (1 / (x : ℝ ))
-  have lim : Filter.Tendsto K Filter.atTop (nhds 1) :=  tendsto_root_atTop_nhds_one C hC
+lemma le_of_le_mul_root {A B C : ℝ} (hC : 0 < C)
+    (hub : ∀ (k : ℕ),k ≠ 0 →  A ≤ C ^ (1 / (k : ℝ)) * B) : A ≤ B := by
   rw [← one_mul B]
-  exact ge_of_tendsto_mul lim hub
+  exact le_mul_of_le_fun_mul (tendsto_root_atTop_nhds_one C hC) hub
 
 
-lemma key_inequality : f n ≤ (f m) ^ (logb m n) := by
-  set A := m * (f m) / ((f m) - 1)
-  have : f m - 1 < m * (f m) := calc
-         f m - 1 < f m       := by simp only [sub_lt_self_iff, zero_lt_one]
-         _       ≤ m * (f m) := le_mul_of_one_le_of_le_of_nonneg (le_of_lt (by norm_cast))
-                                  (by trivial) (by simp only [apply_nonneg])
-
--- TODO: I proved something too strong, we actually only need 0 < A,
---       but I leave it here in case it's useful later.
-  have one_lt_A : 1 < m * (f m) / ((f m) - 1) := by
-    rw [one_lt_div_iff]
-    left
-    refine ⟨by linarith only [one_lt_of_notbdd notbdd m hm], this ⟩
-
-  refine le_of_param_upperbound (by linarith only [one_lt_A]) ?_
+lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ (f m) ^ (logb m n) := by
+  have zero_lt_A : 0 < m * (f m) / ((f m) - 1) := by
+    apply div_pos (mul_pos (mod_cast zero_lt_of_lt hm)
+      (map_pos_of_ne_zero f (mod_cast ne_zero_of_lt hm)))
+    linarith only [one_lt_of_notbdd notbdd m hm]
+  refine le_of_le_mul_root (zero_lt_A) ?_
   intro k hk
   exact param_upperbound m n hm hn notbdd k hk
 
 
 lemma compare_exponents (s t : ℝ) (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t ≤ s := by
-    have hmn : f n ≤ (f m)^(Real.logb m n) := key_inequality m n hm hn notbdd
+    have hmn : f n ≤ (f m)^(Real.logb m n) := mulRingNorm_le_mulRingNorm_pow_log m n hm hn notbdd
     rw [← Real.rpow_le_rpow_left_iff (x:=n)]
     · rw[← hfn]
       rw [hfm] at hmn
