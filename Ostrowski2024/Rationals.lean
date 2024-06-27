@@ -179,7 +179,7 @@ lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : �
 -- ## step 1
 --
 
-/-- `Nat.log` is less or equal then `Real.log`. -/
+/-- `Nat.log` is less than or equal to `Real.log`. -/
 lemma nat_log_le_real_log (a b : ℕ) (_ : 0 < a) (hb : 1 < b) : Nat.log b a ≤ Real.logb b a := by
   apply le_trans _ (Int.floor_le ((b : ℝ).logb (a : ℝ)))
   simp only [Real.floor_logb_natCast hb (Nat.cast_nonneg a), Int.log_natCast, Int.cast_natCast,
@@ -217,8 +217,8 @@ lemma one_lt_of_notbdd (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 <
       exact mul_le_of_le_of_le_one' (mod_cast le_refl n₀) (pow_le_one i (apply_nonneg f ↑n₀) hfn₀)
         (pow_nonneg (apply_nonneg f ↑n₀) i) (cast_nonneg n₀)
     _ ≤ n₀ * (Real.logb n₀ m + 1) := by
-      rw [List.mapIdx_eq_enum_map, List.eq_replicate_of_mem (a := (n₀ : ℝ))
-        (l := List.map (Function.uncurry fun _ _ => n₀) (List.enum L)),
+      rw [List.mapIdx_eq_enum_map, List.eq_replicate_of_mem (a:=(n₀ : ℝ))
+        (l := List.map (Function.uncurry fun _ _ ↦ n₀) (List.enum L)),
         List.sum_replicate, List.length_map, List.enum_length, nsmul_eq_mul, mul_comm]
       · rw [Nat.digits_len n₀ m hn₀ (not_eq_zero_of_lt hm)]
         apply mul_le_mul_of_nonneg_left _ (cast_nonneg n₀)
@@ -255,8 +255,8 @@ lemma one_lt_of_notbdd (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 <
         Filter.atTop (nhds 1) := tendsto_root_mul_log_add_one_atTop_nhds_one n₀ n hn₀
         (lt_of_le_of_ne (one_le_iff_ne_zero.mpr h₀) (id (Ne.symm h₁)))
     exact Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
-  exact le_of_limit_le (f n) (fun k : ℕ ↦ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹ * (k^(k : ℝ)⁻¹))
-    1 h_ineq2 prod_limit
+  exact le_of_limit_le (f n)
+    (fun k : ℕ ↦ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹ * (k ^ (k : ℝ)⁻¹)) 1 h_ineq2 prod_limit
 
 -- ## step 2
 -- given m,n \geq 2 and |m|=m^s, |n|=n^t for s,t >0, prove t \leq s
@@ -265,106 +265,53 @@ section Step2
 open Real
 open BigOperators
 
-variable (m n : ℕ) (hm : 1 < m) (hn : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
+variable {m n : ℕ} (hm : 1 < m) (hn : 1 < n) (notbdd: ¬ ∀(n : ℕ), f n ≤ 1)
 
-private lemma main_inequality : f n ≤ (m * f m / (f m - 1)) * (f m ^ logb m n) := by
-  have hfm : 1 < f m := one_lt_of_notbdd notbdd m hm
-  let d := Nat.log m n
-  calc f n ≤ ((Nat.digits m n).mapIdx fun i _ ↦ m * (f m) ^ i).sum :=
-    MulRingNorm_n_le_sum_digits n hm
-    _ = m * ((Nat.digits m (n)).mapIdx fun i _ ↦ (f m) ^ i).sum :=
-      list_mul_sum (m.digits n) (f m) m
+private lemma expr_pos : 0 < m * f m / (f m - 1) := by
+  apply div_pos (mul_pos (mod_cast zero_lt_of_lt hm)
+      (map_pos_of_ne_zero f (mod_cast ne_zero_of_lt hm)))
+  linarith only [one_lt_of_notbdd notbdd m hm]
+
+private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
+    f n ≤ (m * f m / (f m - 1)) ^ (1 / (k : ℝ)) * (f m) ^ (logb m n) := by
+  have h_ineq1 {m n : ℕ} (hm : 1 < m) (hn : 1 < n) :
+      f n ≤ (m * f m / (f m - 1)) * (f m) ^ (logb m n) := by
+    let d := Nat.log m n
+    calc
+    f n ≤ ((Nat.digits m n).mapIdx fun i _ ↦ m * (f m) ^ i).sum :=
+      MulRingNorm_n_le_sum_digits n hm
+    _ = m * ((Nat.digits m n).mapIdx fun i _ ↦ (f m) ^ i).sum := list_mul_sum (m.digits n) (f m) m
     _ = m * ((f m ^ (d + 1) - 1) / (f m - 1)) := by
-      rw [list_geom _ (f m) (ne_of_gt (hfm)), (Nat.digits_len m n hm (not_eq_zero_of_lt hn)).symm]
-    _ ≤ m * ((f m ^ (d + 1))/(f m - 1)) := by gcongr; linarith only [hfm]; linarith only
+      rw [list_geom _ (f m) (ne_of_gt (one_lt_of_notbdd notbdd m hm)),
+      (Nat.digits_len m n hm (not_eq_zero_of_lt hn)).symm]
+    _ ≤ m * ((f m ^ (d + 1))/(f m - 1)) := by
+      gcongr
+      linarith only [one_lt_of_notbdd notbdd m hm]
+      simp only [tsub_le_iff_right, le_add_iff_nonneg_right, zero_le_one]
     _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
     _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
       gcongr
-      exact div_nonneg (mul_nonneg (by linarith only [hm]) (by linarith only [hfm]))
-        (by linarith only [hfm])
-      rw [← Real.rpow_natCast]
-      apply Real.rpow_le_rpow_of_exponent_le (le_of_lt hfm)
-      apply nat_log_le_real_log n m (zero_lt_of_lt hn) hm
-
-
-
-lemma logb_pow (k m n : ℕ) : logb m (n ^ k) = k * logb m n := by
-  simp only [logb, Real.log_pow, mul_div]
-
-
-/-
-lemma move_pow (A B : ℝ) (hA : 0 ≤ A) (k : ℝ) (hk : 0 < k) (hle : A ^ k ≤ B) : A ≤ B ^ (1/(k:ℝ)) := by
-  have : (A ^ (k : ℝ)) ^ (1 / (k : ℝ)) = A := by
-    rw [← rpow_mul, mul_one_div, div_self, rpow_one]; exact ne_of_gt hk; assumption
-  rw[← this]
-  refine rpow_le_rpow (rpow_nonneg hA k) hle ?_
-  apply le_of_lt
-  simp only [one_div, inv_pos]
-  exact hk -/
-
-
-lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
-    f n ≤ (m * (f m) / ((f m) - 1)) ^ (1 / (k : ℝ)) * ((f m) ^ (logb m n)) := by
-  -- the "power trick"
-  have key : (f n) ^ k ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb m n)) :=
-  calc
-    (f n) ^ k
-    = f (↑(n ^ k)) := by simp only [map_pow, Nat.cast_pow]
-    _ ≤ (m * (f m) / ((f m) - 1)) * ((f m) ^ (logb (↑ m) (↑(n ^ k)))) :=
-        main_inequality m (n ^ k) hm (one_lt_pow hn hk) notbdd
-    _ = (m * (f m) / ((f m) - 1)) * ((f m) ^ (k * logb (↑ m) (↑(n)))) :=
-      by { push_cast; rw [logb_pow]}
-  obtain h := one_lt_of_notbdd notbdd
-  have : 1 < f m := by simp only [h m hm]
-  have  zero_le_expression: 0 ≤ ↑m * f ↑m / (f ↑m - 1) := by
-    apply div_nonneg _ (by linarith only [this])
-    apply mul_nonneg (Nat.cast_nonneg m) (apply_nonneg f ↑m)
-  have triviality : (1 / k) * (k : ℝ) = 1 := by
+      exact le_of_lt (expr_pos hm notbdd)
+      rw [← Real.rpow_natCast, Real.rpow_le_rpow_left_iff (one_lt_of_notbdd notbdd m hm)]
+      exact nat_log_le_real_log n m (zero_lt_of_lt hn) hm
+  have h_ineq2 (k : ℕ) (hk : k ≠ 0) :
+      (f n) ^ k ≤ (m * f m / (f m - 1)) * (f m) ^ (k * logb m n) := by
+    calc
+    (f n) ^ k = f ↑(n ^ k) := by simp only [cast_pow, map_pow]
+    _ ≤ (m * f m / (f m - 1)) * (f m) ^ (logb m ↑(n ^ k)) := h_ineq1 hm (Nat.one_lt_pow hk hn)
+    _ = (m * f m / (f m - 1)) * (f m) ^ (k * logb m n) := by
+      rw [cast_pow, Real.logb_pow]
+      exact_mod_cast zero_lt_of_lt hn
+  have triviality : 1 / k * (k : ℝ) = 1 := by
       apply one_div_mul_cancel
       exact_mod_cast hk
-  have our_prod_nonneg :  0 ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ (↑k * logb ↑m ↑n) := by
-      rw [mul_nonneg_iff_of_pos_right]
-      exact zero_le_expression
-      apply Real.rpow_pos_of_pos
-      linarith only [this]
-  convert_to f ↑n ≤ ((↑m * f ↑m / (f ↑m - 1)) * f ↑m ^ (k * logb ↑m ↑n))^ (1 / k : ℝ )
-  · rw [Real.mul_rpow]
-    simp only [mul_eq_mul_left_iff]
-    left
-    rw [← rpow_mul (apply_nonneg f ↑m), mul_comm, ← mul_assoc]
-    rw [triviality]
-    simp only [one_mul]
-    exact zero_le_expression
-    apply rpow_nonneg (apply_nonneg f ↑m)
-  · rw [← Real.rpow_le_rpow_iff (z:=k ) _  ]
-    · rw [← rpow_mul, triviality, rpow_natCast, rpow_one]
-      exact key
-      exact our_prod_nonneg
-    · apply rpow_nonneg
-      exact our_prod_nonneg
-    · simp only [Nat.cast_pos.2 (Nat.pos_of_ne_zero hk)]
-    · exact (apply_nonneg f ↑n)
-
-
-
-
-/- If A ≤ (C k) * B for all k, then A ≤ limC * B, where limC is the limit of the sequence C.
--- TODO: can be generalized but we only need it here for sequences of reals.
-
-
-lemma le_mul_of_le_fun_mul' {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} {x : Filter ℕ} [Filter.NeBot x]
-  (lim : Filter.Tendsto C x (nhds limC)) (h : ∀ k, A ≤ (C k) * B) : A ≤ limC * B := by
-    have limCB : Filter.Tendsto (fun k ↦ (C k) * B) x (nhds (limC * B)) := by
-      refine Filter.Tendsto.mul_const B lim
-    refine (ge_of_tendsto' limCB h)
-
-
- lemma le_of_le_mul_root {A B C : ℝ} (hC : 0 < C) (hub : ∀ (k : ℕ), A ≤ C ^ (1 / (k:ℝ)) * B) :
-     A ≤ B := by
-  rw [← one_mul B]
-  apply le_mul_of_le_fun_mul' (tendsto_root_atTop_nhds_one C hC)
-  exact hub
- -/
+  apply le_of_pow_le_pow_left hk (mul_nonneg (rpow_nonneg
+    (le_of_lt (expr_pos hm notbdd)) (1 / (k : ℝ))) (rpow_nonneg (apply_nonneg f ↑m) (logb m n)))
+  nth_rw 2 [← Real.rpow_natCast]
+  rw [mul_rpow (rpow_nonneg (le_of_lt (expr_pos hm notbdd)) (1 / (k : ℝ)))
+    (rpow_nonneg (apply_nonneg f ↑m) (logb ↑m ↑n)), ← rpow_mul (le_of_lt (expr_pos hm notbdd)),
+    ← rpow_mul (apply_nonneg f ↑m), triviality, rpow_one, mul_comm (logb ↑m ↑n)]
+  exact h_ineq2 k hk
 
 open Filter
 
@@ -387,17 +334,14 @@ lemma le_of_le_mul_root {A B C : ℝ} (hC : 0 < C)
 
 
 lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ (f m) ^ (logb m n) := by
-  have zero_lt_A : 0 < m * (f m) / ((f m) - 1) := by
-    apply div_pos (mul_pos (mod_cast zero_lt_of_lt hm)
-      (map_pos_of_ne_zero f (mod_cast ne_zero_of_lt hm)))
-    linarith only [one_lt_of_notbdd notbdd m hm]
-  refine le_of_le_mul_root (zero_lt_A) ?_
+  refine le_of_le_mul_root (expr_pos hm notbdd) ?_
   intro k hk
-  exact param_upperbound m n hm hn notbdd k hk
+  exact param_upperbound hm hn notbdd k hk
+-----
 
 
 lemma compare_exponents (s t : ℝ) (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t ≤ s := by
-    have hmn : f n ≤ (f m)^(Real.logb m n) := mulRingNorm_le_mulRingNorm_pow_log m n hm hn notbdd
+    have hmn : f n ≤ (f m)^(Real.logb m n) := mulRingNorm_le_mulRingNorm_pow_log hm hn notbdd
     rw [← Real.rpow_le_rpow_left_iff (x:=n)]
     · rw[← hfn]
       rw [hfm] at hmn
@@ -420,8 +364,8 @@ lemma compare_exponents (s t : ℝ) (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t
 lemma symmetric_roles (s t : ℝ)
   (hfm : f m = m ^ s) (hfn : f n = n ^ t) : s = t := by
   apply le_antisymm
-  refine compare_exponents _ _ hn hm notbdd t s hfn hfm
-  refine compare_exponents _ _ hm hn notbdd s t  hfm hfn
+  refine compare_exponents hn hm notbdd t s hfn hfm
+  refine compare_exponents hm hn notbdd s t hfm hfn
 
 end Step2
 
@@ -477,7 +421,7 @@ theorem notbdd_implies_equiv_real (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1)  : MulRi
           all_goals norm_cast
           all_goals omega
         have seqt : s = t := by
-          exact symmetric_roles _ _ oneltm oneltn notbdd _ _ hm' hn
+          exact symmetric_roles oneltm oneltn notbdd _ _ hm' hn
         rw [seqt,hn]
         simp only [Nat.cast_nonneg, mul_ring_norm_eq_abs, Nat.abs_cast, Rat.cast_natCast]
         rw [← Real.rpow_mul (by linarith only [nzero])]
