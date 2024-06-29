@@ -95,6 +95,8 @@ private lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) {y : F} (
     simp_rw [this, list_mul_sum, ih]
     simp only [mul_div, ← same_add_div (sub_ne_zero.2 hy), mul_sub, mul_one, sub_add_sub_cancel']
 
+-- add to Mathlib.Analysis.Normed.Ring.Seminorm
+
 /-- Triangle inequality for mulRinfNorm applied to a List. -/
 lemma mulRingNorm_sum_le_sum_mulRingNorm {R : Type*} [Ring R] (l : List R) (f : MulRingNorm R) :
     f l.sum ≤ (l.map f).sum := by
@@ -105,26 +107,26 @@ lemma mulRingNorm_sum_le_sum_mulRingNorm {R : Type*} [Ring R] (l : List R) (f : 
     calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by apply f.add_le'
       _ ≤ f head + List.sum (List.map f tail) := by simp only [add_le_add_iff_left, ih]
 
-/--  -/
-lemma MulRingNorm_digit_lt_base {R : Type*} [Ring R] (f : MulRingNorm R) (m c n : ℕ)
-    (h_one_lt_m : 1 < m) (hcdig: c ∈ Nat.digits m (n)) : f c < m := by
-  apply lt_of_le_of_lt (MulRingNorm_nat_le_nat c f)
-  exact_mod_cast Nat.digits_lt_base h_one_lt_m hcdig
+-- add to Mathlib.Analysis.Normed.Ring.Seminorm
 
-/-- Given an two integers `n m` the absolute value of `n` is bounded by
-    `m + m * f m + m * (f m) ^ 2 + ... + m * (f m) ^ d`.-/
+/-- If `c` is a digit in the expansion of `n` in base `m`, then `f c` is less than `m`. -/
+lemma MulRingNorm_digit_lt_base {R : Type*} [Ring R] (f : MulRingNorm R) {m c n : ℕ}
+    (h_one_lt_m : 1 < m) (hcdig: c ∈ Nat.digits m n) : f c < m :=
+    lt_of_le_of_lt (MulRingNorm_nat_le_nat c f) (mod_cast Nat.digits_lt_base h_one_lt_m hcdig)
+
+/-- Given an two integers `n, m` with `m > 1` the mulRingNorm of `n` is bounded by
+    `m + m * f m + m * (f m) ^ 2 + ... + m * (f m) ^ d` where `d` is the number of digits of the
+    expansion of `n` in base `m`. -/
 lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
-    f n ≤ ((Nat.digits m n).mapIdx fun i _ => m * (f m) ^ i).sum := by
-  set L := Nat.digits m n with hL
-  set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a => (a * m ^ i)) with hL'
-  have hcoef {c : ℕ} (hc : c ∈ Nat.digits m n) : f c < m := MulRingNorm_digit_lt_base f m c n hm hc
+    f n ≤ ((Nat.digits m n).mapIdx fun i _ ↦ m * (f m) ^ i).sum := by
+  set L := Nat.digits m n
+  set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a ↦ (a * m ^ i)) with hL'
+  have hcoef {c : ℕ} (hc : c ∈ Nat.digits m n) : f c < m := MulRingNorm_digit_lt_base f hm hc
   calc
-  f n = f ((Nat.ofDigits m L : ℕ) : ℚ) := by rw [hL, Nat.ofDigits_digits m n]
-    _ = f (L'.sum) := by
-          rw [Nat.ofDigits_eq_sum_mapIdx, hL']
-          norm_cast
+  f n = f ((Nat.ofDigits m L : ℕ) : ℚ) := by rw [Nat.ofDigits_digits m n]
+    _ = f (L'.sum) := by rw [Nat.ofDigits_eq_sum_mapIdx]; norm_cast
     _ ≤ (L'.map f).sum := mulRingNorm_sum_le_sum_mulRingNorm L' f
-    _ ≤ (L.mapIdx fun i _ => m * (f m) ^ i).sum := by
+    _ ≤ (L.mapIdx fun i _ ↦ m * (f m) ^ i).sum := by
       simp only [hL', List.mapIdx_eq_enum_map, List.map_map]
       apply List.sum_le_sum
       rintro ⟨i,a⟩ hia
@@ -132,10 +134,10 @@ lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
       replace hia := List.mem_enumFrom L hia
       push_cast
       rw [map_mul, map_pow]
-      apply mul_le_mul_of_nonneg_right (le_of_lt (hcoef hia.2.2)) (by simp only [ge_iff_le,
-        apply_nonneg, pow_nonneg])
+      exact mul_le_mul_of_nonneg_right (le_of_lt (hcoef hia.2.2))
+        (pow_nonneg (apply_nonneg f ↑m) i)
 
-open BigOperators
+--open BigOperators
 
 /- ## Auxiliary lemma for limits-/
 /-- If `a : ℝ` is bounded above by a function `g : ℕ → ℝ` for every `0 < k` then it is less or
@@ -146,7 +148,6 @@ lemma le_of_limit_le {a : ℝ} {g : ℕ → ℝ} {l : ℝ} (ha : ∀ (k : ℕ) (
   rw [Filter.EventuallyLE, Filter.eventually_atTop]
   exact ⟨1, ha⟩
 
-
 /-- For any `C > 0`, the limit of `C ^ (1/k)` is 1 as `k → ∞`. -/
 lemma tendsto_root_atTop_nhds_one {C : ℝ} (hC : 0 < C) : Filter.Tendsto
     (fun k : ℕ ↦ (C ^ (1 / (k : ℝ)))) Filter.atTop (nhds 1) := by
@@ -156,8 +157,8 @@ lemma tendsto_root_atTop_nhds_one {C : ℝ} (hC : 0 < C) : Filter.Tendsto
   simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
 
-/-- The function `(n₀ * ((Real.logb n₀ n) + 1))^(k⁻¹)` tends to `1` as `k → ∞`. -/
-lemma tendsto_root_mul_log_add_one_atTop_nhds_one {n₀ n : ℕ} (hn₀ : 1 < n₀) (hn : 1 < n) :
+/- The function `(n₀ * ((Real.logb n₀ n) + 1))^(k⁻¹)` tends to `1` as `k → ∞`. -/
+private lemma tendsto_root_mul_log_add_one_atTop_nhds_one {n₀ n : ℕ} (hn₀ : 1 < n₀) (hn : 1 < n) :
     Filter.Tendsto (fun k : ℕ ↦ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹)
     Filter.atTop (nhds 1) := by
   simp_rw [← one_div]
@@ -178,28 +179,14 @@ lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : �
   exact (ha b) (le_trans (le_of_lt (Nat.lt_floor_add_one a)) (mod_cast hb))
 
 -- ## step 1
---
 
 /-- `Nat.log` is less than or equal to `Real.log`. -/
 lemma nat_log_le_real_log {a b : ℕ} (_ : 0 < a) (hb : 1 < b) : Nat.log b a ≤ Real.logb b a := by
-  apply le_trans _ (Int.floor_le ((b : ℝ).logb (a : ℝ)))
+  apply le_trans _ (Int.floor_le ((b : ℝ).logb a))
   simp only [Real.floor_logb_natCast hb (Nat.cast_nonneg a), Int.log_natCast, Int.cast_natCast,
-     le_refl]
+    le_refl]
 
 open Nat
-
---not used
-lemma List.sum_le_of_entry_le {l : List ℝ} {m : ℝ}
-    (h : ∀ a ∈ l, a ≤ m) : l.sum ≤ m * l.length := by
-  induction l with
-  | nil => simp only [List.sum_nil, List.length_nil, cast_zero, mul_zero, le_refl]
-  | cons head tail ih =>
-    simp only [List.sum_cons, List.length_cons, succ_eq_add_one, cast_add, cast_one, mul_add,
-      mul_one, add_comm]
-    simp only [List.mem_cons, forall_eq_or_imp] at h
-    gcongr
-    exact h.1
-    exact ih h.2
 
 /-- If `f n > 1` for some `n` then `f n > 1` for all `n ≥ 2`.-/
 lemma one_lt_of_notbdd (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 < n₀ → 1 < f n₀ := by
