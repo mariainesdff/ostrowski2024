@@ -107,7 +107,7 @@ lemma mulRingNorm_sum_le_sum_mulRingNorm {R : Type*} [Ring R] (l : List R) (f : 
     calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by apply f.add_le'
       _ ≤ f head + List.sum (List.map f tail) := by simp only [add_le_add_iff_left, ih]
 
--- add to Mathlib.Analysis.Normed.Ring.Seminorm
+-- maybe add to Mathlib.Analysis.Normed.Ring.Seminorm
 
 /-- If `c` is a digit in the expansion of `n` in base `m`, then `f c` is less than `m`. -/
 lemma MulRingNorm_digit_lt_base {R : Type*} [Ring R] (f : MulRingNorm R) {m c n : ℕ}
@@ -189,9 +189,9 @@ lemma nat_log_le_real_log {a b : ℕ} (_ : 0 < a) (hb : 1 < b) : Nat.log b a ≤
 open Nat
 
 /-- If `f n > 1` for some `n` then `f n > 1` for all `n ≥ 2`.-/
-lemma one_lt_of_notbdd (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 < n₀ → 1 < f n₀ := by
+lemma one_lt_of_not_bounded (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) {n₀ : ℕ} (hn₀ : 1 < n₀) : 1 < f n₀ := by
   contrapose! notbdd with h
-  rcases h with ⟨hn₀, hfn₀⟩
+  --rcases h with ⟨hn₀, hfn₀⟩
   intro n
   have h_ineq1 {m : ℕ} (hm : 1 ≤ m) : f m ≤ n₀ * (Real.logb n₀ m + 1) := by
     /- L is the string of digits of `n` in the base `n₀`-/
@@ -203,7 +203,7 @@ lemma one_lt_of_notbdd (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 <
       apply List.sum_le_sum
       rintro ⟨i,a⟩ _
       simp only [Function.comp_apply, Function.uncurry_apply_pair]
-      exact mul_le_of_le_of_le_one' (mod_cast le_refl n₀) (pow_le_one i (apply_nonneg f ↑n₀) hfn₀)
+      exact mul_le_of_le_of_le_one' (mod_cast le_refl n₀) (pow_le_one i (apply_nonneg f ↑n₀) h)
         (pow_nonneg (apply_nonneg f ↑n₀) i) (cast_nonneg n₀)
     _ ≤ n₀ * (Real.logb n₀ m + 1) := by
       rw [List.mapIdx_eq_enum_map, List.eq_replicate_of_mem (a:=(n₀ : ℝ))
@@ -218,6 +218,7 @@ lemma one_lt_of_notbdd (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 <
           and_imp, implies_true, forall_exists_index, forall_const]
   -- For h_ineq2 we need to exclude the case n = 0.
   rcases eq_or_ne n 0 with rfl | h₀; simp only [CharP.cast_eq_zero, map_zero, zero_le_one]
+  -- h_ineq2 needs to be in this form because it is applied in le_of_limit_le above
   have h_ineq2 : ∀ (k : ℕ), 0 < k →
       f n ≤ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹ * k ^ (k : ℝ)⁻¹ := by
     intro k hk
@@ -251,14 +252,13 @@ lemma one_lt_of_notbdd (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) (n₀ : ℕ) : 1 <
 section Step2
 
 open Real
-open BigOperators
 
 variable {m n : ℕ} (hm : 1 < m) (hn : 1 < n) (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1)
 
 private lemma expr_pos : 0 < m * f m / (f m - 1) := by
   apply div_pos (mul_pos (mod_cast zero_lt_of_lt hm)
       (map_pos_of_ne_zero f (mod_cast ne_zero_of_lt hm)))
-  linarith only [one_lt_of_notbdd notbdd m hm]
+  linarith only [one_lt_of_not_bounded notbdd hm]
 
 private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
     f n ≤ (m * f m / (f m - 1)) ^ (1 / (k : ℝ)) * (f m) ^ (logb m n) := by
@@ -270,17 +270,17 @@ private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
       MulRingNorm_n_le_sum_digits n hm
     _ = m * ((Nat.digits m n).mapIdx fun i _ ↦ (f m) ^ i).sum := list_mul_sum (m.digits n) (f m) m
     _ = m * ((f m ^ (d + 1) - 1) / (f m - 1)) := by
-      rw [list_geom _ (ne_of_gt (one_lt_of_notbdd notbdd m hm)),
+      rw [list_geom _ (ne_of_gt (one_lt_of_not_bounded notbdd hm)),
       (Nat.digits_len m n hm (not_eq_zero_of_lt hn)).symm]
     _ ≤ m * ((f m ^ (d + 1))/(f m - 1)) := by
       gcongr
-      linarith only [one_lt_of_notbdd notbdd m hm]
+      linarith only [one_lt_of_not_bounded notbdd hm]
       simp only [tsub_le_iff_right, le_add_iff_nonneg_right, zero_le_one]
     _ = ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ d := by ring
     _ ≤ ↑m * f ↑m / (f ↑m - 1) * f ↑m ^ logb ↑m ↑n := by
       gcongr
       exact le_of_lt (expr_pos hm notbdd)
-      rw [← Real.rpow_natCast, Real.rpow_le_rpow_left_iff (one_lt_of_notbdd notbdd m hm)]
+      rw [← Real.rpow_natCast, Real.rpow_le_rpow_left_iff (one_lt_of_not_bounded notbdd hm)]
       exact nat_log_le_real_log (zero_lt_of_lt hn) hm
   have h_ineq2 (k : ℕ) (hk : k ≠ 0) :
       (f n) ^ k ≤ (m * f m / (f m - 1)) * (f m) ^ (k * logb m n) := by
@@ -316,17 +316,18 @@ lemma le_mul_of_le_fun_mul {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} (lim : Ten
     exact h y (not_eq_zero_of_lt hy)
 
 lemma le_of_le_mul_root {A B C : ℝ} (hC : 0 < C)
-    (hub : ∀ (k : ℕ),k ≠ 0 →  A ≤ C ^ (1 / (k : ℝ)) * B) : A ≤ B := by
+    (hub : ∀ (k : ℕ), k ≠ 0 →  A ≤ C ^ (1 / (k : ℝ)) * B) : A ≤ B := by
   rw [← one_mul B]
   exact le_mul_of_le_fun_mul (tendsto_root_atTop_nhds_one hC) hub
 
-lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ (f m) ^ (logb m n) := by
+/-- Given two natural numbers `n, m` greater than 1 we have `f n ≤ f m ^ logb m n`. -/
+lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ f m ^ logb m n := by
   refine le_of_le_mul_root (expr_pos hm notbdd) ?_
   intro k hk
   exact param_upperbound hm hn notbdd k hk
 
 private lemma le_exponents {s t : ℝ} (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t ≤ s := by
-    have hmn : f n ≤ (f m)^(Real.logb m n) := mulRingNorm_le_mulRingNorm_pow_log hm hn notbdd
+    have hmn : f n ≤ f m ^ Real.logb m n := mulRingNorm_le_mulRingNorm_pow_log hm hn notbdd
     rw [← Real.rpow_le_rpow_left_iff (x:=n) (mod_cast hn), ← hfn]
     apply le_trans hmn
     rw [hfm, ← Real.rpow_mul (cast_nonneg m), mul_comm, Real.rpow_mul (cast_nonneg m),
@@ -344,9 +345,8 @@ end Step2
 
 
 -- ## Archimedean case: end goal
-/--
-   If `f` is not bounded and not trivial, then it is equivalent to the standard absolute value on ℚ.
--/
+/-- If `f` is not bounded and not trivial, then it is equivalent to the standard absolute value on
+`ℚ`. -/
 theorem mulRingNorm_equiv_standard_of_unbounded (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1) :
     MulRingNorm.equiv f mulRingNorm_real := by
   obtain ⟨m, hm⟩ := Classical.exists_not_of_not_forall notbdd
@@ -359,8 +359,8 @@ theorem mulRingNorm_equiv_standard_of_unbounded (notbdd: ¬ ∀ (n : ℕ), f n �
   rw [← NormRat_equiv_iff_equiv_on_Nat]
   set s := Real.logb m (f m) with hs
   use s⁻¹
-  refine ⟨inv_pos.2 (Real.logb_pos (Nat.one_lt_cast.2 oneltm) (one_lt_of_notbdd notbdd m oneltm)),
-    ?_⟩
+  refine ⟨inv_pos.2 (Real.logb_pos (Nat.one_lt_cast.2 oneltm)
+    (one_lt_of_not_bounded notbdd oneltm)), ?_⟩
   intro n
   by_cases h1 : n ≤ 1
   · by_cases h2 : n = 1
@@ -373,19 +373,19 @@ theorem mulRingNorm_equiv_standard_of_unbounded (notbdd: ¬ ∀ (n : ℕ), f n �
       simp only [ne_eq, inv_eq_zero, Real.logb_eq_zero, cast_eq_zero, cast_eq_one, map_eq_zero,
         not_or]
       push_neg
-      refine ⟨not_eq_zero_of_lt oneltm, Nat.ne_of_lt' oneltm , mod_cast (fun a ↦ a),
+      exact ⟨not_eq_zero_of_lt oneltm, Nat.ne_of_lt' oneltm, mod_cast (fun a ↦ a),
         not_eq_zero_of_lt oneltm, ne_of_not_le hm, by linarith only [apply_nonneg f ↑m]⟩
   · simp only [mul_ring_norm_eq_abs, abs_cast, Rat.cast_natCast]
     rw [Real.rpow_inv_eq (apply_nonneg f ↑n) (cast_nonneg n)
       (Real.logb_ne_zero_of_pos_of_ne_one (one_lt_cast.mpr oneltm) (by linarith only [hm])
       (by linarith only [hm]))]
-    have oneltn : 1 < n := by omega
-    have hfm : f m = m ^ s := by rw [Real.rpow_logb (by norm_cast; linarith only [oneltm])
+    simp only [not_le] at h1
+    have hfm : f m = m ^ s := by rw [Real.rpow_logb (mod_cast zero_lt_of_lt oneltm)
       (mod_cast Nat.ne_of_lt' oneltm) (by linarith only [hm])]
     have hfn : f n = n ^ (Real.logb n (f n)) := by
-      rw [Real.rpow_logb (by norm_cast; linarith only [h1]) (by norm_cast; omega)
-      (by (apply map_pos_of_ne_zero; norm_cast; omega))]
-    rwa [← hs, symmetric_roles oneltm oneltn notbdd hfm hfn]
+      rw [Real.rpow_logb (mod_cast zero_lt_of_lt h1) (mod_cast Nat.ne_of_lt' h1)
+      (by apply map_pos_of_ne_zero; exact_mod_cast not_eq_zero_of_lt h1)]
+    rwa [← hs, symmetric_roles oneltm h1 notbdd hfm hfn]
 
 end Archimedean
 
