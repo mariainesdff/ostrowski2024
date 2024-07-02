@@ -81,7 +81,7 @@ private lemma list_mul_sum {R : Type*} [CommSemiring R] {T : Type*} (l : List T)
   | cons head tail ih =>
     intro x
     simp_rw [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons, mul_add, mul_one]
-    have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
+    have (a : ℕ) : y ^ (a + 1) = y * y ^ a := by ring
     simp_rw [this, ← mul_assoc, ih, ← mul_assoc]
 
 /- Geometric sum for lists -/
@@ -97,22 +97,15 @@ private lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) {y : F} (
 
 -- add to Mathlib.Analysis.Normed.Ring.Seminorm
 
-/-- Triangle inequality for mulRinfNorm applied to a List. -/
-lemma mulRingNorm_sum_le_sum_mulRingNorm {R : Type*} [Ring R] (l : List R) (f : MulRingNorm R) :
-    f l.sum ≤ (l.map f).sum := by
+/-- Triangle inequality for mulRingNorm applied to a List. -/
+lemma mulRingNorm_sum_le_sum_mulRingNorm {R : Type*} [NonAssocRing R] (l : List R)
+    (f : MulRingNorm R) : f l.sum ≤ (l.map f).sum := by
   induction l with
   | nil => simp only [List.sum_nil, map_zero, List.map_nil, le_refl]
   | cons head tail ih =>
     simp only [List.sum_cons, List.map_cons]
     calc f (head + List.sum tail) ≤ f head + f (List.sum tail) := by apply f.add_le'
       _ ≤ f head + List.sum (List.map f tail) := by simp only [add_le_add_iff_left, ih]
-
--- maybe add to Mathlib.Analysis.Normed.Ring.Seminorm
-
-/-- If `c` is a digit in the expansion of `n` in base `m`, then `f c` is less than `m`. -/
-lemma MulRingNorm_digit_lt_base {R : Type*} [Ring R] (f : MulRingNorm R) {m c n : ℕ}
-    (h_one_lt_m : 1 < m) (hcdig: c ∈ Nat.digits m n) : f c < m :=
-    lt_of_le_of_lt (MulRingNorm_nat_le_nat c f) (mod_cast Nat.digits_lt_base h_one_lt_m hcdig)
 
 /-- Given an two integers `n, m` with `m > 1` the mulRingNorm of `n` is bounded by
     `m + m * f m + m * (f m) ^ 2 + ... + m * (f m) ^ d` where `d` is the number of digits of the
@@ -121,7 +114,9 @@ lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
     f n ≤ ((Nat.digits m n).mapIdx fun i _ ↦ m * (f m) ^ i).sum := by
   set L := Nat.digits m n
   set L' : List ℚ := List.map Nat.cast (L.mapIdx fun i a ↦ (a * m ^ i)) with hL'
-  have hcoef {c : ℕ} (hc : c ∈ Nat.digits m n) : f c < m := MulRingNorm_digit_lt_base f hm hc
+  -- If `c` is a digit in the expansion of `n` in base `m`, then `f c` is less than `m`.
+  have hcoef {c : ℕ} (hc : c ∈ Nat.digits m n) : f c < m :=
+    lt_of_le_of_lt (MulRingNorm_nat_le_nat c f) (mod_cast Nat.digits_lt_base hm hc)
   calc
   f n = f ((Nat.ofDigits m L : ℕ) : ℚ) := by rw [Nat.ofDigits_digits m n]
     _ = f (L'.sum) := by rw [Nat.ofDigits_eq_sum_mapIdx]; norm_cast
@@ -150,33 +145,62 @@ lemma le_of_limit_le {a : ℝ} {g : ℕ → ℝ} {l : ℝ} (ha : ∀ (k : ℕ) (
 
 /-- For any `C > 0`, the limit of `C ^ (1/k)` is 1 as `k → ∞`. -/
 lemma tendsto_root_atTop_nhds_one {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ (C ^ (1 / (k : ℝ)))) Filter.atTop (nhds 1) := by
+    (fun k : ℕ ↦ C ^ (1 / (k : ℝ))) Filter.atTop (nhds 1) := by
   rw [← Real.exp_log hC]
   simp_rw [← Real.exp_mul]
-  refine Real.tendsto_exp_nhds_zero_nhds_one.comp ?_
+  apply Real.tendsto_exp_nhds_zero_nhds_one.comp
   simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
-
-/- The function `(n₀ * ((Real.logb n₀ n) + 1))^(k⁻¹)` tends to `1` as `k → ∞`. -/
-private lemma tendsto_root_mul_log_add_one_atTop_nhds_one {n₀ n : ℕ} (hn₀ : 1 < n₀) (hn : 1 < n) :
-    Filter.Tendsto (fun k : ℕ ↦ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹)
-    Filter.atTop (nhds 1) := by
-  simp_rw [← one_div]
-  apply tendsto_root_atTop_nhds_one
-  apply mul_pos (mod_cast (lt_trans zero_lt_one hn₀))
-  exact add_pos (Real.logb_pos (mod_cast hn₀) (mod_cast hn)) Real.zero_lt_one
 
 /-extends the lemma `tendsto_rpow_div` when the function has natural input-/
 lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
     Filter.atTop (nhds 1) := by
-  simp only [Filter.tendsto_def, Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage]
+  simp only [Filter.tendsto_def, Filter.mem_atTop_sets]
   intro N hN
   let h := tendsto_rpow_div
-  simp only [Filter.tendsto_def, one_div, Filter.mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
-  rcases (h N hN) with ⟨a, ha⟩
+  simp only [Filter.tendsto_def, one_div, Filter.mem_atTop_sets] at h
+  rcases h N hN with ⟨a, ha⟩
   use (Nat.floor a) + 1
   intro b hb
-  exact (ha b) (le_trans (le_of_lt (Nat.lt_floor_add_one a)) (mod_cast hb))
+  exact ha b (le_trans (le_of_lt (Nat.lt_floor_add_one a)) (mod_cast hb))
+
+open Filter
+
+theorem aux {l: Filter ℝ} {f : ℝ → ℝ} {g: ℕ → ℝ} (hg: ∀ᶠ n in atTop, g n = f n)
+    (hl : Filter.Tendsto f Filter.atTop l) : Filter.Tendsto g Filter.atTop l := by
+  intro N hN
+  simp only [mem_map, mem_atTop_sets, ge_iff_le, Set.mem_preimage]
+  obtain h := hl hN
+  simp only [mem_map, mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
+  rcases h with ⟨a, ha⟩
+  simp only [eventually_atTop, ge_iff_le] at hg
+  rcases hg with ⟨a₁, ha₁⟩
+  use (Nat.floor (max a a₁)) + 1
+  intro b hb
+  have hineq : a ≤ b := by
+    calc
+    a ≤ max a a₁ := le_max_left a a₁
+    _ ≤ ⌊max a a₁⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one (max a a₁))
+    _ ≤ b := by norm_cast
+  have hineq₁ : a₁ ≤ (b : ℝ) := by
+    calc
+    a₁ ≤ max a a₁ := le_max_right a ↑a₁
+    _ ≤ ⌊max a a₁⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one (max a a₁))
+    _ ≤ b := by norm_cast
+  specialize ha b hineq
+  specialize ha₁ b (mod_cast hineq₁)
+  rwa [ha₁]
+
+lemma tendsto_root_atTop_nhds_one' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
+    (fun k : ℕ ↦ C ^ (1 / (k : ℝ))) Filter.atTop (nhds 1) := by
+  sorry --apply aux
+
+lemma tendsto_nat_rpow_div' : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
+    Filter.atTop (nhds 1) :=
+    aux (by simp only [one_div, eventually_atTop, implies_true, exists_const]) tendsto_rpow_div
+
+
+open Real Filter Nat
 
 -- ## step 1
 
@@ -185,8 +209,6 @@ lemma nat_log_le_real_log {a b : ℕ} (_ : 0 < a) (hb : 1 < b) : Nat.log b a ≤
   apply le_trans _ (Int.floor_le ((b : ℝ).logb a))
   simp only [Real.floor_logb_natCast hb (Nat.cast_nonneg a), Int.log_natCast, Int.cast_natCast,
     le_refl]
-
-open Nat
 
 /-- If `f n > 1` for some `n` then `f n > 1` for all `n ≥ 2`.-/
 lemma one_lt_of_not_bounded (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) {n₀ : ℕ} (hn₀ : 1 < n₀) : 1 < f n₀ := by
@@ -242,8 +264,10 @@ lemma one_lt_of_not_bounded (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) {n₀ : ℕ} 
       Filter.atTop (nhds 1) := by
     nth_rw 2 [← mul_one 1]
     have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹)
-        Filter.atTop (nhds 1) := tendsto_root_mul_log_add_one_atTop_nhds_one hn₀
-        (lt_of_le_of_ne (one_le_iff_ne_zero.mpr h₀) (id (Ne.symm h₁)))
+        Filter.atTop (nhds 1) := by
+      simp_rw [← one_div]
+      exact tendsto_root_atTop_nhds_one (mul_pos (mod_cast (lt_trans zero_lt_one hn₀))
+        (add_pos (Real.logb_pos (mod_cast hn₀) (by norm_cast; omega)) Real.zero_lt_one))
     exact Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
   exact le_of_limit_le h_ineq2 prod_limit
 
@@ -301,30 +325,13 @@ private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
     ← rpow_mul (apply_nonneg f ↑m), triviality, rpow_one, mul_comm (logb ↑m ↑n)]
   exact h_ineq2 k hk
 
-open Filter
-
-lemma le_mul_of_le_fun_mul {A B : ℝ} {C : ℕ → ℝ} {limC : ℝ} (lim : Tendsto C atTop (nhds limC))
-    (h : ∀ k, k ≠ 0 → A ≤ C k * B) : A ≤ limC * B := by
-  apply ge_of_tendsto (Tendsto.mul_const B lim)
-  rw [eventually_iff_exists_mem]
-  use {b | 1 ≤ b}
-  constructor
-  · simp only [mem_atTop_sets, ge_iff_le, Set.mem_setOf_eq]
-    exact ⟨1, fun b a ↦ a⟩
-  · simp only [Set.mem_setOf_eq]
-    intro y hy
-    exact h y (not_eq_zero_of_lt hy)
-
-lemma le_of_le_mul_root {A B C : ℝ} (hC : 0 < C)
-    (hub : ∀ (k : ℕ), k ≠ 0 →  A ≤ C ^ (1 / (k : ℝ)) * B) : A ≤ B := by
-  rw [← one_mul B]
-  exact le_mul_of_le_fun_mul (tendsto_root_atTop_nhds_one hC) hub
-
 /-- Given two natural numbers `n, m` greater than 1 we have `f n ≤ f m ^ logb m n`. -/
 lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ f m ^ logb m n := by
-  refine le_of_le_mul_root (expr_pos hm notbdd) ?_
-  intro k hk
-  exact param_upperbound hm hn notbdd k hk
+  apply le_of_limit_le (g:=fun k ↦ (m * f m / (f m - 1)) ^ (1 / (k : ℝ)) * (f m) ^ (logb m n))
+  · intro k hk
+    exact param_upperbound hm hn notbdd k (not_eq_zero_of_lt hk)
+  · nth_rw 2 [← one_mul (f ↑m ^ logb ↑m ↑n)]
+    exact Tendsto.mul_const _ (tendsto_root_atTop_nhds_one (expr_pos hm notbdd))
 
 private lemma le_exponents {s t : ℝ} (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t ≤ s := by
     have hmn : f n ≤ f m ^ Real.logb m n := mulRingNorm_le_mulRingNorm_pow_log hm hn notbdd
