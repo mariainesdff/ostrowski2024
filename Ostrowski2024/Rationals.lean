@@ -5,6 +5,8 @@ import Ostrowski2024.MulRingNormRat
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 --import Mathlib.Analysis.SpecialFunctions.Pow.Real
 -- import Mathlib.Algebra.Order.Monoid.Lemmas
+import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
+
 
 /-!
 # Ostrowski's theorem for ℚ
@@ -73,7 +75,7 @@ section Archimedean
 -- ## auxiliary Lemmas for lists
 
 /- Multiplication by a constant moves in a List.sum -/
-private lemma list_mul_sum {R : Type*} [CommSemiring R] {T : Type*} (l : List T) (y : R) : ∀ x : R ,
+private lemma list_mul_sum {R : Type*} [CommSemiring R] {T : Type*} (l : List T) (y : R) : ∀ x : R,
     List.sum (List.mapIdx (fun i _ => x * y ^ i) (l)) =
     x * List.sum (List.mapIdx (fun i _ => y ^ i) (l)) := by
   induction l with
@@ -191,13 +193,25 @@ theorem aux {l: Filter ℝ} {f : ℝ → ℝ} {g: ℕ → ℝ} (hg: ∀ᶠ n in 
   specialize ha₁ b (mod_cast hineq₁)
   rwa [ha₁]
 
-lemma tendsto_root_atTop_nhds_one' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (1 / (k : ℝ))) Filter.atTop (nhds 1) := by
-  sorry --apply aux
-
 lemma tendsto_nat_rpow_div' : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
     Filter.atTop (nhds 1) :=
     aux (by simp only [one_div, eventually_atTop, implies_true, exists_const]) tendsto_rpow_div
+
+theorem tendsto_rpow_inv_atTop_one {a : ℝ} (ha : a ≠ 0) :
+    Tendsto (fun x => a ^ (1 / (x : ℝ))) atTop (nhds 1) := by
+  have h : Tendsto (fun x : ℝ => 1 / x) atTop (nhds 0) := by
+    simp_rw [one_div]
+    exact tendsto_inv_atTop_zero
+  nth_rw 2 [Eq.symm (Real.rpow_zero a)]
+  apply Filter.Tendsto.rpow tendsto_const_nhds h
+  left; exact ha
+
+lemma tendsto_root_atTop_nhds_one' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
+    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
+  rw [← Real.exp_log hC]
+  simp_rw [← Real.exp_mul]
+  apply Real.tendsto_exp_nhds_zero_nhds_one.comp
+    (tendsto_const_div_atTop_nhds_zero_nat (Real.log C))
 
 
 open Real Filter Nat
