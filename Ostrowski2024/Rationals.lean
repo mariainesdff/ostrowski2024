@@ -147,11 +147,10 @@ lemma le_of_limit_le {a : ℝ} {g : ℕ → ℝ} {l : ℝ} (ha : ∀ (k : ℕ) (
 
 /-- For any `C > 0`, the limit of `C ^ (1/k)` is 1 as `k → ∞`. -/
 lemma tendsto_root_atTop_nhds_one {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (1 / (k : ℝ))) Filter.atTop (nhds 1) := by
+    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
   rw [← Real.exp_log hC]
   simp_rw [← Real.exp_mul]
   apply Real.tendsto_exp_nhds_zero_nhds_one.comp
-  simp_rw [mul_one_div]
   apply tendsto_const_div_atTop_nhds_zero_nat
 
 /-extends the lemma `tendsto_rpow_div` when the function has natural input-/
@@ -174,22 +173,22 @@ theorem aux {l: Filter ℝ} {f : ℝ → ℝ} {g: ℕ → ℝ} (hg: ∀ᶠ n in 
   simp only [mem_map, mem_atTop_sets, ge_iff_le, Set.mem_preimage]
   obtain h := hl hN
   simp only [mem_map, mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
-  rcases h with ⟨a, ha⟩
+  rcases h with ⟨a₀, ha₀⟩
   simp only [eventually_atTop, ge_iff_le] at hg
   rcases hg with ⟨a₁, ha₁⟩
-  use (Nat.floor (max a a₁)) + 1
+  use (Nat.floor (max a₀ a₁)) + 1
   intro b hb
-  have hineq : a ≤ b := by
+  have hineq₀ : a₀ ≤ b := by
     calc
-    a ≤ max a a₁ := le_max_left a a₁
-    _ ≤ ⌊max a a₁⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one (max a a₁))
+    a₀ ≤ max a₀ a₁ := le_max_left a₀ a₁
+    _ ≤ ⌊max a₀ a₁⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one (max a₀ a₁))
     _ ≤ b := by norm_cast
   have hineq₁ : a₁ ≤ (b : ℝ) := by
     calc
-    a₁ ≤ max a a₁ := le_max_right a ↑a₁
-    _ ≤ ⌊max a a₁⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one (max a a₁))
+    a₁ ≤ max a₀ a₁ := le_max_right a₀ ↑a₁
+    _ ≤ ⌊max a₀ a₁⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one (max a₀ a₁))
     _ ≤ b := by norm_cast
-  specialize ha b hineq
+  specialize ha₀ b hineq₀
   specialize ha₁ b (mod_cast hineq₁)
   rwa [ha₁]
 
@@ -198,20 +197,16 @@ lemma tendsto_nat_rpow_div' : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : �
     aux (by simp only [one_div, eventually_atTop, implies_true, exists_const]) tendsto_rpow_div
 
 theorem tendsto_rpow_inv_atTop_one {a : ℝ} (ha : a ≠ 0) :
-    Tendsto (fun x => a ^ (1 / (x : ℝ))) atTop (nhds 1) := by
-  have h : Tendsto (fun x : ℝ => 1 / x) atTop (nhds 0) := by
-    simp_rw [one_div]
-    exact tendsto_inv_atTop_zero
-  nth_rw 2 [Eq.symm (Real.rpow_zero a)]
-  apply Filter.Tendsto.rpow tendsto_const_nhds h
-  left; exact ha
+    Tendsto (fun x => a ^ (x : ℝ)⁻¹) atTop (nhds 1) := by
+  nth_rw 1 [Eq.symm (Real.rpow_zero a)]
+  exact Filter.Tendsto.rpow tendsto_const_nhds tendsto_inv_atTop_zero (Or.intro_left (0 < 0) ha)
 
 lemma tendsto_root_atTop_nhds_one' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
-  rw [← Real.exp_log hC]
-  simp_rw [← Real.exp_mul]
-  apply Real.tendsto_exp_nhds_zero_nhds_one.comp
-    (tendsto_const_div_atTop_nhds_zero_nat (Real.log C))
+    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) :=
+    aux (by simp only [eventually_atTop, ge_iff_le, implies_true, exists_const])
+    (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC)))
+
+
 
 
 open Real Filter Nat
@@ -278,11 +273,10 @@ lemma one_lt_of_not_bounded (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) {n₀ : ℕ} 
       Filter.atTop (nhds 1) := by
     nth_rw 2 [← mul_one 1]
     have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹)
-        Filter.atTop (nhds 1) := by
-      simp_rw [← one_div]
-      exact tendsto_root_atTop_nhds_one (mul_pos (mod_cast (lt_trans zero_lt_one hn₀))
+        Filter.atTop (nhds 1) := tendsto_root_atTop_nhds_one'
+        (mul_pos (mod_cast (lt_trans zero_lt_one hn₀))
         (add_pos (Real.logb_pos (mod_cast hn₀) (by norm_cast; omega)) Real.zero_lt_one))
-    exact Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
+    exact Filter.Tendsto.mul hnlim tendsto_nat_rpow_div'
   exact le_of_limit_le h_ineq2 prod_limit
 
 -- ## step 2
@@ -299,7 +293,7 @@ private lemma expr_pos : 0 < m * f m / (f m - 1) := by
   linarith only [one_lt_of_not_bounded notbdd hm]
 
 private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
-    f n ≤ (m * f m / (f m - 1)) ^ (1 / (k : ℝ)) * (f m) ^ (logb m n) := by
+    f n ≤ (m * f m / (f m - 1)) ^ (k : ℝ)⁻¹ * (f m) ^ (logb m n) := by
   have h_ineq1 {m n : ℕ} (hm : 1 < m) (hn : 1 < n) :
       f n ≤ (m * f m / (f m - 1)) * (f m) ^ (logb m n) := by
     let d := Nat.log m n
@@ -328,24 +322,21 @@ private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
     _ = (m * f m / (f m - 1)) * (f m) ^ (k * logb m n) := by
       rw [cast_pow, Real.logb_pow]
       exact_mod_cast zero_lt_of_lt hn
-  have triviality : 1 / k * (k : ℝ) = 1 := by
-      apply one_div_mul_cancel
-      exact_mod_cast hk
   apply le_of_pow_le_pow_left hk (mul_nonneg (rpow_nonneg
-    (le_of_lt (expr_pos hm notbdd)) (1 / (k : ℝ))) (rpow_nonneg (apply_nonneg f ↑m) (logb m n)))
+    (le_of_lt (expr_pos hm notbdd)) (k : ℝ)⁻¹) (rpow_nonneg (apply_nonneg f ↑m) (logb m n)))
   nth_rw 2 [← Real.rpow_natCast]
-  rw [mul_rpow (rpow_nonneg (le_of_lt (expr_pos hm notbdd)) (1 / (k : ℝ)))
+  rw [mul_rpow (rpow_nonneg (le_of_lt (expr_pos hm notbdd)) (k : ℝ)⁻¹)
     (rpow_nonneg (apply_nonneg f ↑m) (logb ↑m ↑n)), ← rpow_mul (le_of_lt (expr_pos hm notbdd)),
-    ← rpow_mul (apply_nonneg f ↑m), triviality, rpow_one, mul_comm (logb ↑m ↑n)]
+    ← rpow_mul (apply_nonneg f ↑m), inv_mul_cancel (mod_cast hk), rpow_one, mul_comm (logb ↑m ↑n)]
   exact h_ineq2 k hk
 
 /-- Given two natural numbers `n, m` greater than 1 we have `f n ≤ f m ^ logb m n`. -/
 lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ f m ^ logb m n := by
-  apply le_of_limit_le (g:=fun k ↦ (m * f m / (f m - 1)) ^ (1 / (k : ℝ)) * (f m) ^ (logb m n))
+  apply le_of_limit_le (g:=fun k ↦ (m * f m / (f m - 1)) ^ (k : ℝ)⁻¹ * (f m) ^ (logb m n))
   · intro k hk
     exact param_upperbound hm hn notbdd k (not_eq_zero_of_lt hk)
   · nth_rw 2 [← one_mul (f ↑m ^ logb ↑m ↑n)]
-    exact Tendsto.mul_const _ (tendsto_root_atTop_nhds_one (expr_pos hm notbdd))
+    exact Tendsto.mul_const _ (tendsto_root_atTop_nhds_one' (expr_pos hm notbdd))
 
 private lemma le_exponents {s t : ℝ} (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t ≤ s := by
     have hmn : f n ≤ f m ^ Real.logb m n := mulRingNorm_le_mulRingNorm_pow_log hm hn notbdd
@@ -503,7 +494,7 @@ lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m ) : f m = 1 := by
   by_contra hm
   apply lt_of_not_le at hm
   set M := (f p) ⊔ (f m) with hM
-  set k := Nat.ceil ( Real.logb  M (1/2) ) + 1 with hk
+  set k := Nat.ceil (Real.logb  M (1 / 2) ) + 1 with hk
   have hcopr : IsCoprime (p ^ k : ℤ) (m ^ k) := by
     apply IsCoprime.pow (Nat.Coprime.isCoprime _)
     rw [Nat.Prime.coprime_iff_not_dvd (Prime.nat_prime (p_is_prime p hp0 hp1 hmin))]
