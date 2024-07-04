@@ -74,29 +74,6 @@ section Archimedean
 
 -- ## auxiliary Lemmas for lists
 
-/- Multiplication by a constant moves in a List.sum -/
-private lemma list_mul_sum {R : Type*} [CommSemiring R] {T : Type*} (l : List T) (y : R) : ∀ x : R,
-    List.sum (List.mapIdx (fun i _ => x * y ^ i) (l)) =
-    x * List.sum (List.mapIdx (fun i _ => y ^ i) (l)) := by
-  induction l with
-  | nil => simp only [List.mapIdx_nil, List.sum_nil, mul_zero, forall_const]
-  | cons head tail ih =>
-    intro x
-    simp_rw [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons, mul_add, mul_one]
-    have (a : ℕ) : y ^ (a + 1) = y * y ^ a := by ring
-    simp_rw [this, ← mul_assoc, ih, ← mul_assoc]
-
-/- Geometric sum for lists -/
-private lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) {y : F} (hy : y ≠ 1) :
-    List.sum (List.mapIdx (fun i _ => y ^ i) l) = (y ^ l.length - 1) / (y - 1) := by
-  induction l with
-  | nil => simp only [List.mapIdx_nil, List.sum_nil, List.length_nil, pow_zero, sub_self, zero_div]
-  | cons head tail ih =>
-    simp only [List.mapIdx_cons, pow_zero, List.sum_cons, List.length_cons]
-    have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
-    simp_rw [this, list_mul_sum, ih]
-    simp only [mul_div, ← same_add_div (sub_ne_zero.2 hy), mul_sub, mul_one, sub_add_sub_cancel']
-
 -- add to Mathlib.Analysis.Normed.Ring.Seminorm
 
 /-- Triangle inequality for mulRingNorm applied to a List. -/
@@ -151,7 +128,7 @@ lemma tendsto_root_atTop_nhds_one {C : ℝ} (hC : 0 < C) : Filter.Tendsto
   rw [← Real.exp_log hC]
   simp_rw [← Real.exp_mul]
   apply Real.tendsto_exp_nhds_zero_nhds_one.comp
-  apply tendsto_const_div_atTop_nhds_zero_nat
+  exact tendsto_const_div_atTop_nhds_zero_nat (Real.log C)
 
 /-extends the lemma `tendsto_rpow_div` when the function has natural input-/
 lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
@@ -205,9 +182,6 @@ lemma tendsto_root_atTop_nhds_one' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
     (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) :=
     aux (by simp only [eventually_atTop, ge_iff_le, implies_true, exists_const])
     (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC)))
-
-
-
 
 open Real Filter Nat
 
@@ -273,15 +247,40 @@ lemma one_lt_of_not_bounded (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) {n₀ : ℕ} 
       Filter.atTop (nhds 1) := by
     nth_rw 2 [← mul_one 1]
     have hnlim : Filter.Tendsto (fun k : ℕ ↦ (n₀ * (Real.logb n₀ n + 1)) ^ (k : ℝ)⁻¹)
-        Filter.atTop (nhds 1) := tendsto_root_atTop_nhds_one'
+        Filter.atTop (nhds 1) := tendsto_root_atTop_nhds_one
         (mul_pos (mod_cast (lt_trans zero_lt_one hn₀))
         (add_pos (Real.logb_pos (mod_cast hn₀) (by norm_cast; omega)) Real.zero_lt_one))
-    exact Filter.Tendsto.mul hnlim tendsto_nat_rpow_div'
+    exact Filter.Tendsto.mul hnlim tendsto_nat_rpow_div
   exact le_of_limit_le h_ineq2 prod_limit
 
 -- ## step 2
 -- given m,n \geq 2 and |m|=m^s, |n|=n^t for s,t >0, prove t \leq s
+
 section Step2
+
+
+/- Multiplication by a constant moves in a List.sum -/
+private lemma list_mul_sum {R : Type*} [CommSemiring R] {T : Type*} (l : List T) (y : R) : ∀ x : R,
+    List.sum (List.mapIdx (fun i _ => x * y ^ i) (l)) =
+    x * List.sum (List.mapIdx (fun i _ => y ^ i) (l)) := by
+  induction l with
+  | nil => simp only [List.mapIdx_nil, List.sum_nil, mul_zero, forall_const]
+  | cons head tail ih =>
+    intro x
+    simp_rw [List.mapIdx_cons, pow_zero, mul_one, List.sum_cons, mul_add, mul_one]
+    have (a : ℕ) : y ^ (a + 1) = y * y ^ a := by ring
+    simp_rw [this, ← mul_assoc, ih, ← mul_assoc]
+
+/- Geometric sum for lists -/
+private lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) {y : F} (hy : y ≠ 1) :
+    List.sum (List.mapIdx (fun i _ => y ^ i) l) = (y ^ l.length - 1) / (y - 1) := by
+  induction l with
+  | nil => simp only [List.mapIdx_nil, List.sum_nil, List.length_nil, pow_zero, sub_self, zero_div]
+  | cons head tail ih =>
+    simp only [List.mapIdx_cons, pow_zero, List.sum_cons, List.length_cons]
+    have (a : ℕ ) : y ^ (a + 1) = y * y ^ a := by ring
+    simp_rw [this, list_mul_sum, ih]
+    simp only [mul_div, ← same_add_div (sub_ne_zero.2 hy), mul_sub, mul_one, sub_add_sub_cancel']
 
 open Real
 
@@ -336,7 +335,7 @@ lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ f m ^ logb m n := by
   · intro k hk
     exact param_upperbound hm hn notbdd k (not_eq_zero_of_lt hk)
   · nth_rw 2 [← one_mul (f ↑m ^ logb ↑m ↑n)]
-    exact Tendsto.mul_const _ (tendsto_root_atTop_nhds_one' (expr_pos hm notbdd))
+    exact Tendsto.mul_const _ (tendsto_root_atTop_nhds_one (expr_pos hm notbdd))
 
 private lemma le_exponents {s t : ℝ} (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t ≤ s := by
     have hmn : f n ≤ f m ^ Real.logb m n := mulRingNorm_le_mulRingNorm_pow_log hm hn notbdd
