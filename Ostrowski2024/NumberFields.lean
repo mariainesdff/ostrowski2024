@@ -4,6 +4,9 @@ import Mathlib.RingTheory.DedekindDomain.AdicValuation
 import Mathlib.NumberTheory.NumberField.Basic
 import Mathlib.Analysis.Normed.Ring.Seminorm
 import Ostrowski2024.Rationals
+import Mathlib.Topology.Algebra.Valued.NormedValued
+import Mathlib.RingTheory.Valuation.RankOne
+import Ostrowski2024.Hom
 
 /-!
 # Ostrowski's theorem for number fields
@@ -83,17 +86,35 @@ theorem ostr_arch :
 
 end Archimedean
 
-/-
+section Nonarchimedean
 
+variable (P : IsDedekindDomain.HeightOneSpectrum (NumberField.RingOfIntegers K))
 
-def mulRingNorm_Padic (v : IsDedekindDomain.HeightOneSpectrum (NumberField.RingOfIntegers K)) :
-    MulRingNorm K :=
-{ toFun     := fun x : K ↦ (((IsDedekindDomain.HeightOneSpectrum.valuation v) x) : ℝ) --λ x : K => (padicNorm p x : ℝ),
+/- def foo  :
+    Valuation.RankOne (R:=K) (IsDedekindDomain.HeightOneSpectrum.valuation P) :=
+{ hom:= {
+  toFun := sorry
   map_zero' := sorry
-  add_le'   := sorry
-  neg'      := sorry
-  eq_zero_of_map_eq_zero' := sorry
   map_one' := sorry
   map_mul' := sorry
 }
- -/
+  strictMono':= sorry
+  nontrivial':= sorry
+} -/
+
+noncomputable def mulRingNorm_Padic : MulRingNorm K :=
+{ toFun     := fun x : K ↦ (Zm0.toReal) 2 (zero_lt_two) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)
+--2 ^ ( ((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
+--(((foo K P).hom ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)) : ℝ)
+--(hom ((IsDedekindDomain.HeightOneSpectrum.valuation v) x) : ℝ) --λ x : K => (padicNorm p x : ℝ),
+  map_zero' := by simp only [map_zero]; exact rfl
+  add_le'   := by simp only; sorry
+  neg'      := by simp only [Valuation.map_neg, implies_true]
+  eq_zero_of_map_eq_zero' := by
+    simp only
+    intro x hx
+    sorry
+  map_one' := by simp only [map_one]
+  map_mul' := by simp only [map_mul, implies_true]
+}
+end Nonarchimedean
