@@ -21,19 +21,20 @@ lemma Zm0.toFun_coe_int (z : ℤ) :Zm0.toFun r (ofAdd z : Multiplicative ℤ) = 
 
 lemma Zm0.toFun_coe_mult_int (z : Multiplicative ℤ) :Zm0.toFun r z = r ^ (toAdd z) := rfl
 
-lemma Zm0.toFun_zero_iff (a : ℤₘ₀) : Zm0.toFun r a = 0 ↔ a = 0 := by
+lemma Zm0.toFun_zero_iff (a : ℤₘ₀) (h1: 0 < r) : Zm0.toFun r a = 0 ↔ a = 0 := by
   constructor
   · intro h
-    simp only at h
     by_contra ha
-    unfold toFun at h
-    unfold WithZero.recZeroCoe at h
-    simp only at h
-    simp only at ha
-    sorry
+    have : a ≠ 0 := by exact ha
+    rw [WithZero.ne_zero_iff_exists] at this
+    rcases this with ⟨b, hb⟩
+    rw [← hb, Zm0.toFun_coe_mult_int] at h
+    apply eq_zero_of_zpow_eq_zero at h
+    linarith
   · intro h
     rw [h]
     exact rfl
+
 noncomputable def Zm0.toReal (r : ℝ) (h1: 0 < r) : ℤₘ₀ →* ℝ where
   toFun := Zm0.toFun r
   map_one' := by

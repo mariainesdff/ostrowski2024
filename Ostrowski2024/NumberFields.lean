@@ -113,7 +113,10 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
   eq_zero_of_map_eq_zero' := by
     simp only
     intro x hx
-    sorry
+    unfold Zm0.toReal at hx
+    simp only [MonoidHom.coe_mk, OneHom.coe_mk] at hx
+    rw [Zm0.toFun_zero_iff _ _ zero_lt_two, Valuation.zero_iff] at hx
+    exact hx
   map_one' := by simp only [map_one]
   map_mul' := by simp only [map_mul, implies_true]
 }
