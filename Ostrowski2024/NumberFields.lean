@@ -90,32 +90,21 @@ section Nonarchimedean
 
 variable (P : IsDedekindDomain.HeightOneSpectrum (NumberField.RingOfIntegers K))
 
-/- def foo  :
-    Valuation.RankOne (R:=K) (IsDedekindDomain.HeightOneSpectrum.valuation P) :=
-{ hom:= {
-  toFun := sorry
-  map_zero' := sorry
-  map_one' := sorry
-  map_mul' := sorry
-}
-  strictMono':= sorry
-  nontrivial':= sorry
-} -/
-
 noncomputable def mulRingNorm_Padic : MulRingNorm K :=
-{ toFun     := fun x : K ↦ (Zm0.toReal) 2 (zero_lt_two) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)
---2 ^ ( ((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
---(((foo K P).hom ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)) : ℝ)
---(hom ((IsDedekindDomain.HeightOneSpectrum.valuation v) x) : ℝ) --λ x : K => (padicNorm p x : ℝ),
+{ toFun     := fun x : K ↦ (Zm0.toReal) (2⁻¹) (by simp only [inv_pos, Nat.ofNat_pos]) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)
   map_zero' := by simp only [map_zero]; exact rfl
-  add_le'   := by simp only; sorry
+  add_le'   := by
+    simp only
+    rw [Zm0.toReal_def]
+    intro x y
+    calc Zm0.toFun 2⁻¹ (P.valuation (x + y)) ≤  Zm0.toFun 2⁻¹ (P.valuation x) := by sorry
+      _ ≤ Zm0.toFun 2⁻¹ (P.valuation x) + Zm0.toFun 2⁻¹ (P.valuation y) := by sorry
   neg'      := by simp only [Valuation.map_neg, implies_true]
   eq_zero_of_map_eq_zero' := by
     simp only
     intro x hx
-    unfold Zm0.toReal at hx
-    simp only [MonoidHom.coe_mk, OneHom.coe_mk] at hx
-    rw [Zm0.toFun_zero_iff _ _ zero_lt_two, Valuation.zero_iff] at hx
+    simp only [Zm0.toReal_def, MonoidHom.coe_mk, OneHom.coe_mk] at hx
+    rw [Zm0.toFun_zero_iff _ _ (by simp only [inv_pos, Nat.ofNat_pos]), Valuation.zero_iff] at hx
     exact hx
   map_one' := by simp only [map_one]
   map_mul' := by simp only [map_mul, implies_true]

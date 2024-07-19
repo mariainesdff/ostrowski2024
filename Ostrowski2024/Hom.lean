@@ -25,7 +25,7 @@ lemma Zm0.toFun_zero_iff (a : ℤₘ₀) (h1: 0 < r) : Zm0.toFun r a = 0 ↔ a =
   constructor
   · intro h
     by_contra ha
-    have : a ≠ 0 := by exact ha
+    have : a ≠ 0 := ha
     rw [WithZero.ne_zero_iff_exists] at this
     rcases this with ⟨b, hb⟩
     rw [← hb, Zm0.toFun_coe_mult_int] at h
@@ -55,3 +55,5 @@ noncomputable def Zm0.toReal (r : ℝ) (h1: 0 < r) : ℤₘ₀ →* ℝ where
           simp only [Real.rpow_intCast]
         rw [← h2]
         norm_cast
+
+lemma Zm0.toReal_def (r : ℝ) (h1: 0 < r) : Zm0.toReal r h1 = Zm0.toFun r := rfl
