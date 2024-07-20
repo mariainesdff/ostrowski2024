@@ -25,8 +25,11 @@ ring_norm, ostrowski
 Throughout this file, `f` is an arbitrary absolute value.
 -/
 
-variable (K : Type*) [Field K] [nf : NumberField K] (f : MulRingNorm K) (K' : Type*) [Field K']
-[Algebra K' K]
+variable (K : Type*) [Field K] [nf : NumberField K] (f : MulRingNorm K)
+
+section restriction
+
+variable (K' : Type*) [Field K'] [Algebra K' K]
 
 def mulRingNorm_restriction : MulRingNorm K' :=
 { toFun     := fun x : K' ↦ f (x • (1 : K))
@@ -55,6 +58,8 @@ lemma bdd_restr_Q : (∀ n : ℕ, f n ≤ 1) ↔  (∀ n : ℕ, (mulRingNorm_res
     simp only [Rat.smul_one_eq_cast, Rat.cast_natCast] at hn
     exact hn
 
+end restriction
+
 section Archimedean
 
 variable (notbdd : ¬ ∀ n : ℕ, f n ≤ 1)
@@ -79,6 +84,7 @@ lemma restr_to_Q_real : MulRingNorm.equiv (mulRingNorm_restriction K f ℚ) Rati
 theorem ostr_arch :
     ∃ φ : K →+* ℂ, MulRingNorm.equiv f (mulRingNorm_arch K φ) := by
   rcases restr_to_Q_real K f notbdd with ⟨c, hc1, hc2⟩
+  -- what follows is probably useless, need to work with completions.
   unfold MulRingNorm.equiv
   rw [exists_comm]
   use c
@@ -89,6 +95,8 @@ theorem ostr_arch :
 end Archimedean
 
 section Nonarchimedean
+
+
 
 variable (P : IsDedekindDomain.HeightOneSpectrum (NumberField.RingOfIntegers K))
 
@@ -114,18 +122,24 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
 
 lemma foo : (2 : NNReal) ≠ 0 := by simp_all only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true]
 
---alternative
-noncomputable def mulRingNorm_Padic' : MulRingNorm K :=
-{ toFun     := fun x : K ↦ withZeroMultIntToNNReal foo (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
+lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (hp : Fact (p.Prime)), (↑p ∈  P.asIdeal) := by sorry
+
+lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by sorry
+
+lemma one_lt_p (p : ℕ) (hp : Fact (p.Prime)) : 1 < (p : NNReal) := mod_cast Nat.Prime.one_lt (Fact.elim hp)
+
+--alternative (better adopt this one)
+noncomputable def mulRingNorm_Padic' (p : ℕ) (hp : Fact (p.Prime)) (hp_mem : ↑p ∈  P.asIdeal) : MulRingNorm K :=
+{ toFun     := fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero p hp) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
   map_zero' := by simp only [map_zero]; exact rfl
   add_le'   := by
     simp only
     intro x y
     norm_cast
     apply le_trans _ <| max_le_add_of_nonneg (by simp only [zero_le]) (by simp only [zero_le])
-    have mono := StrictMono.monotone (withZeroMultIntToNNReal_strictMono (e:=2) one_lt_two)
-    have h2 : (withZeroMultIntToNNReal foo) (max (P.valuation (x)) (P.valuation (y))) =
-        max ((withZeroMultIntToNNReal foo) (P.valuation x)) ((withZeroMultIntToNNReal foo)
+    have mono := StrictMono.monotone (withZeroMultIntToNNReal_strictMono (one_lt_p p hp))
+    have h2 : (withZeroMultIntToNNReal (p_ne_zero p hp)) (max (P.valuation (x)) (P.valuation (y))) =
+        max ((withZeroMultIntToNNReal (p_ne_zero p hp)) (P.valuation x)) ((withZeroMultIntToNNReal (p_ne_zero p hp))
         (P.valuation y)) := Monotone.map_max mono
     rw [← h2]
     exact mono (Valuation.map_add P.valuation x y)
