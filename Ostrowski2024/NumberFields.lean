@@ -6,7 +6,9 @@ import Mathlib.Analysis.Normed.Ring.Seminorm
 import Ostrowski2024.Rationals
 import Mathlib.Topology.Algebra.Valued.NormedValued
 import Mathlib.RingTheory.Valuation.RankOne
+import Mathlib.Algebra.Group.WithOne.Defs
 import Ostrowski2024.Hom
+import Ostrowski2024.WithZero
 
 /-!
 # Ostrowski's theorem for number fields
@@ -109,4 +111,29 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
   map_one' := by simp only [map_one]
   map_mul' := by simp only [map_mul, implies_true]
 }
+
+lemma foo : (2 : NNReal) ≠ 0 := by simp_all only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true]
+
+--alternative
+noncomputable def mulRingNorm_Padic' : MulRingNorm K :=
+{ toFun     := fun x : K ↦ withZeroMultIntToNNReal foo (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
+  map_zero' := by simp only [map_zero]; exact rfl
+  add_le'   := by
+    simp only
+    intro x y
+    norm_cast
+    apply le_trans _ <| max_le_add_of_nonneg (by simp only [zero_le]) (by simp only [zero_le])
+    have mono := StrictMono.monotone (withZeroMultIntToNNReal_strictMono (e:=2) one_lt_two)
+    have h2 : (withZeroMultIntToNNReal foo) (max (P.valuation (x)) (P.valuation (y))) =
+        max ((withZeroMultIntToNNReal foo) (P.valuation x)) ((withZeroMultIntToNNReal foo)
+        (P.valuation y)) := Monotone.map_max mono
+    rw [← h2]
+    exact mono (Valuation.map_add P.valuation x y)
+  neg'      := by simp only [Valuation.map_neg, implies_true]
+  eq_zero_of_map_eq_zero' := by simp_all only [NNReal.coe_eq_zero, map_eq_zero, implies_true]
+  map_one' := by simp only [map_one, NNReal.coe_eq_one]
+  map_mul' := by simp only [map_mul, NNReal.coe_mul, implies_true]
+}
+
+
 end Nonarchimedean
