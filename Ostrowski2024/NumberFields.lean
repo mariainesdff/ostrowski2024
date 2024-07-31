@@ -25,6 +25,8 @@ ring_norm, ostrowski
 Throughout this file, `f` is an arbitrary absolute value.
 -/
 
+open NumberField
+
 variable (K : Type*) [Field K] [nf : NumberField K] (f : MulRingNorm K)
 
 section restriction
@@ -50,13 +52,9 @@ def mulRingNorm_restriction : MulRingNorm K' :=
 lemma restr_def (x : K') : (mulRingNorm_restriction K f K') x = f (x • (1 : K)) := rfl
 
 lemma bdd_restr_Q : (∀ n : ℕ, f n ≤ 1) ↔  (∀ n : ℕ, (mulRingNorm_restriction K f ℚ) n ≤ 1) := by
-  constructor
-  all_goals intro hn n
-  all_goals specialize hn n
-  · simp only [restr_def, Rat.smul_one_eq_cast, Rat.cast_natCast, hn]
-  · rw [restr_def] at hn
-    simp only [Rat.smul_one_eq_cast, Rat.cast_natCast] at hn
-    exact hn
+  refine forall_congr' ?h
+  intro n
+  simp only [restr_def, Rat.smul_one_eq_cast, Rat.cast_natCast]
 
 end restriction
 
@@ -98,7 +96,7 @@ section Nonarchimedean
 
 
 
-variable (P : IsDedekindDomain.HeightOneSpectrum (NumberField.RingOfIntegers K))
+variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K))
 
 noncomputable def mulRingNorm_Padic : MulRingNorm K :=
 { toFun     := fun x : K ↦ (Zm0.toReal) (2⁻¹) (by simp only [inv_pos, Nat.ofNat_pos]) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)
@@ -122,14 +120,18 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
 
 lemma foo : (2 : NNReal) ≠ 0 := by simp_all only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true]
 
-lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (hp : Fact (p.Prime)), (↑p ∈  P.asIdeal) := by sorry
+lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (hp : Fact (p.Prime)), (↑p ∈ P.asIdeal) := by
 
-lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by sorry
+  sorry
+
+lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by
+  simp only [ne_eq, Nat.cast_eq_zero]
+  exact NeZero.ne p
 
 lemma one_lt_p (p : ℕ) (hp : Fact (p.Prime)) : 1 < (p : NNReal) := mod_cast Nat.Prime.one_lt (Fact.elim hp)
 
 --alternative (better adopt this one)
-noncomputable def mulRingNorm_Padic' (p : ℕ) (hp : Fact (p.Prime)) (hp_mem : ↑p ∈  P.asIdeal) : MulRingNorm K :=
+noncomputable def mulRingNorm_Padic' (p : ℕ) (hp : Fact (p.Prime)) (hp_mem : ↑p ∈ P.asIdeal) : MulRingNorm K :=
 { toFun     := fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero p hp) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
   map_zero' := by simp only [map_zero]; exact rfl
   add_le'   := by
