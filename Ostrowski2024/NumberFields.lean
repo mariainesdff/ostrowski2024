@@ -7,8 +7,11 @@ import Ostrowski2024.Rationals
 import Mathlib.Topology.Algebra.Valued.NormedValued
 import Mathlib.RingTheory.Valuation.RankOne
 import Mathlib.Algebra.Group.WithOne.Defs
-import Ostrowski2024.Hom
+--import Ostrowski2024.Hom
 import Ostrowski2024.WithZero
+import Mathlib.RingTheory.Ideal.Norm
+import Mathlib.Algebra.Quotient
+import Mathlib.FieldTheory.Finite.Basic
 
 /-!
 # Ostrowski's theorem for number fields
@@ -98,7 +101,7 @@ section Nonarchimedean
 
 variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K))
 
-noncomputable def mulRingNorm_Padic : MulRingNorm K :=
+/- noncomputable def mulRingNorm_Padic : MulRingNorm K :=
 { toFun     := fun x : K ↦ (Zm0.toReal) (2⁻¹) (by simp only [inv_pos, Nat.ofNat_pos]) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)
   map_zero' := by simp only [map_zero]; exact rfl
   add_le'   := by
@@ -116,13 +119,48 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
     exact hx
   map_one' := by simp only [map_one]
   map_mul' := by simp only [map_mul, implies_true]
-}
+} -/
 
 lemma foo : (2 : NNReal) ≠ 0 := by simp_all only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true]
 
-lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (hp : Fact (p.Prime)), (↑p ∈ P.asIdeal) := by
+lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (_ : Fact (p.Prime)), (↑p ∈ P.asIdeal) := by
+  let r := Ideal.absNorm P.asIdeal
+  set k := 𝓞 K ⧸ P.asIdeal
+  have : Field k := Ideal.Quotient.field P.asIdeal
+  have : Fintype k := Ideal.fintypeQuotientOfFreeOfNeBot P.asIdeal P.ne_bot
+  rcases FiniteField.card' k with ⟨p, n, hp, hcard⟩
+  have : r = p ^ (n : ℕ) := by
+    rw [← hcard]
+    simp only [Ideal.absNorm_apply, Submodule.cardQuot_apply, Nat.card_eq_fintype_card, r, k]
+  have hpmem : ↑p ∈ P.asIdeal := by
+    apply Ideal.IsPrime.mem_of_pow_mem P.isPrime n
+    norm_cast
+    rw [← this]
+    exact Ideal.absNorm_mem P.asIdeal
+  use p
+  constructor
+  · simp only [exists_prop]
+    refine ⟨{ out := hp }, hpmem⟩
+  · intro q hq
+    rcases hq with ⟨hq1, hq2⟩
+    by_contra! hpq
+    rw [← Nat.coprime_primes hq1.out hp] at hpq
+    apply Nat.Coprime.isCoprime at hpq
+    rcases hpq with ⟨a, b, hid⟩
+    apply Ideal.mul_mem_left P.asIdeal a at hq2
+    apply Ideal.mul_mem_left P.asIdeal b at hpmem
+    have := Ideal.add_mem P.asIdeal hq2 hpmem
+    norm_cast at this
+    rw [hid] at this
+    have hPprime := P.isPrime
+    rw [Ideal.isPrime_iff] at hPprime
+    apply hPprime.1
+    rw [Ideal.eq_top_iff_one]
+    exact_mod_cast this
 
-  sorry
+noncomputable def prime_in_prime_ideal : ℕ := Exists.choose (exist_prime_in_prime_ideal K P)
+
+lemma prime_in_prime_ideal_is_prime : Fact ((prime_in_prime_ideal K P).Prime) := (Exists.choose_spec (exist_prime_in_prime_ideal K P)).1.1
 
 lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by
   simp only [ne_eq, Nat.cast_eq_zero]
@@ -131,11 +169,13 @@ lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by
 lemma one_lt_p (p : ℕ) (hp : Fact (p.Prime)) : 1 < (p : NNReal) := mod_cast Nat.Prime.one_lt (Fact.elim hp)
 
 --alternative (better adopt this one)
-noncomputable def mulRingNorm_Padic' (p : ℕ) (hp : Fact (p.Prime)) (hp_mem : ↑p ∈ P.asIdeal) : MulRingNorm K :=
-{ toFun     := fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero p hp) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
+noncomputable def mulRingNorm_Padic' : MulRingNorm K :=
+{ toFun     := fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero (prime_in_prime_ideal K P) (prime_in_prime_ideal_is_prime K P)) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
   map_zero' := by simp only [map_zero]; exact rfl
   add_le'   := by
     simp only
+    let p := prime_in_prime_ideal K P
+    let hp := prime_in_prime_ideal_is_prime K P
     intro x y
     norm_cast
     apply le_trans _ <| max_le_add_of_nonneg (by simp only [zero_le]) (by simp only [zero_le])
