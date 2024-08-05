@@ -213,7 +213,19 @@ lemma tendsto_nat_rpow_div'' : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : 
 lemma tendsto_root_atTop_nhds_one'' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
     (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := aux' Nat.mono_cast (fun x => exists_nat_ge x) (eventually_of_forall (congrFun rfl)) (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC)))
 
+-- more alternatives
 
+lemma tendsto_nat_rpow_div_1 : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
+    Filter.atTop (nhds 1) := by
+  convert_to Filter.Tendsto ((fun k : ℝ ↦ k ^ k⁻¹) ∘ (Nat.cast) ) Filter.atTop (nhds 1)
+  apply Tendsto.comp _ tendsto_natCast_atTop_atTop
+  simp_rw [← one_div]
+  exact tendsto_rpow_div
+
+lemma tendsto_root_atTop_nhds_one_1 {C : ℝ} (hC : 0 < C) : Filter.Tendsto
+    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
+  convert_to Filter.Tendsto ((fun k : ℝ ↦ C ^ k⁻¹) ∘ (Nat.cast) ) Filter.atTop (nhds 1)
+  exact Tendsto.comp (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC))) tendsto_natCast_atTop_atTop
 
 open Real Filter Nat
 
