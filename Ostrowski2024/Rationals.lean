@@ -224,6 +224,11 @@ lemma tendsto_nat_rpow_div_1 : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : 
 
 lemma tendsto_root_atTop_nhds_one_1 {C : ℝ} (hC : 0 < C) : Filter.Tendsto
     (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
+  convert_to Filter.Tendsto ((fun k ↦ C ^ k) ∘ (fun k : ℝ ↦ k⁻¹) ∘ (Nat.cast) ) Filter.atTop (nhds 1)
+  exact Tendsto.comp (Continuous.tendsto' (continuous_iff_continuousAt.2 (fun a ↦ Real.continuousAt_const_rpow (Ne.symm (ne_of_lt hC)))) 0 1 (Real.rpow_zero C)) <| Tendsto.comp tendsto_inv_atTop_zero tendsto_natCast_atTop_atTop
+
+lemma tendsto_root_atTop_nhds_one_2 {C : ℝ} (hC : 0 < C) : Filter.Tendsto
+    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
   convert_to Filter.Tendsto ((fun k : ℝ ↦ C ^ k⁻¹) ∘ (Nat.cast) ) Filter.atTop (nhds 1)
   exact Tendsto.comp (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC))) tendsto_natCast_atTop_atTop
 
