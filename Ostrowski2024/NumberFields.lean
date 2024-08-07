@@ -182,13 +182,14 @@ end mulRingNorm_Padic_def
 
 variable (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y))
 
+/-- 𝓞 K is contained in the closed unit ball -/
 lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
   sorry
 
--- open unit ball
+-- open unit ball in 𝓞 K
 local notation3 "𝓟" => {a : (𝓞 K) | f a < 1}
 
-/-- The open unit ball is a non-zero prime ideal of 𝓞 K. -/
+/-- The open unit ball in 𝓞 K is a non-zero prime ideal of 𝓞 K. -/
 lemma exists_ideal : ∃ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), 𝓟 = P.asIdeal.carrier := by
   use
   { asIdeal := {carrier   := 𝓟
