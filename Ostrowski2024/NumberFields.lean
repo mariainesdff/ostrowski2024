@@ -70,11 +70,9 @@ noncomputable def Completion : Type u_1 := CauSeq.Completion.Cauchy f
 
 noncomputable instance ring_completion : Ring (Completion f) := CauSeq.Completion.Cauchy.ring
 
-noncomputable def MulRingNorm_Completion : MulRingNorm (Completion f) := by sorry
+noncomputable instance field_completion [Field K] (f : MulRingNorm K) : Field (Completion f) := CauSeq.Completion.Cauchy.field
 
-/- noncomputable instance field_completion [Field R] : Field (Completion f) := by
-  unfold Completion
-  apply CauSeq.Completion.Cauchy.field -/
+noncomputable def MulRingNorm_Completion : MulRingNorm (Completion f) := by sorry
 
 def MulRingNorm_standard_R : MulRingNorm ℝ where
   toFun := fun x ↦ |x|
@@ -85,18 +83,30 @@ def MulRingNorm_standard_R : MulRingNorm ℝ where
   map_mul' := abs_mul
   eq_zero_of_map_eq_zero' := by simp only [abs_eq_zero, imp_self, implies_true]
 
-instance field_completion_Q (f₀ : MulRingNorm ℚ) : Field (Completion f₀) := by sorry
-
-/- noncomputable def iso_to_R {f : MulRingNorm ℚ} (notbdd : ¬ ∀ n : ℕ, f n ≤ 1) :
+noncomputable def iso_to_R {f : MulRingNorm ℚ} (notbdd : ¬ ∀ n : ℕ, f n ≤ 1) :
     MulRingNormIsoEquiv (MulRingNorm_Completion f) MulRingNorm_standard_R := {
-  toFun := by sorry
+  toFun := by
+    apply Quotient.lift
+    swap
+    intro s
+    let s1 := s.val
+    have : IsCauSeq abs s1 := by
+      intro ε hε
+      rcases (s.2 ε (mod_cast hε)) with ⟨i, hi⟩
+      use i
+      sorry
+    let r : CauSeq ℚ abs :=   ⟨s1, this⟩
+    exact Real.mk r
+    simp only
+    intro a b hab
+    sorry
   invFun := by sorry
   left_inv := by sorry
   right_inv := by sorry
   map_mul' := by sorry
   map_add' := by sorry
   map_norm := by sorry
-} -/
+}
 
 end completion
 
@@ -195,40 +205,6 @@ theorem ostr_arch :
   have hfK₀ : Field K₀ := CauSeq.Completion.Cauchy.field
   set Q₀ := Completion (mulRingNorm_restriction f ℚ) with hcomplQ
   have hfQ₀ : Field Q₀ := CauSeq.Completion.Cauchy.field
-
-  /- have : Q₀ ≃+* ℝ := by
-    refine {
-      toEquiv := by
-        refine Equiv.ofBijective ?f ?hf
-        simp [Q₀]
-        apply Quotient.lift
-        sorry
-        unfold CauSeq
-        intro s
-        let s1 := s.val
-        have : IsCauSeq abs s1 := by
-          intro ε hε
-          rcases (s.2 ε (mod_cast hε)) with ⟨i, hi⟩
-          use i
-          sorry
-        let r : CauSeq ℚ abs :=   ⟨s1, this⟩
-        exact Real.mk r
-        --Real.mk
-
-
-
-        /- unfold Completion
-        intro s
-        sorry
-        sorry -/
-      map_mul' := by sorry
-      map_add' := by sorry
-    } -/
-    --simp [Q₀]
-    --unfold Completion
-
-
-
   rcases Field.exists_primitive_element ℚ K with ⟨γ, hγ⟩
 
   --  CauSeq.Completion.ofRat : The map from the original ring into the Cauchy completion.
