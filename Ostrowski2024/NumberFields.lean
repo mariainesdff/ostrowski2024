@@ -1,4 +1,5 @@
 import Mathlib.Algebra.Group.WithOne.Defs
+import Mathlib.Algebra.Order.CompleteField
 import Mathlib.Algebra.Quotient
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
@@ -26,33 +27,80 @@ ring_norm, ostrowski
 Throughout this file, `f` is an arbitrary absolute value.
 -/
 
-variable {K : Type*} [Field K] (f g : MulRingNorm K)
+structure NormHom {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) where
+  toFun : R → S
+  map_norm : g ∘ toFun = f
 
+structure MulRingNormHom {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) extends
+  R →+* S, NormHom f g
+
+structure MulRingNormIso {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) extends
+  R ≃+* S, NormHom f g
+
+structure NormHomEquiv {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) where
+  toFun : R → S
+  map_norm : ∃ (c : ℝ), 0 < c ∧ (g ∘ toFun) = f
+
+structure MulRingNormHomEquiv {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) extends
+  R →+* S, NormHomEquiv f g
+
+structure MulRingNormIsoEquiv {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) extends
+  R ≃+* S, NormHomEquiv f g
 section completion
+
+variable {R : Type*} [Ring R] (f : MulRingNorm R)
 
 instance MulRingNorm_is_absolute_value : IsAbsoluteValue f := {
   abv_nonneg' := apply_nonneg f
-  abv_eq_zero' := map_eq_zero f
+  abv_eq_zero' := by simp only [map_eq_zero_iff_eq_zero, implies_true]
   abv_add' := map_add_le_add f
   abv_mul' := MulHomClass.map_mul f
 }
 
-def Completion : Type u_1 := CauSeq.Completion.Cauchy f
+def MulRingNorm_from_abs [Nontrivial R] (abv : AbsoluteValue R ℝ) : MulRingNorm R where
+  toFun := abv
+  map_zero' := map_zero abv
+  add_le' := AbsoluteValue.add_le abv
+  neg' := by simp only [map_neg_eq_map, implies_true]
+  map_one' := map_one abv
+  map_mul' := by simp only [map_mul, implies_true]
+  eq_zero_of_map_eq_zero' := by simp only [map_eq_zero_iff_eq_zero, imp_self, implies_true]
 
-/- lemma Completion_equiv : MulRingNorm.equiv f g ↔ Completion f = Completion g := by
-  constructor
-  · intro h
-    rcases h with ⟨c, hc1, hc2⟩
-    unfold Completion
-    unfold CauSeq.Completion.Cauchy
-    unfold Quotient
+noncomputable def Completion : Type u_1 := CauSeq.Completion.Cauchy f
 
-    --apply Quot.sound
+noncomputable instance ring_completion : Ring (Completion f) := CauSeq.Completion.Cauchy.ring
 
-    sorry
-  · sorry -/
+noncomputable def MulRingNorm_Completion : MulRingNorm (Completion f) := by sorry
+
+/- noncomputable instance field_completion [Field R] : Field (Completion f) := by
+  unfold Completion
+  apply CauSeq.Completion.Cauchy.field -/
+
+def MulRingNorm_standard_R : MulRingNorm ℝ where
+  toFun := fun x ↦ |x|
+  map_zero' := abs_zero
+  add_le' := abs_add_le
+  neg' := abs_neg
+  map_one' := abs_one
+  map_mul' := abs_mul
+  eq_zero_of_map_eq_zero' := by simp only [abs_eq_zero, imp_self, implies_true]
+
+instance field_completion_Q (f₀ : MulRingNorm ℚ) : Field (Completion f₀) := by sorry
+
+/- noncomputable def iso_to_R {f : MulRingNorm ℚ} (notbdd : ¬ ∀ n : ℕ, f n ≤ 1) :
+    MulRingNormIsoEquiv (MulRingNorm_Completion f) MulRingNorm_standard_R := {
+  toFun := by sorry
+  invFun := by sorry
+  left_inv := by sorry
+  right_inv := by sorry
+  map_mul' := by sorry
+  map_add' := by sorry
+  map_norm := by sorry
+} -/
 
 end completion
+
+variable {K : Type*} [Field K] (f g : MulRingNorm K)
 
 section restriction
 
@@ -147,20 +195,35 @@ theorem ostr_arch :
   have hfK₀ : Field K₀ := CauSeq.Completion.Cauchy.field
   set Q₀ := Completion (mulRingNorm_restriction f ℚ) with hcomplQ
   have hfQ₀ : Field Q₀ := CauSeq.Completion.Cauchy.field
-  --have F : ℝ ≃+* Q₀ := Real.ringEquivCauchy
 
-  have : Q₀ ≃+* ℝ := by
+  /- have : Q₀ ≃+* ℝ := by
     refine {
       toEquiv := by
         refine Equiv.ofBijective ?f ?hf
         simp [Q₀]
-        unfold Completion
+        apply Quotient.lift
+        sorry
+        unfold CauSeq
+        intro s
+        let s1 := s.val
+        have : IsCauSeq abs s1 := by
+          intro ε hε
+          rcases (s.2 ε (mod_cast hε)) with ⟨i, hi⟩
+          use i
+          sorry
+        let r : CauSeq ℚ abs :=   ⟨s1, this⟩
+        exact Real.mk r
+        --Real.mk
+
+
+
+        /- unfold Completion
         intro s
         sorry
-        sorry
+        sorry -/
       map_mul' := by sorry
       map_add' := by sorry
-    }
+    } -/
     --simp [Q₀]
     --unfold Completion
 
