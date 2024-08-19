@@ -307,7 +307,6 @@ lemma one_lt_of_not_bounded (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) {n₀ : ℕ} 
 
 section Step2
 
-
 /- Multiplication by a constant moves in a List.sum -/
 private lemma list_mul_sum {R : Type*} [CommSemiring R] {T : Type*} (l : List T) (y : R) : ∀ x : R,
     List.sum (List.mapIdx (fun i _ => x * y ^ i) (l)) =
@@ -335,11 +334,13 @@ open Real
 
 variable {m n : ℕ} (hm : 1 < m) (hn : 1 < n) (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1)
 
+include hm notbdd in
 private lemma expr_pos : 0 < m * f m / (f m - 1) := by
   apply div_pos (mul_pos (mod_cast zero_lt_of_lt hm)
       (map_pos_of_ne_zero f (mod_cast ne_zero_of_lt hm)))
   linarith only [one_lt_of_not_bounded notbdd hm]
 
+include hn hm notbdd in
 private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
     f n ≤ (m * f m / (f m - 1)) ^ (k : ℝ)⁻¹ * (f m) ^ (logb m n) := by
   have h_ineq1 {m n : ℕ} (hm : 1 < m) (hn : 1 < n) :
@@ -375,9 +376,10 @@ private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
   nth_rw 2 [← Real.rpow_natCast]
   rw [mul_rpow (rpow_nonneg (le_of_lt (expr_pos hm notbdd)) (k : ℝ)⁻¹)
     (rpow_nonneg (apply_nonneg f ↑m) (logb ↑m ↑n)), ← rpow_mul (le_of_lt (expr_pos hm notbdd)),
-    ← rpow_mul (apply_nonneg f ↑m), inv_mul_cancel (mod_cast hk), rpow_one, mul_comm (logb ↑m ↑n)]
+    ← rpow_mul (apply_nonneg f ↑m), inv_mul_cancel₀ (mod_cast hk), rpow_one, mul_comm (logb ↑m ↑n)]
   exact h_ineq2 k hk
 
+include hm hn notbdd in
 /-- Given two natural numbers `n, m` greater than 1 we have `f n ≤ f m ^ logb m n`. -/
 lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ f m ^ logb m n := by
   apply le_of_limit_le (g:=fun k ↦ (m * f m / (f m - 1)) ^ (k : ℝ)⁻¹ * (f m) ^ (logb m n))
@@ -386,6 +388,7 @@ lemma mulRingNorm_le_mulRingNorm_pow_log : f n ≤ f m ^ logb m n := by
   · nth_rw 2 [← one_mul (f ↑m ^ logb ↑m ↑n)]
     exact Tendsto.mul_const _ (tendsto_root_atTop_nhds_one (expr_pos hm notbdd))
 
+include hm hn notbdd in
 private lemma le_exponents {s t : ℝ} (hfm : f m = m ^ s) (hfn : f n = n ^ t)  : t ≤ s := by
     have hmn : f n ≤ f m ^ Real.logb m n := mulRingNorm_le_mulRingNorm_pow_log hm hn notbdd
     rw [← Real.rpow_le_rpow_left_iff (x:=n) (mod_cast hn), ← hfn]
@@ -394,6 +397,7 @@ private lemma le_exponents {s t : ℝ} (hfm : f m = m ^ s) (hfn : f n = n ^ t)  
       Real.rpow_logb (mod_cast zero_lt_of_lt hm) (mod_cast Nat.ne_of_lt' hm)
       (mod_cast zero_lt_of_lt hn)]
 
+include hm hn notbdd in
 private lemma symmetric_roles {s t : ℝ} (hfm : f m = m ^ s) (hfn : f n = n ^ t) : s = t :=
   le_antisymm (le_exponents hn hm notbdd hfn hfm) (le_exponents hm hn notbdd hfm hfn)
 
@@ -457,6 +461,7 @@ section step_1
 
 variable (bdd: ∀ n : ℕ, f n ≤ 1)
 
+include bdd in
  /-- There exists a minimal positive integer with absolute value smaller than 1 -/
 lemma p_exists  (hf_nontriv : f ≠ 1) : ∃ (p : ℕ), (0 < f p ∧ f p < 1) ∧
     ∀ (m : ℕ), 0 < f m ∧ f m < 1 → p ≤ m := by
@@ -496,6 +501,7 @@ private lemma one_lt_of_ne_zero_one {a : ℕ} (ne_0 : a ≠ 0) (ne_1 : a ≠ 1) 
   · rw [Nat.succ_ne_succ, ← pos_iff_ne_zero] at ne_1
     exact Nat.succ_lt_succ ne_1
 
+include hp1 hp0 hmin in
  /-- The minimal positive integer with absolute value smaller than 1 is a prime number-/
 lemma p_is_prime : (Prime p) := by
   rw [← Nat.irreducible_iff_prime]
@@ -535,6 +541,7 @@ lemma p_is_prime : (Prime p) := by
     · exact one_le_f b a hba (one_lt_of_ne_zero_one (neq_0 hab) a_neq_1)
 
 -- ## Step 3
+include bdd hp0 hp1 hmin in
 /-- a natural number not divible by p has absolute value 1 -/
 lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m ) : f m = 1 := by
   rw [le_antisymm_iff]
@@ -600,6 +607,7 @@ lemma not_divisible_norm_one (m : ℕ) (hpm : ¬ p ∣ m ) : f m = 1 := by
 
 -- ## Non-archimedean case: step 4
 
+include hp0 hp1 hmin in
 lemma abs_p_eq_p_minus_t : ∃ (t : ℝ), 0 < t ∧ f p = p^(-t) := by
   use - Real.logb p (f p)
   have pprime : Nat.Prime p := (Prime.nat_prime (p_is_prime p hp0 hp1 hmin))
@@ -652,7 +660,7 @@ theorem bdd_implies_equiv_padic (bdd: ∀ n : ℕ, f n ≤ 1) (hf_nontriv : f �
     rw [← Real.rpow_natCast_mul (Real.rpow_nonneg (Nat.cast_nonneg p) _ ),
       ← Real.rpow_mul (Nat.cast_nonneg p), mul_comm ↑e t⁻¹, ← mul_assoc]
     simp only [neg_mul]
-    rw [mul_inv_cancel (by linarith only [h.1]), one_mul, Real.rpow_neg (Nat.cast_nonneg p),
+    rw [mul_inv_cancel₀ (by linarith only [h.1]), one_mul, Real.rpow_neg (Nat.cast_nonneg p),
       Real.rpow_natCast]
 
 end Nonarchimedean

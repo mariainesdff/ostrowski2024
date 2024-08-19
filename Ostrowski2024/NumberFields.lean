@@ -169,6 +169,7 @@ noncomputable def mulRingNorm_arch (φ : K →+* ℂ) : MulRingNorm K :=
   map_mul' := by simp only [map_mul, norm_mul, Complex.norm_eq_abs, implies_true]
 }
 
+include notbdd in
 /--The restriction of an archimedean MulRingNorm to the rational is the standard absolute value -/
 lemma restr_to_Q_real : MulRingNorm.equiv (mulRingNorm_restriction f ℚ) Rational.mulRingNorm_real := by
   apply Rational.mulRingNorm_equiv_standard_of_unbounded
@@ -176,6 +177,7 @@ lemma restr_to_Q_real : MulRingNorm.equiv (mulRingNorm_restriction f ℚ) Ration
   rw [← bdd_restr_Q] at h
   exact notbdd h
 
+include notbdd in
 /-- Archimedean Ostrowski -/
 theorem ostr_arch :
     ∃ φ : K →+* ℂ, (MulRingNorm.equiv f (mulRingNorm_arch φ) ∧
@@ -299,6 +301,7 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
 -- open unit ball in 𝓞 K
 local notation3 "𝓟" => {a : (𝓞 K) | f a < 1}
 
+include nonarch in
 /-- The open unit ball in 𝓞 K is a non-zero prime ideal of 𝓞 K. -/
 lemma exists_ideal : ∃ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), 𝓟 = P.asIdeal.carrier := by
   use
@@ -330,6 +333,7 @@ lemma exists_ideal : ∃ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), 𝓟 =
       sorry
   }
 
+include nonarch in
 theorem Ostr_nonarch : ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
     MulRingNorm.equiv f (mulRingNorm_Padic P) := by
   rcases exists_ideal f nonarch with ⟨P, hP⟩
