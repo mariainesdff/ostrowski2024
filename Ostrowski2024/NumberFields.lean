@@ -72,7 +72,50 @@ noncomputable instance ring_completion : Ring (Completion f) := CauSeq.Completio
 
 noncomputable instance field_completion [Field K] (f : MulRingNorm K) : Field (Completion f) := CauSeq.Completion.Cauchy.field
 
-noncomputable def MulRingNorm_Completion : MulRingNorm (Completion f) := by sorry
+
+theorem foo (x y : R) :  f x - f y ≤ f (x - y) := by
+  simp only [tsub_le_iff_right]
+  apply le_trans _ (f.add_le' (x - y) y)
+  simp only [sub_add_cancel, AddGroupSeminorm.toFun_eq_coe, MulRingSeminorm.toFun_eq_coe]
+  exact Preorder.le_refl (f x)
+
+
+noncomputable def MulRingNorm_Completion : MulRingNorm (Completion f) where
+  toFun := by
+    apply Quotient.lift
+    swap
+    intro s
+    let s1 := s.val
+    --let v : ℕ → ℝ := f ∘ s1
+    have hcauchy : IsCauSeq abs (f ∘ s1) := by
+      intro e he
+      rcases s.2 (e / 2) (by linarith [he]) with ⟨i, h⟩
+      use i
+      intro j hj
+      rw [abs_lt]
+      specialize h j hj
+      constructor
+      · simp only [Function.comp_apply, neg_lt_sub_iff_lt_add]
+        --have :
+        sorry
+      · --apply lt_trans _ h
+
+        sorry
+    exact CauSeq.lim ⟨f ∘ s1 , hcauchy⟩
+    intro a b hab
+    simp only
+    refine CauSeq.lim_eq_lim_of_equiv ?_
+
+    sorry
+  map_zero' := by sorry
+  add_le' := by sorry
+  neg' := by sorry
+  map_one' := by sorry
+  map_mul' := by sorry
+  eq_zero_of_map_eq_zero' := by sorry
+
+
+noncomputable instance complete_completion : CauSeq.IsComplete (Completion f) (MulRingNorm_Completion f) := by sorry
 
 def MulRingNorm_standard_R : MulRingNorm ℝ where
   toFun := fun x ↦ |x|
@@ -82,6 +125,8 @@ def MulRingNorm_standard_R : MulRingNorm ℝ where
   map_one' := abs_one
   map_mul' := abs_mul
   eq_zero_of_map_eq_zero' := by simp only [abs_eq_zero, imp_self, implies_true]
+
+--CauSeq.Completion.ofRatRingHom
 
 noncomputable def iso_to_R {f : MulRingNorm ℚ} (notbdd : ¬ ∀ n : ℕ, f n ≤ 1) :
     MulRingNormIsoEquiv (MulRingNorm_Completion f) MulRingNorm_standard_R := {
@@ -95,7 +140,7 @@ noncomputable def iso_to_R {f : MulRingNorm ℚ} (notbdd : ¬ ∀ n : ℕ, f n �
       rcases (s.2 ε (mod_cast hε)) with ⟨i, hi⟩
       use i
       sorry
-    let r : CauSeq ℚ abs :=   ⟨s1, this⟩
+    let r : CauSeq ℚ abs := ⟨s1, this⟩
     exact Real.mk r
     simp only
     intro a b hab
@@ -294,11 +339,83 @@ end mulRingNorm_Padic_def
 
 variable (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y))
 
-/-- 𝓞 K is contained in the closed unit ball -/
-lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
+
+include nonarch in
+lemma nonarch_sum_sup (α : Type*) (s : Finset α) (hnonempty : s.Nonempty) (l : α → K) : f (∑ i ∈ s, l i) ≤
+  s.sup' hnonempty fun i => f (l i) := by
+  let p : (a : Finset α) → Finset.Nonempty a → Prop := fun a hn => f (∑ i ∈ a, l i) ≤ a.sup' hn fun i => f (l i)
+  convert_to p s hnonempty
+  apply Finset.Nonempty.cons_induction
+  simp [p]
+  intro a s h hs hind
+  simp [p]
+  rw [← Finset.le_sup'_iff hs]
   sorry
 
--- open unit ball in 𝓞 K
+open Polynomial minpoly
+
+include nonarch in
+/-- 𝓞 K is contained in the closed unit ball -/
+lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
+  --rcases NumberField.RingOfIntegers.isIntegral x with ⟨P, hP1, hP2⟩
+  let P := minpoly ℤ x
+  have hminp : x ^ P.natDegree = ∑ i ∈ Finset.range P.natDegree, -((P.coeff i) * x ^ i) := by
+    simp only [Finset.sum_neg_distrib, eq_neg_iff_add_eq_zero]
+    let Q := Polynomial.X ^ P.natDegree + ∑ i ∈ Finset.range P.natDegree, Polynomial.C (P.coeff i) * Polynomial.X ^ i
+    have heval : (Polynomial.aeval x) P = 0 := minpoly.aeval ℤ x
+    have hPmonic : P.Monic := (minpoly.monic (NumberField.RingOfIntegers.isIntegral x))
+    have hlcoeff1 : (P.coeff P.natDegree) = 1 := by
+      simp only [coeff_natDegree]
+      exact hPmonic
+    have : P = Q := Polynomial.Monic.as_sum (minpoly.monic (NumberField.RingOfIntegers.isIntegral x))
+    rw [← heval, Polynomial.aeval_eq_sum_range]
+    simp only [zsmul_eq_mul]
+    have : x ^ P.natDegree = (P.coeff P.natDegree) * x ^ P.natDegree := by
+      rw [hlcoeff1]
+      simp only [Int.cast_one, one_mul]
+    rw [this]
+    exact Eq.symm (Finset.sum_range_succ_comm (fun x_1 => ↑(P.coeff x_1) * x ^ x_1) P.natDegree)
+  have hineq1 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ i :=
+    by sorry
+  by_contra! hc
+  have hineq2 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ (P.natDegree - 1) := by
+    intro i hi
+    specialize hineq1 i hi
+    apply le_trans hineq1
+    gcongr
+    exact le_of_lt hc
+    rw [Finset.mem_range] at hi
+    exact Nat.le_sub_one_of_lt hi
+  have h₀ : (x : K) ^ P.natDegree = ↑(x ^ P.natDegree) := rfl
+  have hnezerodeg : P.natDegree ≠ 0 := by
+    --minpoly.natDegree_pos
+    sorry
+  have hineq3 : (f x) ^ P.natDegree ≤ (f x) ^ (P.natDegree - 1) := by
+    nth_rewrite 1 [← map_pow, h₀, hminp]
+    apply Finset.sup'_le (Finset.nonempty_range_iff.mpr hnezerodeg) at hineq2
+    apply le_trans _ hineq2
+    push_cast
+    simp only [map_intCast, Finset.sum_neg_distrib, map_neg_eq_map, map_pow]
+    exact
+      nonarch_sum_sup f nonarch ℕ (Finset.range P.natDegree)
+        (Eq.refl (Finset.range P.natDegree) ▸ Finset.nonempty_range_iff.mpr hnezerodeg) fun i =>
+        ↑(P.coeff i) * ↑x ^ i
+
+  have : f x ≤ 1 := by
+    by_contra! h
+
+    sorry
+  apply not_lt_of_le at this
+  exact this hc
+  /- have hnezerodeg : P.natDegree ≠ 0 := by
+    --minpoly.natDegree_pos
+    sorry
+
+  have h₀ : (x : K) ^ P.natDegree = ↑(x ^ P.natDegree) := rfl -/
+
+  --rw [← pow_le_one_iff_of_nonneg (apply_nonneg f ↑x) hnezerodeg, ← map_pow, h₀, this]
+
+
 local notation3 "𝓟" => {a : (𝓞 K) | f a < 1}
 
 include nonarch in
@@ -313,7 +430,7 @@ lemma exists_ideal : ∃ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), 𝓟 =
                 smul_mem' := by
                   simp only [Set.mem_setOf_eq, smul_eq_mul, map_mul]
                   exact fun c x hx => Right.mul_lt_one_of_le_of_lt_of_nonneg
-                    (integers_closed_unit_ball f c) hx (apply_nonneg f ↑x)
+                    (integers_closed_unit_ball f nonarch c) hx (apply_nonneg f ↑x)
                 }
     isPrime := by
       rw [Ideal.isPrime_iff]
