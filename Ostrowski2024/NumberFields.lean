@@ -107,7 +107,10 @@ noncomputable def MulRingNorm_Completion : MulRingNorm (Completion f) where
     refine CauSeq.lim_eq_lim_of_equiv ?_
 
     sorry
-  map_zero' := by sorry
+  map_zero' := by
+    simp only
+
+    sorry
   add_le' := by sorry
   neg' := by sorry
   map_one' := by sorry
@@ -189,6 +192,7 @@ variable {K : Type*} [Field K] [nf : NumberField K] [DecidableEq K] (f : MulRing
 
 theorem non_arch_iff_bdd : (∀ n : ℕ, f n ≤ 1) ↔  ∀ x y : K, f (x + y) ≤ max (f x) (f y) := by
 --https://zb260.user.srcf.net/notes/III/local.pdf Lemma 3.5
+--this is also done in somebody's project, see Zulip
   constructor
   · sorry
   · sorry
@@ -314,7 +318,8 @@ lemma one_lt_p (p : ℕ) (hp : Fact (p.Prime)) : 1 < (p : NNReal) := mod_cast Na
 /--The P-adic absolute value -/
 -- Now we have p ^ - v_p (x). Do we want to add the ramification index of P as a factor in the exponent?
 noncomputable def mulRingNorm_Padic : MulRingNorm K :=
-{ toFun     := fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero (prime_in_prime_ideal P) (prime_in_prime_ideal_is_prime P)) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
+{ toFun     := fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero (prime_in_prime_ideal P)
+    (prime_in_prime_ideal_is_prime P)) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
   map_zero' := by simp only [map_zero]; exact rfl
   add_le'   := by
     simp only
@@ -334,6 +339,35 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
   map_one' := by simp only [map_one, NNReal.coe_eq_one]
   map_mul' := by simp only [map_mul, NNReal.coe_mul, implies_true]
 }
+
+--We have some examples
+
+def threeId : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) where
+  asIdeal := Ideal.span {3}
+  isPrime := by
+    refine (Ideal.span_singleton_prime ?hp).mpr ?_
+    exact Ne.symm (OfNat.zero_ne_ofNat 3)
+    sorry
+  ne_bot := by
+    refine (Submodule.ne_bot_iff (Ideal.span {3})).mpr ?_
+    use 3
+    constructor
+    exact Ideal.mem_span_singleton_self 3
+    sorry
+
+example : IsDedekindDomain.HeightOneSpectrum.valuation (threeId) (2 : ℚ) = 1 := by
+  have h1 : threeId.valuation (2 : ℚ) ≤ 1 := by
+    --apply IsDedekindDomain.HeightOneSpectrum.valuation_le_one
+    sorry
+  have h2 : ¬ threeId.valuation (2 : ℚ) < 1 := by sorry
+  simp only [not_lt] at h2
+  apply eq_of_le_of_le
+  exact h1
+  exact h2
+
+example : IsDedekindDomain.HeightOneSpectrum.valuation (threeId) (3 : ℚ) = Multiplicative.toAdd 1 := by
+  --apply?
+  sorry
 
 end mulRingNorm_Padic_def
 
@@ -375,8 +409,8 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
       simp only [Int.cast_one, one_mul]
     rw [this]
     exact Eq.symm (Finset.sum_range_succ_comm (fun x_1 => ↑(P.coeff x_1) * x ^ x_1) P.natDegree)
-  have hineq1 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ i :=
-    by sorry
+  have hineq1 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ i := by
+    sorry
   by_contra! hc
   have hineq2 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ (P.natDegree - 1) := by
     intro i hi
@@ -403,8 +437,11 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
 
   have : f x ≤ 1 := by
     by_contra! h
-
-    sorry
+    apply not_lt_of_le at hineq3
+    apply hineq3
+    gcongr
+    exact hc
+    exact Nat.sub_one_lt hnezerodeg
   apply not_lt_of_le at this
   exact this hc
   /- have hnezerodeg : P.natDegree ≠ 0 := by
