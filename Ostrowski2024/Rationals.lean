@@ -332,7 +332,7 @@ private lemma list_geom {T : Type*} {F : Type*} [Field F] (l : List T) {y : F} (
 
 open Real
 
-variable {m n : ℕ} (hm : 1 < m) (hn : 1 < n) (notbdd: ¬ ∀ (n : ℕ), f n ≤ 1)
+variable {m n : ℕ} (hm : 1 < m) (hn : 1 < n) (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1)
 
 include hm notbdd in
 private lemma expr_pos : 0 < m * f m / (f m - 1) := by

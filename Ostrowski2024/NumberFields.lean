@@ -5,6 +5,7 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
 import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.NumberTheory.NumberField.Embeddings
+import Mathlib.NumberTheory.Ostrowski
 import Mathlib.RingTheory.DedekindDomain.AdicValuation
 import Mathlib.RingTheory.Ideal.Norm
 import Mathlib.Topology.Algebra.Valued.NormedValued
@@ -27,6 +28,8 @@ ring_norm, ostrowski
 Throughout this file, `f` is an arbitrary absolute value.
 -/
 
+-- some proposals of homorpshism between algebraic structures with absolute values
+
 structure NormHom {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) where
   toFun : R → S
   map_norm : g ∘ toFun = f
@@ -39,7 +42,7 @@ structure MulRingNormIso {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [Non
 
 structure NormHomEquiv {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) where
   toFun : R → S
-  map_norm : ∃ (c : ℝ), 0 < c ∧ (g ∘ toFun) = f
+  map_norm : ∃ (c : ℝ), 0 < c ∧ (g ∘ toFun) ^ c = f
 
 structure MulRingNormHomEquiv {R S : Type*} [NonAssocRing R] (f : MulRingNorm R) [NonAssocRing S] (g : MulRingNorm S) extends
   R →+* S, NormHomEquiv f g
@@ -50,6 +53,7 @@ section completion
 
 variable {R : Type*} [Ring R] (f : MulRingNorm R)
 
+/- link between MulRingNorm and absolute values -/
 instance MulRingNorm_is_absolute_value : IsAbsoluteValue f := {
   abv_nonneg' := apply_nonneg f
   abv_eq_zero' := by simp only [map_eq_zero_iff_eq_zero, implies_true]
@@ -66,6 +70,7 @@ def MulRingNorm_from_abs [Nontrivial R] (abv : AbsoluteValue R ℝ) : MulRingNor
   map_mul' := by simp only [map_mul, implies_true]
   eq_zero_of_map_eq_zero' := by simp only [map_eq_zero_iff_eq_zero, imp_self, implies_true]
 
+/- Completion -/
 noncomputable def Completion : Type u_1 := CauSeq.Completion.Cauchy f
 
 noncomputable instance ring_completion : Ring (Completion f) := CauSeq.Completion.Cauchy.ring
@@ -79,7 +84,7 @@ theorem foo (x y : R) :  f x - f y ≤ f (x - y) := by
   simp only [sub_add_cancel, AddGroupSeminorm.toFun_eq_coe, MulRingSeminorm.toFun_eq_coe]
   exact Preorder.le_refl (f x)
 
-
+/- Extend a MulRingNorm to the completion -/
 noncomputable def MulRingNorm_Completion : MulRingNorm (Completion f) where
   toFun := by
     apply Quotient.lift
@@ -117,7 +122,7 @@ noncomputable def MulRingNorm_Completion : MulRingNorm (Completion f) where
   map_mul' := by sorry
   eq_zero_of_map_eq_zero' := by sorry
 
-
+/- A completion is complete -/
 noncomputable instance complete_completion : CauSeq.IsComplete (Completion f) (MulRingNorm_Completion f) := by sorry
 
 def MulRingNorm_standard_R : MulRingNorm ℝ where
@@ -181,6 +186,9 @@ def mulRingNorm_restriction : MulRingNorm K' :=
 }
 
 lemma restr_def (x : K') : (mulRingNorm_restriction f K') x = f (x • (1 : K)) := rfl
+
+/- lemma nontriv_restriction : f ≠ 1 ↔ mulRingNorm_restriction f K' ≠ 1 := by
+  sorry -/
 
 end restriction
 
@@ -269,7 +277,7 @@ section Nonarchimedean
 
 section mulRingNorm_Padic_def
 
-variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K))
+variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) -- P is a nonzero prime ideal of 𝓞 K
 
 /-- A non zero prime ideal of 𝓞 K contains a unique prime number -/
 lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (_ : Fact (p.Prime)), (↑p ∈ P.asIdeal) := by
@@ -288,9 +296,9 @@ lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (_ : Fact (p.Prime)), (�
     exact Ideal.absNorm_mem P.asIdeal
   use p
   constructor
-  · simp only [exists_prop]
+  · simp only [exists_prop] --existence
     refine ⟨{ out := hp }, hpmem⟩
-  · intro q hq
+  · intro q hq --uniqueness
     rcases hq with ⟨hq1, hq2⟩
     by_contra! hpq
     rw [← Nat.coprime_primes hq1.out hp] at hpq
@@ -327,12 +335,10 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
     let hp := prime_in_prime_ideal_is_prime P
     intro x y
     norm_cast
+    -- the triangular inequality is implied by the ultrametric one
     apply le_trans _ <| max_le_add_of_nonneg (by simp only [zero_le]) (by simp only [zero_le])
     have mono := StrictMono.monotone (withZeroMultIntToNNReal_strictMono (one_lt_p p hp))
-    have h2 : (withZeroMultIntToNNReal (p_ne_zero p hp)) (max (P.valuation (x)) (P.valuation (y))) =
-        max ((withZeroMultIntToNNReal (p_ne_zero p hp)) (P.valuation x)) ((withZeroMultIntToNNReal (p_ne_zero p hp))
-        (P.valuation y)) := Monotone.map_max mono
-    rw [← h2]
+    rw [← Monotone.map_max mono] --max goes inside withZeroMultIntToNNReal
     exact mono (Valuation.map_add P.valuation x y)
   neg'      := by simp only [Valuation.map_neg, implies_true]
   eq_zero_of_map_eq_zero' := by simp_all only [NNReal.coe_eq_zero, map_eq_zero, implies_true]
@@ -340,20 +346,21 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
   map_mul' := by simp only [map_mul, NNReal.coe_mul, implies_true]
 }
 
---We have some examples
+--We have some examples ignore the next three things
 
 def threeId : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) where
   asIdeal := Ideal.span {3}
   isPrime := by
     refine (Ideal.span_singleton_prime ?hp).mpr ?_
     exact Ne.symm (OfNat.zero_ne_ofNat 3)
+
     sorry
   ne_bot := by
     refine (Submodule.ne_bot_iff (Ideal.span {3})).mpr ?_
     use 3
     constructor
     exact Ideal.mem_span_singleton_self 3
-    sorry
+    exact Ne.symm (OfNat.zero_ne_ofNat 3)
 
 example : IsDedekindDomain.HeightOneSpectrum.valuation (threeId) (2 : ℚ) = 1 := by
   have h1 : threeId.valuation (2 : ℚ) ≤ 1 := by
@@ -369,10 +376,17 @@ example : IsDedekindDomain.HeightOneSpectrum.valuation (threeId) (3 : ℚ) = Mul
   --apply?
   sorry
 
+-- end examples
+
 end mulRingNorm_Padic_def
 
-variable (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y))
+--The next lemma is a general fact in algebraic number theory.
+--This might be complicated, Conrad uses the class group but why might try with norms or minimal poly nomials
+lemma exists_num_denom_MulRingNorm_one (α : K) (h_nezero : α ≠ 0)
+    (h_abs : mulRingNorm_Padic P α ≤ 1) : ∃ x y : 𝓞 K, α = x / y ∧ mulRingNorm_Padic P y = 1 := by
+    sorry
 
+variable (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y)) (hf_nontriv : f ≠ 1)
 
 include nonarch in
 lemma nonarch_sum_sup (α : Type*) (s : Finset α) (hnonempty : s.Nonempty) (l : α → K) : f (∑ i ∈ s, l i) ≤
@@ -384,6 +398,7 @@ lemma nonarch_sum_sup (α : Type*) (s : Finset α) (hnonempty : s.Nonempty) (l :
   intro a s h hs hind
   simp [p]
   rw [← Finset.le_sup'_iff hs]
+  --should be easy to finish
   sorry
 
 open Polynomial minpoly
@@ -434,7 +449,6 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
       nonarch_sum_sup f nonarch ℕ (Finset.range P.natDegree)
         (Eq.refl (Finset.range P.natDegree) ▸ Finset.nonempty_range_iff.mpr hnezerodeg) fun i =>
         ↑(P.coeff i) * ↑x ^ i
-
   have : f x ≤ 1 := by
     by_contra! h
     apply not_lt_of_le at hineq3
@@ -444,18 +458,10 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     exact Nat.sub_one_lt hnezerodeg
   apply not_lt_of_le at this
   exact this hc
-  /- have hnezerodeg : P.natDegree ≠ 0 := by
-    --minpoly.natDegree_pos
-    sorry
-
-  have h₀ : (x : K) ^ P.natDegree = ↑(x ^ P.natDegree) := rfl -/
-
-  --rw [← pow_le_one_iff_of_nonneg (apply_nonneg f ↑x) hnezerodeg, ← map_pow, h₀, this]
-
 
 local notation3 "𝓟" => {a : (𝓞 K) | f a < 1}
 
-include nonarch in
+include nonarch hf_nontriv in
 /-- The open unit ball in 𝓞 K is a non-zero prime ideal of 𝓞 K. -/
 lemma exists_ideal : ∃ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), 𝓟 = P.asIdeal.carrier := by
   use
@@ -484,17 +490,55 @@ lemma exists_ideal : ∃ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), 𝓟 =
         sorry
     ne_bot  := by
       -- P ≠ 0
+      --should not be hard
+      rw [Submodule.ne_bot_iff]
+      by_contra! h
+      apply hf_nontriv
+      simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk, Set.mem_setOf_eq] at h
+      refine MulRingNorm.ext_iff.mpr ?_
+      simp only [MulRingNorm.apply_one]
+      intro x
       sorry
   }
 
-include nonarch in
+include nonarch hf_nontriv in
 theorem Ostr_nonarch : ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
     MulRingNorm.equiv f (mulRingNorm_Padic P) := by
-  rcases exists_ideal f nonarch with ⟨P, hP⟩
+  rcases exists_ideal f hf_nontriv nonarch hf_nontriv with ⟨P, hP⟩
   rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩ --uniformizer, this will give the constant of the equivalence
   use P
+  --exstract the prime number p inside P
+  rcases exist_prime_in_prime_ideal P with ⟨p, hp1, hp2⟩
+  rcases hp1 with ⟨hprime, hPmem⟩
+  have h_f_p_lt_one : f p < 1 := by
+    --use the fact that p is in P
+    sorry
+  have hf_restr_nontriv : mulRingNorm_restriction f ℚ ≠ 1 := by
+    simp
+    rw [← Rat.MulRingNorm.eq_on_nat_iff_eq]
+    simp only [MulRingNorm.apply_one, Nat.cast_eq_zero, not_forall]
+    use p
+    rw [@restr_def]
+    simp only [Rat.smul_one_eq_cast, Rat.cast_natCast]
+    have ha : ¬ p = 0 := by exact NeZero.ne p
+    intro h
+    simp only [ha, ↓reduceIte] at h
+    linarith only [h_f_p_lt_one, h]
+  -- extract c from rational case
+  have h_restr_bdd : ∀ (n : ℕ), mulRingNorm_restriction f ℚ n ≤ 1 := by
+    simp only [restr_def, Rat.smul_one_eq_cast, Rat.cast_natCast]
+    rw [← non_arch_iff_bdd] at nonarch
+    exact fun n => nonarch n
+  rcases Rat.MulRingNorm.mulRingNorm_equiv_padic_of_bounded hf_restr_nontriv h_restr_bdd with ⟨q, h1, h2⟩
+  rcases h1 with ⟨hq, h3⟩
+  rcases h3 with ⟨c, hcpos, hc⟩
   constructor
   · --existence
+    simp only
+    use c
+    refine ⟨hcpos, ?_⟩
+    ext x
+
     sorry
   · --uniqueness
     intro Q hQ
