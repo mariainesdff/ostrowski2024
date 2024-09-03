@@ -105,11 +105,20 @@ lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
       apply List.sum_le_sum
       rintro ⟨i,a⟩ hia
       dsimp [Function.uncurry]
-      replace hia := List.mem_enumFrom L hia
+      replace hia := List.mem_enumFrom hia
       push_cast
       rw [map_mul, map_pow]
-      exact mul_le_mul_of_nonneg_right (le_of_lt (hcoef hia.2.2))
+      apply mul_le_mul_of_nonneg_right (le_of_lt (hcoef _))
         (pow_nonneg (apply_nonneg f ↑m) i)
+      simp only [zero_le, zero_add, tsub_zero, true_and] at hia
+      have h1 :=hia.1
+      have h2 :=hia.2
+      refine List.mem_iff_get.mpr ?_
+      use ⟨i, h1⟩
+      exact id (Eq.symm h2)
+
+
+
 
 --open BigOperators
 
@@ -211,7 +220,7 @@ lemma tendsto_nat_rpow_div'' : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : 
     (by simp only [one_div, eventually_atTop, implies_true, exists_const]) tendsto_rpow_div
 
 lemma tendsto_root_atTop_nhds_one'' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := aux' Nat.mono_cast (fun x => exists_nat_ge x) (eventually_of_forall (congrFun rfl)) (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC)))
+    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := aux' Nat.mono_cast (fun x => exists_nat_ge x) (Filter.Eventually.of_forall (congrFun rfl)) (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC)))
 
 -- more alternatives
 
