@@ -111,11 +111,9 @@ lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
       apply mul_le_mul_of_nonneg_right (le_of_lt (hcoef _))
         (pow_nonneg (apply_nonneg f ↑m) i)
       simp only [zero_le, zero_add, tsub_zero, true_and] at hia
-      have h1 :=hia.1
-      have h2 :=hia.2
       refine List.mem_iff_get.mpr ?_
-      use ⟨i, h1⟩
-      exact id (Eq.symm h2)
+      use ⟨i, hia.1⟩
+      exact id (Eq.symm hia.2)
 
 
 

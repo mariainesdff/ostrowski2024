@@ -8,10 +8,10 @@ import Mathlib.NumberTheory.NumberField.Embeddings
 import Mathlib.NumberTheory.Ostrowski
 import Mathlib.RingTheory.DedekindDomain.AdicValuation
 import Mathlib.RingTheory.Ideal.Norm
+import Mathlib.Tactic.Rify
 import Mathlib.Topology.Algebra.Valued.NormedValued
 import Ostrowski2024.Rationals
 import Ostrowski2024.WithZero
-
 
 /-!
 # Ostrowski's theorem for number fields
@@ -321,6 +321,8 @@ noncomputable def prime_in_prime_ideal : ℕ := Exists.choose (exist_prime_in_pr
 
 lemma prime_in_prime_ideal_is_prime : Fact ((prime_in_prime_ideal P).Prime) := (Exists.choose_spec (exist_prime_in_prime_ideal P)).1.1
 
+lemma prime_in_prime_ideal_is_in_prime_ideal : (↑(prime_in_prime_ideal P) ∈ P.asIdeal) := (Exists.choose_spec (exist_prime_in_prime_ideal P)).1.2
+
 lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by
   simp only [ne_eq, Nat.cast_eq_zero]
   exact NeZero.ne p
@@ -532,11 +534,17 @@ theorem Ostr_nonarch : ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
   have hπ_val : P.intValuationDef π < 1 := by
     rw [hπ]
     exact WithZero.ofAdd_neg_one_lt_one
-  have hπ_f : f π < 1 := by
-    --needed?
+  have hπ_f_gt_zero : 0 < f π := by
+    sorry
+  have hπ_f_lt_one : f π < 1 := by
     sorry
   use P
   --extract the prime number p inside P
+  let p' := prime_in_prime_ideal P
+  have hp_prime_fact' : Fact (Nat.Prime p') := prime_in_prime_ideal_is_prime P
+  have hp_prime' := hp_prime_fact'.elim
+  have hPmem' : ↑p' ∈ P.asIdeal := prime_in_prime_ideal_is_in_prime_ideal P
+  have hp_gt_one : 1 < p' := by exact Nat.Prime.one_lt hp_prime'
   rcases exist_prime_in_prime_ideal P with ⟨p, hp1, hp2⟩
   rcases hp1 with ⟨hp_prime_fact, hPmem⟩
   have hp_prime := hp_prime_fact.elim
@@ -544,7 +552,7 @@ theorem Ostr_nonarch : ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
     --not sure this is useful
     --use the fact that p is in P
     sorry
-  have hf_restr_nontriv : mulRingNorm_restriction f ℚ ≠ 1 := by
+ /-  have hf_restr_nontriv : mulRingNorm_restriction f ℚ ≠ 1 := by
     simp
     rw [← Rat.MulRingNorm.eq_on_nat_iff_eq]
     simp only [MulRingNorm.apply_one, Nat.cast_eq_zero, not_forall]
@@ -554,7 +562,7 @@ theorem Ostr_nonarch : ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
     have ha : ¬ p = 0 := by exact NeZero.ne p
     intro h
     simp only [ha, ↓reduceIte] at h
-    linarith only [h_f_p_lt_one, h]
+    linarith only [h_f_p_lt_one, h] -/
   -- extract c from rational case, wrong, useless?
  /-  have h_restr_bdd : ∀ (n : ℕ), mulRingNorm_restriction f ℚ n ≤ 1 := by
     simp only [restr_def, Rat.smul_one_eq_cast, Rat.cast_natCast]
@@ -563,18 +571,18 @@ theorem Ostr_nonarch : ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
   rcases Rat.MulRingNorm.mulRingNorm_equiv_padic_of_bounded hf_restr_nontriv h_restr_bdd with ⟨q, h1, h2⟩
   rcases h1 with ⟨hq, h3⟩
   rcases h3 with ⟨c, hcpos, hc⟩ -/
-  let c := - (Real.logb p (f π))⁻¹
+  let c := - (Real.logb p' (f π))
   have hcpos : 0 < c := by
-    simp only [Left.neg_pos_iff, inv_neg'', c]
-    exact Real.logb_neg (mod_cast (Nat.Prime.one_lt hp_prime))
-      (map_pos_of_ne_zero f ( RingOfIntegers.coe_ne_zero_iff.mpr hpi_nezero)) hπ_f
+    simp only [Left.neg_pos_iff, c]
+    exact Real.logb_neg (mod_cast (Nat.Prime.one_lt hp_prime'))
+      (map_pos_of_ne_zero f ( RingOfIntegers.coe_ne_zero_iff.mpr hpi_nezero)) hπ_f_lt_one
   have MulRingNorm_eq_one_of_Padic_eq_one (x : K) (h_Padic_zero : mulRingNorm_Padic P x = 1) : f x = 1 := by
     -- TODO
     sorry
-
   constructor
   · --existence
     simp only
+    apply MulRingNorm.equiv_symm
     use c
     refine ⟨hcpos, ?_⟩
     ext x
@@ -582,10 +590,18 @@ theorem Ostr_nonarch : ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
     · rw [hx]
       simp only [map_zero, le_refl]
       rw [Real.rpow_eq_zero (Preorder.le_refl 0) (Ne.symm (ne_of_lt hcpos))]
-    · simp [c]
+    · simp only [c, p']
+      rw [mulRingNorm_Padic_eq_p_pow_valP P x hx,
+        ← Real.rpow_intCast_mul (Nat.cast_nonneg' (prime_in_prime_ideal P)), mul_comm,
+        Real.rpow_mul_intCast (Nat.cast_nonneg' (prime_in_prime_ideal P)),
+        Real.rpow_neg (Nat.cast_nonneg' (prime_in_prime_ideal P)),
+        Real.rpow_logb (mod_cast Nat.zero_lt_of_lt hp_gt_one) (mod_cast Nat.Prime.ne_one hp_prime')
+        hπ_f_gt_zero]
+      simp only [zpow_neg, inv_zpow', inv_inv]
 
-      rw[mulRingNorm_Padic_eq_p_pow_valP P x hx]
 
+      rw [← div_eq_one_iff_eq, ← map_zpow₀]
+      sorry
       sorry
   · --uniqueness
     intro Q hQ

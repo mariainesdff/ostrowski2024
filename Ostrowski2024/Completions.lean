@@ -1,5 +1,5 @@
 import Mathlib.Algebra.Order.CauSeq.Completion
-import Mathlib
+--import Mathlib
 
 namespace CauSeq.Completion
 
@@ -41,16 +41,61 @@ def abs_compl : CauSeq.Completion.Cauchy abv → CauSeq.Completion.Cauchy (fun x
     exact lt_of_le_of_lt (IsAbsoluteValue.sub_abv_le_abv_sub abv (b j) (a j)) hi
   exact ⟨h3, h3'⟩
 
-def LE_compl :  (Cauchy (fun x : α => |x|)) → (Cauchy (fun x : α => |x|)) → Prop := by
+private irreducible_def lt : Cauchy (fun r : α ↦ |r|) → Cauchy (fun r : α ↦ |r|) → Prop := by
+  intro a b
+  apply Quotient.liftOn₂ a b (· < ·)
+  intro a₁ b₁ a₂ b₂ ha hb
+  simp only [eq_iff_iff]
+  sorry
+
+instance : LT (Cauchy (fun r : α ↦ |r|)) :=
+  ⟨lt⟩
+private irreducible_def le (x y : (Cauchy (fun r : α ↦ |r|))) : Prop :=
+  x < y ∨ x = y
+
+instance : LE (Cauchy (fun r : α ↦ |r|)) :=
+  ⟨le⟩
+
+instance partialOrder : PartialOrder (Cauchy (fun r : α ↦ |r|)) where
+  le := (· ≤ ·)
+  lt := (· < ·)
+  lt_iff_le_not_le a b := by sorry
+    /- induction' a using Real.ind_mk with a
+    induction' b using Real.ind_mk with b
+    simpa using lt_iff_le_not_le -/
+  le_refl a := by sorry
+    /- induction' a using Real.ind_mk with a
+    rw [mk_le] -/
+  le_trans a b c := by sorry
+    /- induction' a using Real.ind_mk with a
+    induction' b using Real.ind_mk with b
+    induction' c using Real.ind_mk with c
+    simpa using le_trans -/
+  le_antisymm a b := by sorry
+    /- induction' a using Real.ind_mk with a
+    induction' b using Real.ind_mk with b
+    simpa [mk_eq] using @CauSeq.le_antisymm _ _ a b -/
+/-
+  | ⟨x⟩, ⟨y⟩ =>
+    (Quotient.liftOn₂ x y (· < ·)) fun _ _ _ _ hf hg =>
+      propext <|
+        ⟨fun h => lt_of_eq_of_lt (Setoid.symm hf) (lt_of_lt_of_eq h hg), fun h =>
+          lt_of_eq_of_lt hf (lt_of_lt_of_eq h (Setoid.symm hg))⟩
+ -/
+
+/- def LE_compl :  (Cauchy (fun x : α => |x|)) → (Cauchy (fun x : α => |x|)) → Prop := by
   intro a b
 
   sorry
 
 instance LE_compl' : LE (Cauchy (fun x : α ↦ |x|)) := by
   refine { le := ?le }
-  exact LE_compl
+  exact LE_compl -/
+set_option diagnostics true
 
-instance b : LinearOrderedField (Cauchy (fun x : α ↦ |x|)) where
+noncomputable instance b : LinearOrderedField (Cauchy (fun x : α ↦ |x|)) := by infer_instance
+
+/- noncomputable instance b : LinearOrderedField (Cauchy (fun x : α ↦ |x|)) where
   add := fun x y => x + y
   add_assoc :=  add_assoc
   zero := 0
@@ -67,25 +112,25 @@ instance b : LinearOrderedField (Cauchy (fun x : α ↦ |x|)) where
   one := 1
   one_mul := one_mul
   mul_one := mul_one
-  neg := by exact fun a => - a
+  neg := fun a => - a
   zsmul := fun n a => n • a
   neg_add_cancel := neg_add_cancel
-  le := LE_compl
-  le_refl := _
-  le_trans := _
-  le_antisymm := _
-  add_le_add_left := _
-  exists_pair_ne := _
-  zero_le_one := _
-  mul_pos := _
-  le_total := _
-  decidableLE := _
-  mul_comm := _
-  inv := _
-  mul_inv_cancel := _
-  inv_zero := _
-  nnqsmul := _
-  qsmul := _
+  le := le
+  le_refl := Preorder.le_refl
+  le_trans := Preorder.le_trans
+  le_antisymm := partialOrder.le_antisymm
+  add_le_add_left := by sorry
+  exists_pair_ne := by sorry
+  zero_le_one := by sorry
+  mul_pos := by sorry
+  le_total := by sorry
+  decidableLE := by exact Classical.decRel fun x1 x2 => x1 ≤ x2
+  mul_comm := CommMonoid.mul_comm
+  inv := by exact fun a => a⁻¹
+  mul_inv_cancel := by exact fun a a_1 => Completion.mul_inv_cancel a_1
+  inv_zero := inv_zero
+  nnqsmul := fun n a => n • a
+  qsmul := fun n a => n • a
 
 def aabs : AbsoluteValue (CauSeq.Completion.Cauchy abv) (CauSeq.Completion.Cauchy (fun x : α ↦ |x|)) := by sorry
 
@@ -94,3 +139,4 @@ instance aux (aabs : AbsoluteValue (CauSeq.Completion.Cauchy abv) (CauSeq.Comple
   abv_eq_zero' := AbsoluteValue.eq_zero aabs
   abv_add' := AbsoluteValue.add_le aabs
   abv_mul' := AbsoluteValue.map_mul aabs
+ -/
