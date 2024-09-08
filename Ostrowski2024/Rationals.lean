@@ -243,12 +243,6 @@ open Real Filter Nat
 
 -- ## step 1
 
-/-- `Nat.log` is less than or equal to `Real.log`. -/
-lemma nat_log_le_real_log {a b : ℕ} (_ : 0 < a) (hb : 1 < b) : Nat.log b a ≤ Real.logb b a := by
-  apply le_trans _ (Int.floor_le ((b : ℝ).logb a))
-  simp only [Real.floor_logb_natCast hb (Nat.cast_nonneg a), Int.log_natCast, Int.cast_natCast,
-    le_refl]
-
 /-- If `f n > 1` for some `n` then `f n > 1` for all `n ≥ 2`.-/
 lemma one_lt_of_not_bounded (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) {n₀ : ℕ} (hn₀ : 1 < n₀) : 1 < f n₀ := by
   contrapose! notbdd with h
@@ -274,7 +268,7 @@ lemma one_lt_of_not_bounded (notbdd : ¬ ∀ (n : ℕ), f n ≤ 1) {n₀ : ℕ} 
         apply mul_le_mul_of_nonneg_left _ (cast_nonneg n₀)
         push_cast
         simp only [add_le_add_iff_right]
-        exact nat_log_le_real_log hm hn₀
+        exact natLog_le_logb m n₀
       · simp_all only [List.mem_map, Prod.exists, Function.uncurry_apply_pair, exists_and_right,
           and_imp, implies_true, forall_exists_index, forall_const]
   -- For h_ineq2 we need to exclude the case n = 0.
@@ -369,7 +363,7 @@ private lemma param_upperbound (k : ℕ) (hk : k ≠ 0) :
       gcongr
       exact le_of_lt (expr_pos hm notbdd)
       rw [← Real.rpow_natCast, Real.rpow_le_rpow_left_iff (one_lt_of_not_bounded notbdd hm)]
-      exact nat_log_le_real_log (zero_lt_of_lt hn) hm
+      exact natLog_le_logb n m
   have h_ineq2 (k : ℕ) (hk : k ≠ 0) :
       (f n) ^ k ≤ (m * f m / (f m - 1)) * (f m) ^ (k * logb m n) := by
     calc
