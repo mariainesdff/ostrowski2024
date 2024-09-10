@@ -413,12 +413,13 @@ lemma nonarch_sum_sup (α : Type*) (s : Finset α) (hnonempty : s.Nonempty) (l :
   let p : (a : Finset α) → Finset.Nonempty a → Prop := fun a hn => f (∑ i ∈ a, l i) ≤ a.sup' hn fun i => f (l i)
   convert_to p s hnonempty
   apply Finset.Nonempty.cons_induction
-  simp [p]
-  intro a s h hs hind
-  simp [p]
-  rw [← Finset.le_sup'_iff hs]
-  --should be easy to finish
-  sorry
+  · simp only [Finset.le_sup'_iff, Finset.mem_singleton, Finset.sum_singleton, exists_eq_left,
+    le_refl, implies_true, p]
+  · intro a s h hs hind
+    simp only [Finset.le_sup'_iff, Finset.mem_cons, Finset.sum_cons, exists_eq_or_imp, p]
+    rw [← Finset.le_sup'_iff hs]
+    --should be easy to finish
+    sorry
 
 open Polynomial minpoly
 

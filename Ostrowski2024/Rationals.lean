@@ -676,4 +676,11 @@ theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
   · left
     apply mulRingNorm_equiv_standard_of_unbounded bdd
 
+
+theorem product_formula (x : ℚ) (h_x_nezero : x ≠ 0) : |x| * ∏ᶠ p : Nat.Primes, padicNorm p x = 1 := by
+  --UniqueFactorizationMonoid.factors_pow_count_prod
+  --
+  sorry
+
+
 end Rational
