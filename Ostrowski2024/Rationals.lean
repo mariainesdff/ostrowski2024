@@ -115,131 +115,37 @@ lemma MulRingNorm_n_le_sum_digits (n : ℕ) {m : ℕ} (hm : 1 < m):
       use ⟨i, hia.1⟩
       exact id (Eq.symm hia.2)
 
-
-
-
---open BigOperators
-
 /- ## Auxiliary lemma for limits-/
-/-- If `a : ℝ` is bounded above by a function `g : ℕ → ℝ` for every `0 < k` then it is less or
-equal than the limit `lim_{k → ∞} g(k)`-/
-lemma le_of_limit_le {a : ℝ} {g : ℕ → ℝ} {l : ℝ} (ha : ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
-  (hg : Filter.Tendsto g Filter.atTop (nhds l)) : a ≤ l := by
-  apply le_of_tendsto_of_tendsto tendsto_const_nhds hg
-  rw [Filter.EventuallyLE, Filter.eventually_atTop]
-  exact ⟨1, ha⟩
-
-/-- For any `C > 0`, the limit of `C ^ (1/k)` is 1 as `k → ∞`. -/
-lemma tendsto_root_atTop_nhds_one {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
-  rw [← Real.exp_log hC]
-  simp_rw [← Real.exp_mul]
-  apply Real.tendsto_exp_nhds_zero_nhds_one.comp
-  exact tendsto_const_div_atTop_nhds_zero_nat (Real.log C)
-
-/-extends the lemma `tendsto_rpow_div` when the function has natural input-/
-lemma tendsto_nat_rpow_div : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
-    Filter.atTop (nhds 1) := by
-  simp only [Filter.tendsto_def, Filter.mem_atTop_sets]
-  intro N hN
-  let h := tendsto_rpow_div
-  simp only [Filter.tendsto_def, one_div, Filter.mem_atTop_sets] at h
-  rcases h N hN with ⟨a, ha⟩
-  use (Nat.floor a) + 1
-  intro b hb
-  exact ha b (le_trans (le_of_lt (Nat.lt_floor_add_one a)) (mod_cast hb))
-
---from here possible altgerantives to lemmas on filters above
 
 open Filter
 
-theorem tendsto_rpow_inv_atTop_one {a : ℝ} (ha : a ≠ 0) :
-    Tendsto (fun x => a ^ (x : ℝ)⁻¹) atTop (nhds 1) := by
-  nth_rw 1 [Eq.symm (Real.rpow_zero a)]
-  exact Filter.Tendsto.rpow tendsto_const_nhds tendsto_inv_atTop_zero (Or.intro_left (0 < 0) ha)
+/- If `a : ℝ` is bounded above by a function `g : ℕ → ℝ` for every `0 < k` then it is less or
+equal than the limit `lim_{k → ∞} g(k)`-/
+private lemma le_of_limit_le {a : ℝ} {g : ℕ → ℝ} {l : ℝ} (ha : ∀ (k : ℕ) (_ : 0 < k), a ≤ g k)
+  (hg : Tendsto g Filter.atTop (nhds l)) : a ≤ l := by
+  apply le_of_tendsto_of_tendsto tendsto_const_nhds hg
+  rw [EventuallyLE, eventually_atTop]
+  exact ⟨1, ha⟩
 
-theorem aux {l: Filter ℝ} {f : ℝ → ℝ} {g: ℕ → ℝ} (hg: ∀ᶠ n in atTop, g n = f n)
-    (hl : Filter.Tendsto f Filter.atTop l) : Filter.Tendsto g Filter.atTop l := by
-  intro N hN
-  simp only [mem_map, mem_atTop_sets, ge_iff_le, Set.mem_preimage]
-  obtain h := hl hN
-  simp only [mem_map, mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
-  rcases h with ⟨a₀, ha₀⟩
-  simp only [eventually_atTop, ge_iff_le] at hg
-  rcases hg with ⟨a₁, ha₁⟩
-  use (Nat.floor (max a₀ a₁)) + 1
-  intro b hb
-  have hineq₀ : a₀ ≤ b := by
-    calc
-    a₀ ≤ max a₀ a₁ := le_max_left a₀ a₁
-    _ ≤ ⌊max a₀ a₁⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one (max a₀ a₁))
-    _ ≤ b := by norm_cast
-  have hineq₁ : a₁ ≤ (b : ℝ) := by
-    calc
-    a₁ ≤ max a₀ a₁ := le_max_right a₀ ↑a₁
-    _ ≤ ⌊max a₀ a₁⌋₊ + 1 := le_of_lt (Nat.lt_floor_add_one (max a₀ a₁))
-    _ ≤ b := by norm_cast
-  specialize ha₀ b hineq₀
-  specialize ha₁ b (mod_cast hineq₁)
-  rwa [ha₁]
 
-lemma tendsto_nat_rpow_div' : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
-    Filter.atTop (nhds 1) :=
-    aux (by simp only [one_div, eventually_atTop, implies_true, exists_const]) tendsto_rpow_div
+/- For any `C > 0`, the limit of `C ^ (1/k)` is 1 as `k → ∞`. -/
+private lemma tendsto_root_atTop_nhds_one {C : ℝ} (hC : 0 < C) : Tendsto
+    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) atTop (nhds 1) := by
+  convert_to Tendsto ((fun k ↦ C ^ k) ∘ (fun k : ℝ ↦ k⁻¹) ∘ (Nat.cast))
+    atTop (nhds 1)
+  exact Tendsto.comp (Continuous.tendsto' (continuous_iff_continuousAt.2
+    (fun a ↦ Real.continuousAt_const_rpow (Ne.symm (ne_of_lt hC)))) 0 1 (Real.rpow_zero C))
+    <| Tendsto.comp tendsto_inv_atTop_zero tendsto_natCast_atTop_atTop
 
-lemma tendsto_root_atTop_nhds_one' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) :=
-    aux (by simp only [eventually_atTop, ge_iff_le, implies_true, exists_const])
-    (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC)))
-
-theorem aux' {α : Type*} [Nonempty α] [LinearOrder α] {l : Filter ℝ} {f : ℝ → ℝ} {g : α → ℝ}
-    {c : α → ℝ} (hc₀ : Monotone c) (hc : ∀ x : ℝ, ∃ a : α, x ≤ c a)
-    (hg : ∀ᶠ n in atTop, g n = f (c n)) (hl : Filter.Tendsto f Filter.atTop l) :
-    Filter.Tendsto g Filter.atTop l := by
-  intro N hN
-  simp only [mem_map, mem_atTop_sets, ge_iff_le, Set.mem_preimage]
-  obtain h := hl hN
-  simp only [mem_map, mem_atTop_sets, ge_iff_le, Set.mem_preimage] at h
-  rcases h with ⟨a₀, ha₀⟩
-  simp only [eventually_atTop, ge_iff_le] at hg
-  rcases hg with ⟨a₁, ha₁⟩
-  obtain h' := hc a₀
-  rcases h' with ⟨a₂, ha₂⟩
-  use max a₁ a₂
-  intro b hb
-  have hineq₀ : a₀ ≤ c b := le_trans ha₂ <| hc₀ <| le_of_max_le_right hb
-  specialize ha₀ (c b) hineq₀
-  have hineq₁ : a₁ ≤ b := le_trans (le_max_left a₁ a₂) hb
-  specialize ha₁ b hineq₁
-  rwa[ha₁]
-
-lemma tendsto_nat_rpow_div'' : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
-    Filter.atTop (nhds 1) := aux' Nat.mono_cast (fun x => exists_nat_ge x)
-    (by simp only [one_div, eventually_atTop, implies_true, exists_const]) tendsto_rpow_div
-
-lemma tendsto_root_atTop_nhds_one'' {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := aux' Nat.mono_cast (fun x => exists_nat_ge x) (Filter.Eventually.of_forall (congrFun rfl)) (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC)))
-
--- more alternatives
-
-lemma tendsto_nat_rpow_div_1 : Filter.Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
-    Filter.atTop (nhds 1) := by
-  convert_to Filter.Tendsto ((fun k : ℝ ↦ k ^ k⁻¹) ∘ (Nat.cast) ) Filter.atTop (nhds 1)
+/-extends the lemma `tendsto_rpow_div` when the function has natural input-/
+private lemma tendsto_nat_rpow_div : Tendsto (fun k : ℕ ↦ (k : ℝ) ^ (k : ℝ)⁻¹)
+    atTop (nhds 1) := by
+  convert_to Tendsto ((fun k : ℝ ↦ k ^ k⁻¹) ∘ (Nat.cast) ) atTop (nhds 1)
   apply Tendsto.comp _ tendsto_natCast_atTop_atTop
   simp_rw [← one_div]
   exact tendsto_rpow_div
 
-lemma tendsto_root_atTop_nhds_one_1 {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
-  convert_to Filter.Tendsto ((fun k ↦ C ^ k) ∘ (fun k : ℝ ↦ k⁻¹) ∘ (Nat.cast) ) Filter.atTop (nhds 1)
-  exact Tendsto.comp (Continuous.tendsto' (continuous_iff_continuousAt.2 (fun a ↦ Real.continuousAt_const_rpow (Ne.symm (ne_of_lt hC)))) 0 1 (Real.rpow_zero C)) <| Tendsto.comp tendsto_inv_atTop_zero tendsto_natCast_atTop_atTop
-
-lemma tendsto_root_atTop_nhds_one_2 {C : ℝ} (hC : 0 < C) : Filter.Tendsto
-    (fun k : ℕ ↦ C ^ (k : ℝ)⁻¹) Filter.atTop (nhds 1) := by
-  convert_to Filter.Tendsto ((fun k : ℝ ↦ C ^ k⁻¹) ∘ (Nat.cast) ) Filter.atTop (nhds 1)
-  exact Tendsto.comp (tendsto_rpow_inv_atTop_one (Ne.symm (ne_of_lt hC))) tendsto_natCast_atTop_atTop
-
-open Real Filter Nat
+open Real Nat
 
 -- ## step 1
 
