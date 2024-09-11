@@ -6,6 +6,7 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 --import Mathlib.Analysis.SpecialFunctions.Pow.Real
 -- import Mathlib.Algebra.Order.Monoid.Lemmas
 import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
+import Mathlib.Data.Set.Finite
 
 
 /-!
@@ -583,10 +584,69 @@ theorem ringNorm_padic_or_real (f : MulRingNorm ℚ) (hf_nontriv : f ≠ 1) :
     apply mulRingNorm_equiv_standard_of_unbounded bdd
 
 
-theorem product_formula (x : ℚ) (h_x_nezero : x ≠ 0) : |x| * ∏ᶠ p : Nat.Primes, padicNorm p x = 1 := by
-  --UniqueFactorizationMonoid.factors_pow_count_prod
-  --
+lemma fooN {n : ℕ} (h_nezero : n ≠ 0) : (Function.mulSupport fun p : Nat.Primes => padicNorm p ↑n).Finite := by
+  convert_to { (p : Nat.Primes) | ((p : ℕ) ∣ n) }.Finite
+  · ext p
+    have : Fact (Nat.Prime ↑p) := by
+      refine { out := ?out }
+      exact p.2
+    have := padicNorm.of_nat (p:= ↑p) n
+    simp only [Function.mem_mulSupport, ne_eq, Set.mem_setOf_eq]
+    rw [← padicNorm.nat_lt_one_iff]
+    refine ⟨lt_of_le_of_ne this, ne_of_lt ⟩
+  · let f : Nat.Primes → ℕ := fun a => ↑a
+    let s := {p : Nat.Primes | ↑p ∣ n}
+    have : (f '' s).Finite := by
+      apply Set.Finite.subset (Set.finite_le_nat n)
+      simp only [Set.image_subset_iff, Set.preimage_setOf_eq]
+      exact Set.setOf_subset_setOf.mpr (fun p hp => Nat.le_of_dvd (Nat.zero_lt_of_ne_zero h_nezero) hp)
+    apply Set.Finite.of_finite_image this
+    refine Function.Injective.injOn ?h
+    exact Nat.Primes.coe_nat_injective
+
+lemma fooZ {n : ℤ} (h_nezero : n ≠ 0) : (Function.mulSupport fun p : Nat.Primes => padicNorm ↑p ↑n).Finite := by
+  have habs := Int.natAbs_eq n
+  cases habs with
+  | inl h =>
+    rw [h]
+    apply_mod_cast fooN (Int.natAbs_ne_zero.mpr h_nezero)
+  | inr h =>
+    rw [h]
+    simp only [Int.cast_neg, Int.cast_abs, padicNorm.neg]
+    apply_mod_cast fooN (Int.natAbs_ne_zero.mpr h_nezero)
+
+theorem product_formula_N {x : ℕ} (h_x_nezero : x ≠ 0) : |(x : ℚ)| * ∏ᶠ p : Nat.Primes, padicNorm p x = 1 := by
+  rw [← Nat.factorization_prod_pow_eq_self h_x_nezero]
   sorry
 
+theorem product_formula_Z {x : ℤ} (h_x_nezero : x ≠ 0) : |(x : ℚ)| * ∏ᶠ p : Nat.Primes, padicNorm p x = 1 := by
+  have habs := Int.natAbs_eq x
+  cases habs with
+  | inl h =>
+    rw [h]
+    apply product_formula_N (Int.natAbs_ne_zero.mpr h_x_nezero)
+  | inr h =>
+    rw [h]
+    simp only [Int.cast_neg, Int.cast_abs, abs_neg, abs_abs, padicNorm.neg]
+    apply product_formula_N (Int.natAbs_ne_zero.mpr h_x_nezero)
+
+theorem product_formula {x : ℚ} (h_x_nezero : x ≠ 0) : |x| * ∏ᶠ p : Nat.Primes, padicNorm p x = 1 := by
+  --UniqueFactorizationMonoid.factors_pow_count_prod
+  --
+  -- does not work: rw [padicNorm.div ↑x.num ↑x.den]
+  --finprod_congr
+  rw [← Rat.num_div_den x, abs_div]
+  --simp_rw [padicNorm.eq_zpow_of_nonzero]
+  have (p : Nat.Primes) : padicNorm p (↑x.num / ↑x.den) = padicNorm p (↑x.num) / padicNorm p (↑x.den) := by
+    have : Fact (Nat.Prime ↑p) := by
+      refine { out := ?out }
+      exact p.2
+    exact padicNorm.div ↑x.num ↑x.den
+  rw [finprod_congr this, finprod_div_distrib (fooZ (Rat.num_ne_zero.mpr h_x_nezero))
+    (mod_cast fooZ (mod_cast x.den_nz)),← mul_div_assoc, mul_comm, mul_div_assoc,
+    ← div_mul_eq_div_div, ← mul_div_assoc]
+  nth_rw 1 [mul_comm]
+  rw [product_formula_Z (Rat.num_ne_zero.mpr h_x_nezero), product_formula_N x.den_nz]
+  exact one_div_one
 
 end Rational
