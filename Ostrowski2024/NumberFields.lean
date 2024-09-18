@@ -363,6 +363,123 @@ theorem mulRingNorm_Padic_eq_p_pow_valP (x : K) (h_x_nezero : x ≠ 0) : (mulRin
   refine (zpow_inj (mod_cast Nat.Prime.pos hprime) (mod_cast Nat.Prime.ne_one hprime)).mpr ?_
   exact Int.eq_neg_comm.mp rfl
 
+namespace IsDedekindDomain.HeightOneSpectrum
+
+lemma val_zero (a : K) : P.valuation a = 0 → a = 0 := by exact (Valuation.zero_iff P.valuation).mp
+
+lemma val_ne_zero (a : K) : P.valuation a ≠ 0 → a ≠ 0 := by
+  intro a_1
+  simp_all only [ne_eq, map_eq_zero, not_false_eq_true]
+
+lemma hcard : 1 ≤ ((Nat.card (𝓞 K ⧸ P.asIdeal)) : ℝ) := by
+  norm_cast
+  have hfin := Fintype.finite (Ideal.fintypeQuotientOfFreeOfNeBot P.asIdeal P.ne_bot)
+  exact Nat.one_le_iff_ne_zero.mpr (Nat.card_ne_zero.mpr ⟨instNonemptyOfInhabited, hfin⟩)
+
+
+--alternative mulRingNorm_Padic
+noncomputable def mulRingNorm_Padic'_fun : K → ℝ :=
+    fun x => (P.valuation x).casesOn' 0 (fun e => (Nat.card <| 𝓞 K ⧸ P.asIdeal : ℝ) ^ Multiplicative.toAdd e)
+
+noncomputable def mulRingNorm_Padic' : MulRingNorm K where
+  toFun := mulRingNorm_Padic'_fun P
+  map_zero' := by
+    simp only [mulRingNorm_Padic'_fun, map_zero]
+    rfl
+  add_le' := by
+    have map_nonneg (a : K) : 0 ≤ Option.casesOn' (P.valuation a) 0 fun e => ((Nat.card (𝓞 K ⧸ P.asIdeal)) : ℝ) ^ Multiplicative.toAdd e := by
+      rcases P.valuation a with _ | a'
+      simp only [Option.casesOn'_none, le_refl]
+      simp only [Option.casesOn'_some]
+      exact zpow_nonneg (Nat.cast_nonneg' (Nat.card (𝓞 K ⧸ P.asIdeal))) (Multiplicative.toAdd a')
+    intro x y
+    simp only [mulRingNorm_Padic'_fun]
+    rcases hx : P.valuation x with _ | vx'
+    · rw [val_zero P x hx]
+      simp only [zero_add, le_add_iff_nonneg_left]
+      exact Preorder.le_refl 0
+    rcases hy : P.valuation y with _ | vy'
+    · simp_rw [val_zero P y hy,← hx]
+      simp only [add_zero, Option.casesOn'_none]
+      exact Preorder.le_refl _
+    rcases hxy : P.valuation (x + y) with _ | vxy'
+    · simp only [Option.casesOn'_none]
+      simp_rw [← hx,← hy]
+      exact Left.add_nonneg (map_nonneg x) (map_nonneg y)
+    simp only [Option.casesOn'_some]
+    apply le_trans _ <| max_le_add_of_nonneg (zpow_nonneg (Nat.cast_nonneg' (Nat.card (𝓞 K ⧸ P.asIdeal))) (Multiplicative.toAdd vx')) (zpow_nonneg (Nat.cast_nonneg' (Nat.card (𝓞 K ⧸ P.asIdeal))) (Multiplicative.toAdd vy'))
+    rw [← Monotone.map_max]
+    · apply zpow_le_of_le (hcard P)
+      rw [le_max_iff, Multiplicative.toAdd_le, Multiplicative.toAdd_le, ← le_max_iff]
+      have := Valuation.map_add P.valuation x y
+      simp_all only [map_eq_zero, implies_true, Nat.one_le_cast, le_max_iff]
+      cases this with
+      | inl h => left; exact WithBot.coe_le_coe.mp h
+      | inr h => right; exact WithBot.coe_le_coe.mp h
+    · refine monotone_int_of_le_succ ?hf
+      intro n
+      refine zpow_le_of_le ?hf.ha (Int.le.intro 1 rfl)
+      exact hcard P
+  neg' := by
+    intro r
+    simp_all only [Valuation.map_neg, mulRingNorm_Padic'_fun]
+  map_one' := by
+    simp_all only [map_one, mulRingNorm_Padic'_fun]
+    rfl
+  map_mul' := by
+    intro x y
+    simp_all only [map_mul]
+    rcases hx : P.valuation x with _ | vx'
+    simp only [mulRingNorm_Padic'_fun, map_mul, hx, Option.casesOn'_none, zero_mul]
+    exact rfl
+    rcases hy : P.valuation y with _ | vy'
+    simp_all only [mulRingNorm_Padic'_fun, map_mul, hy, Option.casesOn'_none, mul_zero]
+    exact rfl
+    simp only [mulRingNorm_Padic'_fun, Option.casesOn'_some]
+    rcases hxy : P.valuation (x * y) with _ | vxy'
+    have := val_zero P (x * y) hxy
+    simp_all only [map_zero, mul_eq_zero, Option.casesOn'_none, zero_eq_mul]
+    cases this with
+    | inl h =>
+      by_contra
+      rw [h] at hx
+      subst h
+      simp_all only [map_zero, reduceCtorEq]
+    | inr h =>
+      by_contra
+      rw [h] at hy
+      subst h
+      simp_all only [map_zero, reduceCtorEq]
+    simp only [Option.casesOn'_some]
+    have : vxy' = vx' * vy' := by
+      rw [← WithZero.coe_inj, WithZero.coe_mul]
+      have := Valuation.map_mul P.valuation x y
+      rw [hx, hy, hxy] at this
+      exact this
+    have h1 := hcard P
+    rw [this]
+    simp only [toAdd_mul, hx, hy ,hxy]
+    simp_all only [map_mul, Nat.one_le_cast, Option.casesOn'_some]
+    rw [← Real.rpow_intCast]
+    rw [← zpow_add₀ (by norm_cast; linarith [h1])]
+    exact
+      Real.rpow_intCast (↑(Nat.card (𝓞 K ⧸ P.asIdeal)))
+        (Multiplicative.toAdd vx' + Multiplicative.toAdd vy')
+  eq_zero_of_map_eq_zero' := by
+    intro x h
+    simp_all only
+    rcases hx : P.valuation x with _ | vx'
+    · exact val_zero P x hx
+    · simp only [mulRingNorm_Padic'_fun] at h
+      rw [hx] at h
+      simp_all only [Option.casesOn'_some]
+      apply eq_zero_of_zpow_eq_zero at h
+      have := hcard P
+      by_contra
+      linarith
+
+end IsDedekindDomain.HeightOneSpectrum
+
 --We have some examples, ignore the next three things
 
 def threeId : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) where
@@ -553,7 +670,7 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f ≠ 1) : ∃! P : IsDedekin
   have hp_gt_one : 1 < p := by exact Nat.Prime.one_lt hp_prime
   have h_mulRingNormPadic_pi : (mulRingNorm_Padic P) ↑π = (p : ℝ)⁻¹ := by
     rw [mulRingNorm_Padic_eq_p_pow_valP P π (RingOfIntegers.coe_ne_zero_iff.mpr hpi_nezero)]
-    unfold val_P -- create val_PDef
+    unfold val_P -- make a lemma val_PDef
     simp only [neg_neg, p]
     rw [← zpow_neg_one]
     congr
