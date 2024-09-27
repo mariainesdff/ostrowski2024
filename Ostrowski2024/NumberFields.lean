@@ -329,11 +329,11 @@ lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by
 lemma one_lt_p (p : ℕ) (hp : Fact (p.Prime)) : 1 < (p : NNReal) := mod_cast Nat.Prime.one_lt (Fact.elim hp)
 
 /--The MulRingNorm coresponding to the P-adic absolute value -/
--- Now we have p ^ - v_p (x). Do we want to add the ramification index of P as a factor in the exponent?
+-- Now we have p ^ - v_P (x). Do we want to add the ramification index of P as a factor in the exponent?
 noncomputable def mulRingNorm_Padic : MulRingNorm K :=
 { toFun     := fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero (prime_in_prime_ideal P)
     (prime_in_prime_ideal_is_prime P)) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
-  map_zero' := by simp only [map_zero]; exact rfl
+  map_zero' := by simp only [map_zero, NNReal.coe_zero]
   add_le'   := by
     simp only
     let p := prime_in_prime_ideal P
@@ -377,7 +377,7 @@ lemma hcard : 1 ≤ ((Nat.card (𝓞 K ⧸ P.asIdeal)) : ℝ) := by
   exact Nat.one_le_iff_ne_zero.mpr (Nat.card_ne_zero.mpr ⟨instNonemptyOfInhabited, hfin⟩)
 
 
---alternative mulRingNorm_Padic
+--alternative mulRingNorm_Padic. It avoids withZeroMultIntToNNReal but dealing with casesOn' makes things complicated
 noncomputable def mulRingNorm_Padic'_fun : K → ℝ :=
     fun x => (P.valuation x).casesOn' 0 (fun e => (Nat.card <| 𝓞 K ⧸ P.asIdeal : ℝ) ^ Multiplicative.toAdd e)
 
@@ -487,7 +487,6 @@ def threeId : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) where
   isPrime := by
     refine (Ideal.span_singleton_prime ?hp).mpr ?_
     exact Ne.symm (OfNat.zero_ne_ofNat 3)
-
     sorry
   ne_bot := by
     refine (Submodule.ne_bot_iff (Ideal.span {3})).mpr ?_
@@ -579,8 +578,9 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     exact Nat.le_sub_one_of_lt hi
   have h₀ : (x : K) ^ P.natDegree = ↑(x ^ P.natDegree) := rfl
   have hnezerodeg : P.natDegree ≠ 0 := by
-    --minpoly.natDegree_pos
-    sorry
+    have hx : IsIntegral ℤ x := RingOfIntegers.isIntegral x
+    have := minpoly.natDegree_pos hx
+    linarith
   have hineq3 : (f x) ^ P.natDegree ≤ (f x) ^ (P.natDegree - 1) := by
     nth_rewrite 1 [← map_pow, h₀, hminp]
     apply Finset.sup'_le (Finset.nonempty_range_iff.mpr hnezerodeg) at hineq2
@@ -685,6 +685,7 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f ≠ 1) : ∃! P : IsDedekin
       (map_pos_of_ne_zero f ( RingOfIntegers.coe_ne_zero_iff.mpr hpi_nezero)) hπ_f_lt_one
   have MulRingNorm_eq_one_of_Padic_eq_one (x : K) (h_Padic_zero : mulRingNorm_Padic P x = 1) : f x = 1 := by
     -- TODO
+
     sorry
   constructor
   · --existence

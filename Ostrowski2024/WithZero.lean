@@ -33,7 +33,7 @@ WithZero, multiplicative, nnreal
 
 noncomputable section
 
-open scoped DiscreteValuation NNReal
+open scoped  NNReal --DiscreteValuation
 
 open Multiplicative WithZero Equiv
 
@@ -94,7 +94,7 @@ theorem one_lt_div' {α : Type _} [LinearOrderedCommGroupWithZero α] (a : α) {
     1 < a / b ↔ b < a := by
   rw [← mul_lt_mul_right₀ (zero_lt_iff.mpr hb), one_mul, div_eq_mul_inv, inv_mul_cancel_right₀ hb]
 
-open scoped DiscreteValuation
+--open scoped DiscreteValuation
 
 theorem strictMonoOn_zpow {n : ℤ} (hn : 0 < n) : StrictMonoOn (fun x : ℤₘ₀ ↦ x ^ n) (Set.Ioi 0) :=
   fun a ha b _ hab ↦ by

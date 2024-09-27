@@ -597,13 +597,13 @@ lemma fooN {n : ℕ} (h_nezero : n ≠ 0) : (Function.mulSupport fun p : Nat.Pri
   convert_to { (p : Nat.Primes) | ((p : ℕ) ∣ n) }.Finite
   · ext p
     have : Fact (Nat.Prime ↑p) := fact_iff.2 (p.2)
-    have := padicNorm.of_nat (p:= ↑p) n
+    have := padicNorm.of_nat (p:=↑p) n
     simp only [Function.mem_mulSupport, ne_eq, Set.mem_setOf_eq]
     rw [← padicNorm.nat_lt_one_iff]
     exact ⟨lt_of_le_of_ne this, ne_of_lt⟩
   · exact fooN' h_nezero
 
-lemma fooZ {n : ℤ} (h_nezero : n ≠ 0) : (Function.mulSupport fun p : Nat.Primes => padicNorm ↑p ↑n).Finite := by
+lemma Int.mulSupport_padicNorm_Finite {n : ℤ} (h_nezero : n ≠ 0) : (Function.mulSupport fun p : Nat.Primes => padicNorm ↑p ↑n).Finite := by
   have habs := Int.natAbs_eq n
   cases habs with
   | inl h =>
@@ -691,11 +691,11 @@ theorem product_formula_Z {x : ℤ} (h_x_nezero : x ≠ 0) : |(x : ℚ)| * ∏�
   cases habs with
   | inl h =>
     rw [h]
-    apply product_formula_N (Int.natAbs_ne_zero.mpr h_x_nezero)
+    exact product_formula_N (Int.natAbs_ne_zero.mpr h_x_nezero)
   | inr h =>
     rw [h]
     simp only [Int.cast_neg, Int.cast_abs, abs_neg, abs_abs, padicNorm.neg]
-    apply product_formula_N (Int.natAbs_ne_zero.mpr h_x_nezero)
+    exact product_formula_N (Int.natAbs_ne_zero.mpr h_x_nezero)
 
 theorem product_formula {x : ℚ} (h_x_nezero : x ≠ 0) : |x| * ∏ᶠ p : Nat.Primes, padicNorm p x = 1 := by
   rw [← Rat.num_div_den x, abs_div]
@@ -704,8 +704,8 @@ theorem product_formula {x : ℚ} (h_x_nezero : x ≠ 0) : |x| * ∏ᶠ p : Nat.
       refine { out := ?out }
       exact p.2
     exact padicNorm.div ↑x.num ↑x.den
-  rw [finprod_congr this, finprod_div_distrib (fooZ (Rat.num_ne_zero.mpr h_x_nezero))
-    (mod_cast fooZ (mod_cast x.den_nz)),← mul_div_assoc, mul_comm, mul_div_assoc,
+  rw [finprod_congr this, finprod_div_distrib (Int.mulSupport_padicNorm_Finite (Rat.num_ne_zero.mpr h_x_nezero))
+    (mod_cast Int.mulSupport_padicNorm_Finite (mod_cast x.den_nz)), ← mul_div_assoc, mul_comm, mul_div_assoc,
     ← div_mul_eq_div_div, ← mul_div_assoc]
   nth_rw 1 [mul_comm]
   rw [product_formula_Z (Rat.num_ne_zero.mpr h_x_nezero), product_formula_N x.den_nz]
