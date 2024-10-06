@@ -7,7 +7,7 @@ import Mathlib.Algebra.Order.Group.TypeTags
 import Mathlib.Data.NNReal.Basic
 import Mathlib.Logic.Equiv.TransferInstance
 import Mathlib.RingTheory.Valuation.Basic
-
+import Mathlib.Tactic.Rify
 /-!
 # WithZero
 
@@ -199,3 +199,42 @@ theorem withZeroMultIntToNNReal_strictMono {e : NNReal} (he : 1 < e) :
   · rw [zpow_lt_iff_lt he, Multiplicative.toAdd_lt, ← WithZero.coe_lt_coe, WithZero.coe_unzero hx,
       WithZero.coe_unzero hy]
     exact hxy
+
+theorem eq_one {e : NNReal} {m : ℤₘ₀} (he0 : e ≠ 0) (he1 : e ≠ 1) (hm : m ≠ 0) : withZeroMultIntToNNReal he0 m = 1 ↔ m = 1 := by
+  constructor
+  · rw [withZeroMultIntToNNReal_neg_apply he0 hm]
+
+    intro h
+    convert_to toAdd (unzero hm) = 0
+    simp only [toAdd_eq_zero]
+    constructor
+    intro a
+    subst a
+    simp_all only [ne_eq, unzero_coe]
+    simp_all only [ne_eq, one_ne_zero, not_false_eq_true]
+    rfl
+    intro h
+    rw [WithZero.unzero_coe (x:=m) _] at h
+
+
+    have : 1 = e ^ 0 := by exact rfl
+    rw [this] at h
+    rw [zpow_inj (n:=0) _ he1] at h
+
+    --rw [pow_eq_one_iff_cases] at h
+    have : toAdd (unzero hm) = 0 := by
+
+      sorry
+    sorry
+  · intro a
+    subst a
+    simp_all only [ne_eq, one_ne_zero, not_false_eq_true, map_one]
+
+
+
+theorem foo {e : NNReal} {m : ℤₘ₀} (he : 1 < e) (hm : m ≠ 0) : withZeroMultIntToNNReal (ne_zero_of_lt he) m ≤ 1 ↔ m ≤ 1 := by
+  constructor
+  · intro h
+
+    sorry
+  · sorry

@@ -6,9 +6,11 @@ import Ostrowski2024.WithZero
 import Mathlib.NumberTheory.NumberField.Embeddings
 import Mathlib.NumberTheory.Ostrowski
 import Mathlib.RingTheory.DedekindDomain.AdicValuation
+import Mathlib.RingTheory.DedekindDomain.Factorization
 import Mathlib.RingTheory.Ideal.Norm
 import Mathlib.Tactic.Rify
 import Mathlib.Topology.Algebra.Valued.NormedValued
+import Mathlib.FieldTheory.Finite.Basic
 
 --Product Formula
 
@@ -144,13 +146,108 @@ open NumberField
 variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) -- P is a nonzero prime ideal of 𝓞 K
 
 
-noncomputable def P_abs_fun : K → ℝ :=
-    fun x => (P.valuation x).casesOn' 0 (fun e => (Nat.card <| 𝓞 K ⧸ P.asIdeal : ℝ) ^ Multiplicative.toAdd e)
-
-
---fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero (prime_in_prime_ideal P)(prime_in_prime_ideal_is_prime P)) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
+lemma norm_ne_zero : (Nat.card <| 𝓞 K ⧸ P.asIdeal : NNReal) ≠ 0 := by
+  set k := 𝓞 K ⧸ P.asIdeal
+  have : Field k := Ideal.Quotient.field P.asIdeal
+  have : Fintype k := Ideal.fintypeQuotientOfFreeOfNeBot P.asIdeal P.ne_bot
+  simp_all only [Nat.card_eq_fintype_card, ne_eq, Nat.cast_eq_zero, Fintype.card_ne_zero, not_false_eq_true, k]
 
 end IsDedekindDomain.HeightOneSpectrum
+
+namespace NumberField
+variable {K : Type*} [Field K] [NumberField K]
+variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) -- P is a nonzero prime ideal of 𝓞 K
+open IsDedekindDomain.HeightOneSpectrum
+
+noncomputable def PadicNorm : K → ℝ := fun x =>
+    withZeroMultIntToNNReal (norm_ne_zero P) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)
+
+theorem PadicNorm_def (x : K) : PadicNorm P x =
+    withZeroMultIntToNNReal (norm_ne_zero P) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x) :=
+    rfl
+
+theorem Padic_norm_int_le_one (x : 𝓞 K) : PadicNorm P x ≤ 1 := by
+  rw [PadicNorm_def]
+  simp only [NNReal.coe_le_one]
+  sorry
+
+namespace PadicNorm
+
+theorem div (a b : K) : PadicNorm P (a / b) = PadicNorm P a / PadicNorm P b := by
+  rw [PadicNorm_def, PadicNorm_def, PadicNorm_def]
+  simp only [map_div₀, NNReal.coe_div]
+
+end PadicNorm
+
+open PadicNorm
+
+lemma mulSupport_PadicNorm_Finite_of_ideal_div_finite {x : 𝓞 K} (h_x_nezero : x ≠ 0)
+    (h : {(P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) | P.asIdeal ∣ Ideal.span {x}}.Finite) :
+    (Function.mulSupport fun P : IsDedekindDomain.HeightOneSpectrum (𝓞 K) =>
+    PadicNorm P x).Finite := by
+  apply Set.Finite.subset h
+  simp only [Ideal.dvd_span_singleton, Function.mulSupport_subset_iff, ne_eq, Set.mem_setOf_eq]
+  intro P hp
+  have : PadicNorm P ↑x < 1 := by sorry
+
+  /- · ext P
+    simp only [Function.mem_mulSupport, Set.mem_setOf_eq]
+    rw [← @IsDedekindDomain.HeightOneSpectrum.valuation_lt_one_iff_dvd (𝓞 K) _ _ K _ _ _ P x,
+      PadicNorm_def]
+    simp only [ne_eq, NNReal.coe_eq_one]
+    rw [@valuation_eq_intValuationDef]
+
+
+    have : PadicNorm P ↑x ≠ 1 ↔ PadicNorm P ↑x < 1 := by
+
+      sorry
+    --rw [this]
+
+    sorry -/
+  sorry
+
+
+theorem mulSupport_PadicNorm_Finite {x : 𝓞 K} (h_x_nezero : x ≠ 0) :
+    (Function.mulSupport fun P : IsDedekindDomain.HeightOneSpectrum (𝓞 K) =>
+    PadicNorm P x).Finite := by
+  apply mulSupport_PadicNorm_Finite_of_ideal_div_finite h_x_nezero
+  apply Ideal.finite_factors
+  simp_all only [ne_eq, Submodule.zero_eq_bot, Ideal.span_singleton_eq_bot, not_false_eq_true]
+
+theorem product_formula_int {x : 𝓞 K} (h_x_nezero : x ≠ 0) :
+    ∏ᶠ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), PadicNorm P x = (|(Algebra.norm ℤ) x| : ℝ)⁻¹ := by sorry
+
+theorem product_formula {x : K} (h_x_nezero : x ≠ 0) :
+    ∏ᶠ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), PadicNorm P x = |(Algebra.norm ℚ) x|⁻¹ := by
+  --reduce to 𝓞 K
+  have : IsFractionRing (𝓞 K) K := NumberField.RingOfIntegers.instIsFractionRing
+  have hfrac : ∃ a b : 𝓞 K, b ≠ 0 ∧  x = a / b := by
+    rcases @IsFractionRing.div_surjective (𝓞 K) _ _ K _ _ _ x with ⟨a, b, hb, hfrac⟩
+    use a, b
+    subst hfrac
+    simp_all only [ne_eq, div_eq_zero_iff, NoZeroSMulDivisors.algebraMap_eq_zero_iff, not_or, not_false_eq_true,
+      and_self]
+  rcases hfrac with ⟨a, b, hb, hx⟩
+  simp_rw [hx]
+  have (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) : PadicNorm P (a / b) = PadicNorm P a / PadicNorm P b := div P a b
+  rw [finprod_congr this]
+  simp only [Rat.cast_inv, Rat.cast_abs]
+  have (y z : K) (h : z ≠ 0) : (Algebra.norm ℚ) (y / z) = ((Algebra.norm ℚ) y) / ((Algebra.norm ℚ) z) := by
+    have : ((Algebra.norm ℚ) z) ≠ 0 := by
+      subst hx
+      simp_all only [ne_eq, div_eq_zero_iff, NoZeroSMulDivisors.algebraMap_eq_zero_iff, or_false,
+        Algebra.norm_eq_zero_iff, not_false_eq_true]
+    refine Eq.symm (IsUnit.div_eq_of_eq_mul (Ne.isUnit this) ?_)
+    rw [← @MonoidHom.map_mul, div_mul, div_self h, div_one]
+  rw [this _ _ (RingOfIntegers.coe_ne_zero_iff.mpr hb)]
+  simp only [Rat.cast_div]
+  rw [← Algebra.coe_norm_int a, ← Algebra.coe_norm_int b]
+  simp only [Rat.cast_intCast]
+  sorry
+
+
+
+end NumberField
 ----#find_home! product_formula
 
 --#find_home! product_formula_N_range
