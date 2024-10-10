@@ -1,8 +1,9 @@
 import Mathlib.Analysis.Normed.Field.Lemmas
 import Mathlib.Data.Nat.Factorization.Basic
+import Mathlib.Data.Int.WithZero
 import Mathlib.Data.Rat.Star
 import Mathlib.NumberTheory.Padics.PadicNorm
-import Ostrowski2024.WithZero
+--import Ostrowski2024.WithZero
 import Mathlib.NumberTheory.NumberField.Embeddings
 import Mathlib.NumberTheory.Ostrowski
 import Mathlib.RingTheory.DedekindDomain.AdicValuation
@@ -157,13 +158,13 @@ end IsDedekindDomain.HeightOneSpectrum
 namespace NumberField
 variable {K : Type*} [Field K] [NumberField K]
 variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) -- P is a nonzero prime ideal of 𝓞 K
-open IsDedekindDomain.HeightOneSpectrum
+open IsDedekindDomain.HeightOneSpectrum  WithZeroMulInt
 
 noncomputable def PadicNorm : K → ℝ := fun x =>
-    withZeroMultIntToNNReal (norm_ne_zero P) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)
+    toNNReal (norm_ne_zero P) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x)
 
 theorem PadicNorm_def (x : K) : PadicNorm P x =
-    withZeroMultIntToNNReal (norm_ne_zero P) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x) :=
+    toNNReal (norm_ne_zero P) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x) :=
     rfl
 
 theorem Padic_norm_int_le_one (x : 𝓞 K) : PadicNorm P x ≤ 1 := by

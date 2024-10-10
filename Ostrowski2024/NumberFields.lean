@@ -3,6 +3,7 @@ import Mathlib.Algebra.Order.CompleteField
 import Mathlib.Algebra.Quotient
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
+import Mathlib.Data.Int.WithZero
 import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.NumberTheory.NumberField.Embeddings
 import Mathlib.NumberTheory.Ostrowski
@@ -11,7 +12,7 @@ import Mathlib.RingTheory.Ideal.Norm
 import Mathlib.Tactic.Rify
 import Mathlib.Topology.Algebra.Valued.NormedValued
 import Ostrowski2024.Rationals
-import Ostrowski2024.WithZero
+--import Ostrowski2024.WithZero
 
 /-!
 # Ostrowski's theorem for number fields
@@ -328,10 +329,12 @@ lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by
 
 lemma one_lt_p (p : ℕ) (hp : Fact (p.Prime)) : 1 < (p : NNReal) := mod_cast Nat.Prime.one_lt (Fact.elim hp)
 
+open WithZeroMulInt
+
 /--The MulRingNorm coresponding to the P-adic absolute value -/
 -- Now we have p ^ - v_P (x). Do we want to add the ramification index of P as a factor in the exponent?
 noncomputable def mulRingNorm_Padic : MulRingNorm K :=
-{ toFun     := fun x : K ↦ withZeroMultIntToNNReal (p_ne_zero (prime_in_prime_ideal P)
+{ toFun     := fun x : K ↦ toNNReal (p_ne_zero (prime_in_prime_ideal P)
     (prime_in_prime_ideal_is_prime P)) (((IsDedekindDomain.HeightOneSpectrum.valuation P) x))
   map_zero' := by simp only [map_zero, NNReal.coe_zero]
   add_le'   := by
@@ -342,7 +345,7 @@ noncomputable def mulRingNorm_Padic : MulRingNorm K :=
     norm_cast
     -- the triangular inequality is implied by the ultrametric one
     apply le_trans _ <| max_le_add_of_nonneg (by simp only [zero_le]) (by simp only [zero_le])
-    have mono := StrictMono.monotone (withZeroMultIntToNNReal_strictMono (one_lt_p p hp))
+    have mono := StrictMono.monotone (toNNReal_strictMono (one_lt_p p hp))
     rw [← Monotone.map_max mono] --max goes inside withZeroMultIntToNNReal
     exact mono (Valuation.map_add P.valuation x y)
   neg'      := by simp only [Valuation.map_neg, implies_true]
@@ -357,7 +360,7 @@ theorem mulRingNorm_Padic_eq_p_pow_valP (x : K) (h_x_nezero : x ≠ 0) : (mulRin
   have : (mulRingNorm_Padic P) x = (mulRingNorm_Padic P).toFun x := rfl
   rw [this]
   simp only [mulRingNorm_Padic]
-  rw [withZeroMultIntToNNReal_neg_apply _ ((Valuation.ne_zero_iff P.valuation).mpr h_x_nezero)]
+  rw [toNNReal_neg_apply _ ((Valuation.ne_zero_iff P.valuation).mpr h_x_nezero)]
   simp only [NNReal.coe_zpow, NNReal.coe_natCast]
   have hprime := Fact.elim (prime_in_prime_ideal_is_prime P)
   refine (zpow_inj (mod_cast Nat.Prime.pos hprime) (mod_cast Nat.Prime.ne_one hprime)).mpr ?_
@@ -655,7 +658,7 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f ≠ 1) : ∃! P : IsDedekin
       WithZero.coe_inv, zero_eq_inv, WithZero.zero_ne_coe] at hπ
   have hπ_val : P.intValuationDef π < 1 := by --prob needed in hπ_f_lt_one, or maybe not
     rw [hπ]
-    exact WithZero.ofAdd_neg_one_lt_one
+    exact Batteries.compareOfLessAndEq_eq_lt.mp rfl
   have hπ_f_gt_zero : 0 < f π := by
     sorry
   have hπ_f_lt_one : f π < 1 := by
