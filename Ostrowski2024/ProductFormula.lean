@@ -3,7 +3,7 @@ import Mathlib.Data.Nat.Factorization.Basic
 import Mathlib.Data.Int.WithZero
 import Mathlib.Data.Rat.Star
 import Mathlib.NumberTheory.Padics.PadicNorm
---import Ostrowski2024.WithZero
+import Ostrowski2024.WithZero
 import Mathlib.NumberTheory.NumberField.Embeddings
 import Mathlib.NumberTheory.Ostrowski
 import Mathlib.RingTheory.DedekindDomain.AdicValuation
@@ -144,15 +144,15 @@ theorem product_formula {x : ℚ} (h_x_nezero : x ≠ 0) : |x| * ∏ᶠ p : Nat.
 /- ## Number Field case  -/
 
 namespace IsDedekindDomain.HeightOneSpectrum
-variable {R : Type u_1} [CommRing R] [IsDedekindDomain R] (v : IsDedekindDomain.HeightOneSpectrum R)
+variable {R : Type u_1} [CommRing R] [IsDedekindDomain R] (P : IsDedekindDomain.HeightOneSpectrum R)
 
 /-- The set of maximal ideals that contain `x`. -/
-def support_set (x : R) : Set (IsDedekindDomain.HeightOneSpectrum R) :=
-    {v : IsDedekindDomain.HeightOneSpectrum R | x ∈ v.asIdeal}
+def support_set (x : R) : Set (HeightOneSpectrum R) :=
+    {v : HeightOneSpectrum R | x ∈ v.asIdeal}
 
 /-- If `x ≠ 0` the set of maximal ideals that contain `x` is finite. -/
 lemma support_set_finite_of_nezero {x : R} (hx : x ≠ 0) : (support_set x).Finite := by
-  have h : {(P : IsDedekindDomain.HeightOneSpectrum R) | P.asIdeal ∣ Ideal.span {x}}.Finite := by
+  have h : {(P : HeightOneSpectrum R) | P.asIdeal ∣ Ideal.span {x}}.Finite := by
     apply Ideal.finite_factors
     simp_all only [ne_eq, Submodule.zero_eq_bot, Ideal.span_singleton_eq_bot, not_false_eq_true]
   apply Set.Finite.subset h
@@ -163,18 +163,30 @@ lemma support_set_finite_of_nezero {x : R} (hx : x ≠ 0) : (support_set x).Fini
 noncomputable def support {x : R} (hx : x ≠ 0) : Finset (IsDedekindDomain.HeightOneSpectrum R) :=
     Set.Finite.toFinset (support_set_finite_of_nezero hx)
 
+lemma support_def {x : R} (hx : x ≠ 0) : support hx = Set.Finite.toFinset (support_set_finite_of_nezero hx) := rfl
+
+lemma mem_support_iff_mem_ideal {x : R} (hx : x ≠ 0) : P ∈ support hx ↔ x ∈ P.asIdeal := by
+  rw [support_def, Set.Finite.mem_toFinset]
+  rfl
+
 end IsDedekindDomain.HeightOneSpectrum
 
 namespace NumberField
 variable {K : Type*} [Field K] [NumberField K]
 variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) -- P is a nonzero prime ideal of 𝓞 K
 
-/-- The norm of a maximal ideal as an element of ℝ≥0 is non zero   -/
-lemma norm_ne_zero : (Nat.card <| 𝓞 K ⧸ P.asIdeal : NNReal) ≠ 0 := by
+/-- The norm of a maximal ideal as an element of ℝ≥0 is > 1  -/
+lemma one_lt_norm : 1 < (Nat.card <| 𝓞 K ⧸ P.asIdeal : NNReal) := by
   set k := 𝓞 K ⧸ P.asIdeal
   have : Field k := Ideal.Quotient.field P.asIdeal
   have : Fintype k := Ideal.fintypeQuotientOfFreeOfNeBot P.asIdeal P.ne_bot
-  simp_all only [Nat.card_eq_fintype_card, ne_eq, Nat.cast_eq_zero, Fintype.card_ne_zero, not_false_eq_true, k]
+  rcases FiniteField.card' k with ⟨p, n, hp, hcard⟩
+  simp only [Nat.card_eq_fintype_card, hcard]
+  norm_cast
+  refine Nat.one_lt_pow (PNat.ne_zero n) (Nat.Prime.one_lt hp)
+
+/-- The norm of a maximal ideal as an element of ℝ≥0 is non zero   -/
+lemma norm_ne_zero : (Nat.card <| 𝓞 K ⧸ P.asIdeal : NNReal) ≠ 0 := ne_zero_of_lt (one_lt_norm P)
 
 open IsDedekindDomain.HeightOneSpectrum  WithZeroMulInt
 
@@ -186,10 +198,19 @@ theorem PadicNorm_def (x : K) : PadicNorm P x =
     toNNReal (norm_ne_zero P) ((IsDedekindDomain.HeightOneSpectrum.valuation P) x) :=
     rfl
 
-theorem Padic_norm_int_le_one (x : 𝓞 K) : PadicNorm P x ≤ 1 := by
+lemma Padic_norm_zero : PadicNorm P 0 = 0 := by
   rw [PadicNorm_def]
-  simp only [NNReal.coe_le_one]
-  sorry
+  exact_mod_cast toNNReal_pos_apply _ (Valuation.map_zero P.valuation)
+
+theorem Padic_norm_int_le_one (x : 𝓞 K) : PadicNorm P x ≤ 1 := by
+  by_cases h : x = 0
+  · rw [h]
+    simp only [map_zero, Padic_norm_zero]
+    exact zero_le_one' ℝ
+  · rw [PadicNorm_def]
+    simp only [NNReal.coe_le_one]
+    rw [le_one (one_lt_norm P)]
+    exact valuation_le_one P x
 
 namespace PadicNorm
 
@@ -201,41 +222,79 @@ end PadicNorm
 
 open PadicNorm
 
-lemma mulSupport_PadicNorm_Finite_of_ideal_div_finite {x : 𝓞 K} (h_x_nezero : x ≠ 0)
-    (h : {(P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) | P.asIdeal ∣ Ideal.span {x}}.Finite) :
-    (Function.mulSupport fun P : IsDedekindDomain.HeightOneSpectrum (𝓞 K) =>
-    PadicNorm P x).Finite := by
-  apply Set.Finite.subset h
-  simp only [Ideal.dvd_span_singleton, Function.mulSupport_subset_iff, ne_eq, Set.mem_setOf_eq]
-  intro P hp
-  have : PadicNorm P ↑x < 1 := by sorry
-  have : (IsDedekindDomain.HeightOneSpectrum.valuation P) (x : K) < 1 := by sorry
-  rw [valuation_eq_intValuationDef, IsDedekindDomain.HeightOneSpectrum.intValuation_lt_one_iff_dvd P x] at this
+lemma mul_support_subset_support {x : 𝓞 K} (h_x_nezero : x ≠ 0) :
+    (Function.mulSupport fun P : IsDedekindDomain.HeightOneSpectrum (𝓞 K) => PadicNorm P x) ⊆
+    support h_x_nezero := by
+  intro P hP
+  rw [@Function.mem_mulSupport] at hP
+  have : PadicNorm P ↑x < 1 := by
+    have := Padic_norm_int_le_one P x
+    exact lt_of_le_of_ne this hP
+  rw [PadicNorm_def] at this
+  norm_cast at this
+  rw [lt_one (one_lt_norm P),
+    IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef,
+    IsDedekindDomain.HeightOneSpectrum.intValuation_lt_one_iff_dvd] at this
+  norm_cast
+  rw [mem_support_iff_mem_ideal]
   simp_all only [ne_eq, Ideal.dvd_span_singleton]
 
 theorem mulSupport_PadicNorm_Finite {x : 𝓞 K} (h_x_nezero : x ≠ 0) :
     (Function.mulSupport fun P : IsDedekindDomain.HeightOneSpectrum (𝓞 K) =>
-    PadicNorm P x).Finite := by
-  apply mulSupport_PadicNorm_Finite_of_ideal_div_finite h_x_nezero
-  apply Ideal.finite_factors
-  simp_all only [ne_eq, Submodule.zero_eq_bot, Ideal.span_singleton_eq_bot, not_false_eq_true]
+    PadicNorm P x).Finite := Set.Finite.subset (Finset.finite_toSet (support h_x_nezero)) (mul_support_subset_support h_x_nezero)
+
+lemma Pow_Dividing_mulSupport_subset_Padic_mulSupport {x : 𝓞 K} (h_x_nezero : x ≠ 0) :
+    (Function.mulSupport fun P : IsDedekindDomain.HeightOneSpectrum (𝓞 K) => P.maxPowDividing (Ideal.span {x})) ⊆ (Function.mulSupport fun P : IsDedekindDomain.HeightOneSpectrum (𝓞 K) =>
+    PadicNorm P x) := by
+  intro P hP
+  simp_all only [Function.mem_mulSupport]
+  rw [PadicNorm_def]
+  norm_cast
+  rw [eq_one _ (Ne.symm (ne_of_lt (one_lt_norm P))) (by simp_all only [ne_eq, map_eq_zero,
+    NoZeroSMulDivisors.algebraMap_eq_zero_iff, not_false_eq_true]),
+    IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef,
+    IsDedekindDomain.HeightOneSpectrum.intValuationDef_if_neg P h_x_nezero]
+  norm_cast
+  simp only [ofAdd_neg, inv_eq_one, ofAdd_eq_one, Nat.cast_eq_zero]
+  intro h
+  apply hP
+  rw [IsDedekindDomain.HeightOneSpectrum.maxPowDividing, h, pow_zero _]
+
+lemma Pow_Dividing_mulSupport_subset_support {x : 𝓞 K} (h_x_nezero : x ≠ 0) :
+    (Function.mulSupport fun P : IsDedekindDomain.HeightOneSpectrum (𝓞 K) => P.maxPowDividing (Ideal.span {x})) ⊆
+    support h_x_nezero := subset_trans (Pow_Dividing_mulSupport_subset_Padic_mulSupport h_x_nezero) (mul_support_subset_support h_x_nezero)
 
 theorem product_formula_int {x : 𝓞 K} (h_x_nezero : x ≠ 0) :
     ∏ᶠ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), PadicNorm P x = (|(Algebra.norm ℤ) x| : ℝ)⁻¹ := by
   apply Eq.symm (inv_eq_of_mul_eq_one_left _)
   norm_cast
-  have : Ideal.span {x} ≠ 0 := by sorry
-  rw [Int.abs_eq_natAbs, ← Ideal.absNorm_span_singleton,← Ideal.finprod_heightOneSpectrum_factorization this]
+  have h_span_nezero : Ideal.span {x} ≠ 0 := by
+    simp_all only [ne_eq, Submodule.zero_eq_bot, Ideal.span_singleton_eq_bot, not_false_eq_true]
+  rw [Int.abs_eq_natAbs, ← Ideal.absNorm_span_singleton,
+    ← Ideal.finprod_heightOneSpectrum_factorization h_span_nezero]
   simp only [Int.cast_natCast]
-  have : Ideal.absNorm (∏ᶠ (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K)), v.maxPowDividing (Ideal.span {x})) = ∏ᶠ (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K)), Ideal.absNorm (v.maxPowDividing (Ideal.span {x})) := by sorry
-    --apply MulEquiv.map_finprod
-  --rw [MulEquiv.map_finprod _ _]
-  --Ideal.absNorm_span_singleton
-  --finprod_eq_prod_of_mulSupport_toFinset_subset
-  --map_prod
-  sorry
+  have := mul_support_subset_support h_x_nezero
+  rw [finprod_eq_prod_of_mulSupport_toFinset_subset (s:=support h_x_nezero) _ (mulSupport_PadicNorm_Finite h_x_nezero) (Set.Finite.toFinset_subset.mpr this),
+    finprod_eq_prod_of_mulSupport_toFinset_subset (s:=support h_x_nezero) _
+    (Ideal.finite_mulSupport h_span_nezero) (Set.Finite.toFinset_subset.mpr
+    (Pow_Dividing_mulSupport_subset_support h_x_nezero)), map_prod]
+  push_cast
+  rw [← Finset.prod_mul_distrib]
+  apply Finset.prod_eq_one
+  intro P _
+  rw [IsDedekindDomain.HeightOneSpectrum.maxPowDividing]
+  simp only [map_pow, Nat.cast_pow]
+  rw [PadicNorm_def, WithZeroMulInt.toNNReal_neg_apply _ (by simp only [ne_eq, map_eq_zero, NoZeroSMulDivisors.algebraMap_eq_zero_iff]; exact h_x_nezero),
+    Ideal.absNorm_apply, Submodule.cardQuot_apply]
+  push_cast
+  rw [← Real.rpow_natCast, ← Real.rpow_intCast, ← Real.rpow_add (mod_cast Nat.zero_lt_of_lt (mod_cast one_lt_norm P))]
+  norm_cast
+  rw [zpow_eq_one_iff_right₀ (Nat.cast_nonneg' (Nat.card (𝓞 K ⧸ P.asIdeal))) (by exact Ne.symm (ne_of_lt (one_lt_norm P)))]
+  simp_rw [valuation_eq_intValuationDef P x, intValuationDef_if_neg P h_x_nezero]
+  simp only [ofAdd_neg, WithZero.coe_inv, WithZero.unzero_coe, toAdd_inv, toAdd_ofAdd,
+    neg_add_cancel]
 
-theorem product_formula {x : K} (h_x_nezero : x ≠ 0) :
+theorem product_formula_finite {x : K} (h_x_nezero : x ≠ 0) :
     ∏ᶠ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), PadicNorm P x = |(Algebra.norm ℚ) x|⁻¹ := by
   --reduce to 𝓞 K
   have : IsFractionRing (𝓞 K) K := NumberField.RingOfIntegers.instIsFractionRing
@@ -268,8 +327,14 @@ theorem product_formula {x : K} (h_x_nezero : x ≠ 0) :
     product_formula_int ha, product_formula_int hb, abs_div]
   simp only [div_inv_eq_mul, inv_div, inv_mul_eq_div]
 
+theorem product_formula {x : K} (h_x_nezero : x ≠ 0) :
+    (∏ w : NumberField.InfinitePlace K, w x ^ w.mult) * ∏ᶠ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), PadicNorm P x = 1 := by
+  rw [product_formula_finite h_x_nezero, NumberField.InfinitePlace.prod_eq_abs_norm x]
+  simp_all only [ne_eq, Rat.cast_abs, Rat.cast_inv, isUnit_iff_ne_zero, abs_eq_zero, Rat.cast_eq_zero,
+    Algebra.norm_eq_zero_iff, not_false_eq_true, IsUnit.mul_inv_cancel]
+
 end NumberField
-----#find_home! product_formula
+--#find_home! NumberField.product_formula
 
 --#find_home! product_formula_N_range
 

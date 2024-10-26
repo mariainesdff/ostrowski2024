@@ -28,6 +28,8 @@ lemma foo {e : ℝ} {n : ℤ} (he0 : 0 < e) (he1 : e ≠ 1) (hexp : e ^ n = 1) :
     norm_cast at hexp
     exact Int.natAbs_eq_zero.mp <| pow_eq_one_of he1 (by linarith) hexp
 
+--zpow_eq_one_iff_right₀
+
 theorem eq_one {e : NNReal} {m : ℤₘ₀} (he0 : e ≠ 0) (he1 : e ≠ 1) (hm : m ≠ 0) : toNNReal he0 m = 1 ↔ m = 1 := by
   constructor
   · rw [toNNReal_neg_apply he0 hm]
@@ -43,7 +45,7 @@ theorem eq_one {e : NNReal} {m : ℤₘ₀} (he0 : e ≠ 0) (he1 : e ≠ 1) (hm 
     subst a
     simp_all only [ne_eq, one_ne_zero, not_false_eq_true, map_one]
 
-theorem lt_one {e : NNReal} {m : ℤₘ₀} (he1 : 1 < e) (hm : m ≠ 0) : toNNReal (ne_zero_of_lt he1) m < 1 ↔ m < 1 := by
+theorem lt_one {e : NNReal} {m : ℤₘ₀} (he1 : 1 < e) : toNNReal (ne_zero_of_lt he1) m < 1 ↔ m < 1 := by
   have mono := toNNReal_strictMono he1
   unfold StrictMono at mono
   have : 1 = (toNNReal (ne_zero_of_lt he1)) 1 := rfl
@@ -55,7 +57,7 @@ theorem lt_one {e : NNReal} {m : ℤₘ₀} (he1 : 1 < e) (hm : m ≠ 0) : toNNR
   · intro h
     exact mono h
 
-theorem le_one {e : NNReal} {m : ℤₘ₀} (he1 : 1 < e) (hm : m ≠ 0) : toNNReal (ne_zero_of_lt he1) m ≤ 1 ↔ m ≤ 1 := by
+theorem le_one {e : NNReal} {m : ℤₘ₀} (he1 : 1 < e) : toNNReal (ne_zero_of_lt he1) m ≤ 1 ↔ m ≤ 1 := by
   have mono := toNNReal_strictMono he1
   constructor
   · apply le_imp_le_of_lt_imp_lt
@@ -63,37 +65,3 @@ theorem le_one {e : NNReal} {m : ℤₘ₀} (he1 : 1 < e) (hm : m ≠ 0) : toNNR
   · apply le_imp_le_of_lt_imp_lt
     intro h
     exact (StrictMono.lt_iff_lt mono).mp h
-
-#exit
-
-section LinearOrderedField
-variable {R : Type*} [LinearOrderedField R] {a b : R} {n : ℤ}
-
-lemma zpow_eq_zpow_iff_of_ne_zero (hn : n ≠ 0) : a ^ n = b ^ n ↔ a = b ∨ a = -b ∧ Even n :=
-  sorry
-  /- match n.even_xor_odd with
-  | .inl hne => by simp only [*, and_true, ← abs_eq_abs,
-    ← pow_left_inj (abs_nonneg a) (abs_nonneg b) hn, hne.1.pow_abs]
-  | .inr hn => by simp [hn, (hn.1.strictMono_pow (R := R)).injective.eq_iff] -/
-
-lemma zpow_eq_zpow_iff_cases : a ^ n = b ^ n ↔ n = 0 ∨ a = b ∨ a = -b ∧ Even n := by
-  rcases eq_or_ne n 0 with rfl | hn <;> simp [pow_eq_pow_iff_of_ne_zero, *]
-
-lemma pow_eq_one_iff_of_ne_zero (hn : n ≠ 0) : a ^ n = 1 ↔ a = 1 ∨ a = -1 ∧ Even n := by
-  simp [← pow_eq_pow_iff_of_ne_zero hn]
-
-lemma pow_eq_one_iff_cases : a ^ n = 1 ↔ n = 0 ∨ a = 1 ∨ a = -1 ∧ Even n := by
-  simp [← pow_eq_pow_iff_cases]
-
-lemma pow_eq_neg_pow_iff (hb : b ≠ 0) : a ^ n = -b ^ n ↔ a = -b ∧ Odd n :=
-  match n.even_or_odd with
-  | .inl he =>
-    suffices a ^ n > -b ^ n by simpa [he, not_odd_iff_even.2 he] using this.ne'
-    lt_of_lt_of_le (by simp [he.pow_pos hb]) (he.pow_nonneg _)
-  | .inr ho => by
-    simp only [ho, and_true, ← ho.neg_pow, (ho.strictMono_pow (R := R)).injective.eq_iff]
-
-lemma pow_eq_neg_one_iff : a ^ n = -1 ↔ a = -1 ∧ Odd n := by
-  simpa using pow_eq_neg_pow_iff (R := R) one_ne_zero
-
-end LinearOrderedField

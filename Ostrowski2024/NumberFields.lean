@@ -11,7 +11,7 @@ import Mathlib.RingTheory.DedekindDomain.AdicValuation
 import Mathlib.RingTheory.Ideal.Norm
 import Mathlib.Tactic.Rify
 import Mathlib.Topology.Algebra.Valued.NormedValued
-import Ostrowski2024.Rationals
+import Ostrowski2024.PRd.Rationals
 --import Ostrowski2024.WithZero
 
 /-!
