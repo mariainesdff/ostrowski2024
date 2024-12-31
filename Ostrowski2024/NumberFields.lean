@@ -1,18 +1,10 @@
-import Mathlib.Algebra.Group.WithOne.Defs
-import Mathlib.Algebra.Order.CompleteField
-import Mathlib.Algebra.Quotient
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
 import Mathlib.Data.Int.WithZero
 import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.NumberTheory.NumberField.Embeddings
 import Mathlib.NumberTheory.Ostrowski
 import Mathlib.RingTheory.DedekindDomain.AdicValuation
-import Mathlib.RingTheory.Ideal.Norm
+import Mathlib.RingTheory.Ideal.Norm.AbsNorm
 import Mathlib.Tactic.Rify
-import Mathlib.Topology.Algebra.Valued.NormedValued
-import Ostrowski2024.PRd.Rationals
---import Ostrowski2024.WithZero
 
 /-!
 # Ostrowski's theorem for number fields
@@ -228,8 +220,8 @@ noncomputable def mulRingNorm_arch (φ : K →+* ℂ) : MulRingNorm K :=
 
 include notbdd in
 /--The restriction of an archimedean MulRingNorm to the rational is the standard absolute value -/
-lemma restr_to_Q_real : MulRingNorm.equiv (mulRingNorm_restriction f ℚ) Rational.mulRingNorm_real := by
-  apply Rational.mulRingNorm_equiv_standard_of_unbounded
+lemma restr_to_Q_real : MulRingNorm.equiv (mulRingNorm_restriction f ℚ) Rat.MulRingNorm.mulRingNorm_real := by
+  apply Rat.MulRingNorm.mulRingNorm_equiv_standard_of_unbounded
   intro h
   rw [← bdd_restr_Q] at h
   exact notbdd h
