@@ -355,7 +355,7 @@ theorem mulRingNorm_Padic_eq_p_pow_valP (x : K) (h_x_nezero : x ≠ 0) : (mulRin
   rw [toNNReal_neg_apply _ ((Valuation.ne_zero_iff P.valuation).mpr h_x_nezero)]
   simp only [NNReal.coe_zpow, NNReal.coe_natCast]
   have hprime := Fact.elim (prime_in_prime_ideal_is_prime P)
-  refine (zpow_inj (mod_cast Nat.Prime.pos hprime) (mod_cast Nat.Prime.ne_one hprime)).mpr ?_
+  refine (zpow_right_inj₀ (mod_cast Nat.Prime.pos hprime) (mod_cast Nat.Prime.ne_one hprime)).mpr ?_
   exact Int.eq_neg_comm.mp rfl
 
 namespace IsDedekindDomain.HeightOneSpectrum
@@ -404,7 +404,7 @@ noncomputable def mulRingNorm_Padic' : MulRingNorm K where
     simp only [Option.casesOn'_some]
     apply le_trans _ <| max_le_add_of_nonneg (zpow_nonneg (Nat.cast_nonneg' (Nat.card (𝓞 K ⧸ P.asIdeal))) (Multiplicative.toAdd vx')) (zpow_nonneg (Nat.cast_nonneg' (Nat.card (𝓞 K ⧸ P.asIdeal))) (Multiplicative.toAdd vy'))
     rw [← Monotone.map_max]
-    · apply zpow_le_of_le (hcard P)
+    · apply zpow_le_zpow_right₀ (hcard P)
       rw [le_max_iff, Multiplicative.toAdd_le, Multiplicative.toAdd_le, ← le_max_iff]
       have := Valuation.map_add P.valuation x y
       simp_all only [map_eq_zero, implies_true, Nat.one_le_cast, le_max_iff]
@@ -413,7 +413,7 @@ noncomputable def mulRingNorm_Padic' : MulRingNorm K where
       | inr h => right; exact WithBot.coe_le_coe.mp h
     · refine monotone_int_of_le_succ ?hf
       intro n
-      refine zpow_le_of_le ?hf.ha (Int.le.intro 1 rfl)
+      refine zpow_le_zpow_right₀ ?hf.ha (Int.le.intro 1 rfl)
       exact hcard P
   neg' := by
     intro r
@@ -706,7 +706,8 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f ≠ 1) : ∃! P : IsDedekin
       rw [mulRingNorm_Padic_eq_p_pow_valP P x hx, h_mulRingNormPadic_pi]
       simp only [inv_zpow', zpow_neg, inv_inv]
       rw [inv_mul_eq_one₀]
-      refine Nat.zpow_ne_zero_of_pos (Nat.zero_lt_of_lt hp_gt_one) (val_P P x hx)
+      apply zpow_ne_zero
+      exact Ne.symm (NeZero.ne' (p : ℝ))
   · --uniqueness
     intro Q hQ
     sorry
