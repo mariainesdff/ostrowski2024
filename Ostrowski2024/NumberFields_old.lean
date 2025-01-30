@@ -1,3 +1,4 @@
+import Mathlib.Analysis.Normed.Ring.Seminorm
 import Mathlib.Data.Int.WithZero
 import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.NumberTheory.NumberField.Embeddings
@@ -284,7 +285,8 @@ lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (_ : Fact (p.Prime)), (�
   rcases FiniteField.card' k with ⟨p, n, hp, hcard⟩
   have : r = p ^ (n : ℕ) := by
     rw [← hcard]
-    simp only [Ideal.absNorm_apply, Submodule.cardQuot_apply, Nat.card_eq_fintype_card, r]
+    simp [Ideal.absNorm_apply, Submodule.cardQuot_apply, Nat.card_eq_fintype_card, r]
+    sorry
   have hpmem : ↑p ∈ P.asIdeal := by
     apply Ideal.IsPrime.mem_of_pow_mem P.isPrime n
     norm_cast

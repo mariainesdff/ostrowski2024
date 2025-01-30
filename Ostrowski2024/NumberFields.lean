@@ -9,82 +9,39 @@ import Mathlib
 
 -/
 
+/- @[simp]
+theorem vadicAbv_eq_zero_iff {x : K} : vadicAbv v x = 0 ↔ x = 0 := by simp
+
+@[simp]
+theorem vadicAbv_ne_zero_iff {x : K} : vadicAbv v x ≠ 0 ↔ x ≠ 0 := by simp -/
+
 open NumberField
 
 variable {K : Type*} [Field K] [nf : NumberField K]  (f : AbsoluteValue K ℝ)
 
 section Nonarchimedean
 
-namespace IsDedekindDomain.HeightOneSpectrum
+open IsDedekindDomain Ideal in
+lemma one_lt_norm (v : HeightOneSpectrum (𝓞 K)) : 1 < absNorm v.asIdeal := by
+  by_contra! h
+  apply IsPrime.ne_top v.isPrime
+  rw [← absNorm_eq_one_iff]
+  have : 0 < absNorm v.asIdeal := by
+    rw [Nat.pos_iff_ne_zero, absNorm_ne_zero_iff]
+    exact (v.asIdeal.fintypeQuotientOfFreeOfNeBot v.ne_bot).finite
+  omega
 
-variable (P : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) -- P is a nonzero prime ideal of 𝓞 K
-
-lemma val_zero (a : K) : P.valuation a = 0 → a = 0 := (Valuation.zero_iff P.valuation).mp
-
-lemma val_ne_zero (a : K) (h : P.valuation a ≠ 0 ) : a ≠ 0 := by simp_all
-
-lemma hcard : 1 ≤ ((Nat.card (𝓞 K ⧸ P.asIdeal)) : ℝ) := by
-  norm_cast
-  have hfin := Fintype.finite (Ideal.fintypeQuotientOfFreeOfNeBot P.asIdeal P.ne_bot)
-  exact Nat.one_le_iff_ne_zero.mpr (Nat.card_ne_zero.mpr ⟨instNonemptyOfInhabited, hfin⟩)
-
-/-- A non zero prime ideal of 𝓞 K contains a unique prime number -/
-lemma exist_prime_in_prime_ideal : ∃! (p : ℕ), ∃ (_ : Fact (p.Prime)), (↑p ∈ P.asIdeal) := by
-  let r := Ideal.absNorm P.asIdeal
-  set k := 𝓞 K ⧸ P.asIdeal
-  have : Field k := Ideal.Quotient.field P.asIdeal
-  have : Fintype k := Ideal.fintypeQuotientOfFreeOfNeBot P.asIdeal P.ne_bot
-  rcases FiniteField.card' k with ⟨p, n, hp, hcard⟩
-  have : r = p ^ (n : ℕ) := by
-    rw [← hcard]
-    simp only [r, k, Ideal.absNorm_apply, Submodule.cardQuot_apply,  Nat.card_eq_fintype_card]
-  have hpmem : ↑p ∈ P.asIdeal := by
-    apply Ideal.IsPrime.mem_of_pow_mem P.isPrime n
-    norm_cast
-    rw [← this]
-    exact Ideal.absNorm_mem P.asIdeal
-  use p
-  constructor
-  · simp only [exists_prop] --existence
-    refine ⟨{ out := hp }, hpmem⟩
-  · intro q hq --uniqueness
-    rcases hq with ⟨hq1, hq2⟩
-    by_contra! hpq
-    --if p and q are different, they are coprime and therefore P contains 1
-    rw [← Nat.coprime_primes hq1.out hp,← Nat.isCoprime_iff_coprime] at hpq
-    rcases hpq with ⟨a, b, hid⟩
-    have := Ideal.add_mem P.asIdeal (Ideal.mul_mem_left P.asIdeal a hq2) (Ideal.mul_mem_left P.asIdeal b hpmem)
-    rw_mod_cast [hid] at this
-    have hPprime := P.isPrime
-    rw [Ideal.isPrime_iff] at hPprime
-    apply hPprime.1
-    rw [Ideal.eq_top_iff_one]
-    exact_mod_cast this
-
-/-- The unique prime number contained in P -/
-noncomputable def prime_in_prime_ideal : ℕ := Exists.choose (exist_prime_in_prime_ideal P)
---properties of such p
-lemma prime_in_prime_ideal_is_prime : Fact ((prime_in_prime_ideal P).Prime) := (Exists.choose_spec (exist_prime_in_prime_ideal P)).1.1
-
-lemma prime_in_prime_ideal_is_in_prime_ideal : (↑(prime_in_prime_ideal P) ∈ P.asIdeal) := (Exists.choose_spec (exist_prime_in_prime_ideal P)).1.2
-
-lemma p_ne_zero (p : ℕ) (hp : Fact (p.Prime)) : (p : NNReal) ≠ 0 := by
-  simp only [ne_eq, Nat.cast_eq_zero]
-  exact NeZero.ne p
-
-lemma one_lt_p (p : ℕ) (hp : Fact (p.Prime)) : 1 < (p : NNReal) := mod_cast Nat.Prime.one_lt (Fact.elim hp)
-
-
-end IsDedekindDomain.HeightOneSpectrum
-
--- end examples
+open IsDedekindDomain Ideal in
+lemma one_lt_norm_nnreal (v : HeightOneSpectrum (𝓞 K)) : 1 < (absNorm v.asIdeal : NNReal) := by
+  exact_mod_cast _root_.one_lt_norm v
 
 --The next lemma is a general fact in algebraic number theory.
 --This might be complicated, Conrad uses the class group but we might try with norms or minimal polynomials
 open NumberField in
 lemma exists_num_denom_absolute_value_one (α : K) (h_nezero : α ≠ 0)
-    (h_abs : vadicAbv v α ≤ 1) : ∃ x y : 𝓞 K, α = x / y ∧ FinitePlace.mk v y = 1 := by
+    (h_abs : vadicAbv v α ≤ 1) : ∃ x y : 𝓞 K, α = x / y ∧ vadicAbv v y = 1 := by
     sorry
+
 
 variable (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y))
 
@@ -101,8 +58,11 @@ lemma nonarch_sum_sup (α : Type*) (s : Finset α) (hnonempty : s.Nonempty) (l :
   · intro a s h hs hind
     simp only [Finset.le_sup'_iff, Finset.mem_cons, Finset.sum_cons, exists_eq_or_imp, p]
     rw [← Finset.le_sup'_iff hs]
-    --should be easy to finish
-    sorry
+    have := nonarch (l a) (∑ i ∈ s, l i)
+    rw [le_max_iff] at this
+    rcases this with h₁ | h₂
+    · exact .inl h₁
+    · exact .inr <| le_trans h₂ hind
 
 open Polynomial minpoly
 
@@ -133,7 +93,12 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     rw [this]
     exact Eq.symm (Finset.sum_range_succ_comm (fun x_1 => ↑(P.coeff x_1) * x ^ x_1) P.natDegree)
   have hineq1 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ i := by
+    intro i hi
+    simp_all only [map_neg_eq_map, AbsoluteValue.map_mul, AbsoluteValue.map_pow,
+      AbsoluteValue.pos_iff, ne_eq, not_false_eq_true, pow_pos, mul_le_iff_le_one_left]
     -- use that f is bounded by 1 on ℤ
+
+    --add a lemma in FinitePlaces.lean
     sorry
   by_contra! hc
   have hineq2 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ (P.natDegree - 1) := by
@@ -215,6 +180,98 @@ include nonarch in
 theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
     ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
     f ≈ vadicAbv P := by
+  -- get the ideal P (open unit ball in 𝓞 K)
+  rcases exists_ideal f nonarch hf_nontriv with ⟨P, hP⟩
+  have h_norm := _root_.one_lt_norm P
+  --uniformizer of P, this gives the constant c
+  rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩
+  have hπ_f_gt_zero : 0 < f π := by --TODO easy
+    sorry
+  have hπ_zero : π ≠ 0 := by
+    by_contra! h
+    simp [h] at hπ_f_gt_zero
+  have hπ_f_lt_one : f π < 1 := by
+    have : P.intValuationDef π < 1 := by
+      rw [hπ]
+      exact Batteries.compareOfLessAndEq_eq_lt.mp rfl
+    have : π ∈ P.asIdeal.carrier := by
+      rw [IsDedekindDomain.HeightOneSpectrum.intValuation_lt_one_iff_dvd] at this
+      simp_all
+    rw [← hP] at this
+    exact this
+  have hπ_ne_zero : P.valuation (π : K) ≠ 0 := by simp_all
+  have hπint_ne_zero : P.intValuationDef π ≠ 0 := by simp_all
+  have : Multiplicative.toAdd (WithZero.unzero hπint_ne_zero) = -1 := by
+    have : -1 = Multiplicative.toAdd (Multiplicative.ofAdd (-1)) := rfl
+    rw [this,
+      ← WithZero.unzero_coe (x := Multiplicative.ofAdd (-1)) (by rw [← hπ]; exact hπint_ne_zero)]
+    congr
+  have hπ_abs_val: Multiplicative.toAdd (WithZero.unzero hπ_ne_zero) = -1 := by
+    rw [← this]
+    congr
+    exact IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef P π
+  have absolute_value_eq_one_of_vadic_abv_eq_one {x : K} (hx : x ≠ 0) (h : vadicAbv P x = 1) : f x = 1 := by
+    --not easy,
+    obtain ⟨y, z, rfl, hz⟩ := exists_num_denom_absolute_value_one x hx (le_of_eq h)
+    rw [map_div₀]
+    sorry
+  use P
+  simp only
+  let c := Real.logb (Ideal.absNorm P.asIdeal)⁻¹ (f π)
+  have hcpos : 0 < c := Real.logb_pos_of_base_lt_one (by positivity)
+    (inv_lt_one_of_one_lt₀ <| mod_cast h_norm) hπ_f_gt_zero hπ_f_lt_one
+  constructor
+  · apply AbsoluteValue.isEquiv_symm
+    use c
+    refine ⟨hcpos, ?_⟩
+    ext x
+    by_cases hx : x = 0; simp [hx, Real.rpow_eq_zero (le_refl 0) (ne_of_lt hcpos).symm]
+    have hx_ne_zero : P.valuation x ≠ 0 := (Valuation.ne_zero_iff P.valuation).mpr hx
+    simp only [Real.logb_inv, vadicAbv, AbsoluteValue.coe_mk, MulHom.coe_mk, c]
+    rw [WithZeroMulInt.toNNReal_neg_apply _ hx_ne_zero]
+    push_cast
+    rw [← neg_neg <| Multiplicative.toAdd (WithZero.unzero hx_ne_zero), ← inv_zpow',
+      ← Real.rpow_intCast_mul (by simp), mul_comm, Real.rpow_mul (by simp),
+      Real.rpow_logb (by positivity) (inv_ne_one.mpr <| ne_of_gt (mod_cast h_norm)) hπ_f_gt_zero,
+      ← mul_inv_eq_one₀ <| (AbsoluteValue.ne_zero_iff f).mpr hx, ← map_inv₀, Real.rpow_intCast,
+      ← map_zpow₀, ← map_mul]
+    apply absolute_value_eq_one_of_vadic_abv_eq_one
+      <| mul_ne_zero (zpow_ne_zero (-Multiplicative.toAdd (WithZero.unzero hx_ne_zero))
+      (RingOfIntegers.coe_ne_zero_iff.mpr hπ_zero)) (inv_ne_zero hx)
+    rw [map_mul, map_zpow₀, map_inv₀, vadicAbv_def, WithZeroMulInt.toNNReal_neg_apply _ hπ_ne_zero]
+    push_cast
+    rw [← zpow_mul]
+    rw [mul_neg, zpow_neg, hπ_abs_val, vadicAbv_def, WithZeroMulInt.toNNReal_neg_apply _ hx_ne_zero]
+    simp only [Int.reduceNeg, neg_mul, one_mul, zpow_neg, inv_inv, NNReal.coe_zpow,
+      NNReal.coe_natCast]
+    apply CommGroupWithZero.mul_inv_cancel
+    apply zpow_ne_zero
+    positivity
+  · intro Q hQ
+    rw [IsDedekindDomain.HeightOneSpectrum.ext_iff, ← Submodule.carrier_inj, ← hP]
+    rw [Set.ext_iff]
+    simp only [AddSubsemigroup.mem_carrier, AddSubmonoid.mem_toSubsemigroup,
+      Submodule.mem_toAddSubmonoid, Set.mem_setOf_eq]
+    intro x
+    obtain ⟨c', hc'pos, heq⟩ := hQ
+    rw [funext_iff] at heq
+    specialize heq x
+    have : f x = vadicAbv Q x ^ c'⁻¹ := by
+      rw [← heq]
+      refine Eq.symm (Real.rpow_rpow_inv (AbsoluteValue.nonneg f ↑x) (Ne.symm (ne_of_lt hc'pos)))
+    rw [this]
+    rw [Real.rpow_lt_one_iff' (AbsoluteValue.nonneg (vadicAbv Q) ↑x) (inv_pos_of_pos hc'pos)]
+    rw [← NumberField.norm_lt_one_iff_mem, NumberField.FinitePlace.norm_def]
+
+
+
+
+
+/-
+include nonarch in
+theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
+    ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
+    f ≈ vadicAbv P := by
   rcases exists_ideal f nonarch hf_nontriv with ⟨P, hP⟩ -- get the ideal P (open unit ball in 𝓞 K)
   rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩ --uniformizer of P, this gives the constant c
   --some properties of π used later
@@ -232,7 +289,7 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
     sorry
   use P
   --get the prime number p inside P
-  let p := IsDedekindDomain.HeightOneSpectrum.prime_in_prime_ideal P
+  /- let p := IsDedekindDomain.HeightOneSpectrum.prime_in_prime_ideal P
   --some properties of p
   have hp_prime_fact : Fact (Nat.Prime p) := IsDedekindDomain.HeightOneSpectrum.prime_in_prime_ideal_is_prime P
   have hp_prime := hp_prime_fact.elim
@@ -247,7 +304,7 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
     simp_rw [IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef P π, hπ]
     simp only [Int.reduceNeg, ofAdd_neg, WithZero.coe_inv, WithZero.unzero_coe, toAdd_inv,
       toAdd_ofAdd] -/
-    sorry
+    sorry -/
   -- this is our constant giving the equivalence of MulRingNorm
   let c := - (Real.logb p (f π)) --not sure about this
   have hcpos : 0 < c := by
@@ -286,6 +343,6 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
       exact Ne.symm (NeZero.ne' (p : ℝ)) -/
   · --uniqueness
     intro Q hQ
-    sorry
+    sorry -/
 
 end Nonarchimedean
