@@ -9,31 +9,11 @@ import Mathlib
 
 -/
 
-/- @[simp]
-theorem vadicAbv_eq_zero_iff {x : K} : vadicAbv v x = 0 ↔ x = 0 := by simp
-
-@[simp]
-theorem vadicAbv_ne_zero_iff {x : K} : vadicAbv v x ≠ 0 ↔ x ≠ 0 := by simp -/
-
 open NumberField
 
 variable {K : Type*} [Field K] [nf : NumberField K]  (f : AbsoluteValue K ℝ)
 
 section Nonarchimedean
-
-open IsDedekindDomain Ideal in
-lemma one_lt_norm (v : HeightOneSpectrum (𝓞 K)) : 1 < absNorm v.asIdeal := by
-  by_contra! h
-  apply IsPrime.ne_top v.isPrime
-  rw [← absNorm_eq_one_iff]
-  have : 0 < absNorm v.asIdeal := by
-    rw [Nat.pos_iff_ne_zero, absNorm_ne_zero_iff]
-    exact (v.asIdeal.fintypeQuotientOfFreeOfNeBot v.ne_bot).finite
-  omega
-
-open IsDedekindDomain Ideal in
-lemma one_lt_norm_nnreal (v : HeightOneSpectrum (𝓞 K)) : 1 < (absNorm v.asIdeal : NNReal) := by
-  exact_mod_cast _root_.one_lt_norm v
 
 --The next lemma is a general fact in algebraic number theory.
 --This might be complicated, Conrad uses the class group but we might try with norms or minimal polynomials
@@ -98,7 +78,7 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
       AbsoluteValue.pos_iff, ne_eq, not_false_eq_true, pow_pos, mul_le_iff_le_one_left]
     -- use that f is bounded by 1 on ℤ
 
-    --add a lemma in FinitePlaces.lean
+    --add a lemma in FinitePlaces.lean: already made a PR
     sorry
   by_contra! hc
   have hineq2 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ (P.natDegree - 1) := by
@@ -164,16 +144,45 @@ lemma exists_ideal [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
         sorry
     ne_bot  := by
       -- P ≠ 0
-      --should not be hard
+      --should not be hard to finish
+      rw [Submodule.ne_bot_iff]
+      simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk, Set.mem_setOf_eq,
+        ne_eq]
+      rw [AbsoluteValue.isNontrivial_iff_ne_trivial] at hf_nontriv
+      by_contra! h
+      apply hf_nontriv
+      have {c : 𝓞 K} (hc : c ≠ 0) : f c = 1 := by
+        apply le_antisymm (integers_closed_unit_ball f nonarch c)
+        by_contra! h1
+        exact hc (h c h1)
+      ext x
+      by_cases hx : x = 0; simp [hx]
+      obtain ⟨a, b, h3, rfl⟩ := IsFractionRing.div_surjective (A := 𝓞 K) x
+
+      sorry
+
+      --simp_rw [and_comm, ← ne_eq]
+      --obtain ⟨x, h1, h2⟩:= AbsoluteValue.IsNontrivial.exists_abv_lt_one hf_nontriv
+     /-  obtain ⟨a, b, h3, rfl⟩ := IsFractionRing.div_surjective (A := 𝓞 K) x
+      simp only [map_div₀] at h2
+      by_contra! h
+
+      have :  (algebraMap (𝓞 K) K) a = (a : K) := by
+        exact rfl
+
+ -/
+
+      /-
+
       rw [Submodule.ne_bot_iff]
       by_contra! h
-      simp only [AbsoluteValue.IsNontrivial] at hf_nontriv
+      simp only [AbsoluteValue.IsNontrivial] at hf_nontriv -/
      /-  apply hf_nontriv
       simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk, Set.mem_setOf_eq] at h
       refine MulRingNorm.ext_iff.mpr ?_
       simp only [MulRingNorm.apply_one]
       intro x -/
-      sorry
+
   }
 
 include nonarch in
@@ -182,7 +191,7 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
     f ≈ vadicAbv P := by
   -- get the ideal P (open unit ball in 𝓞 K)
   rcases exists_ideal f nonarch hf_nontriv with ⟨P, hP⟩
-  have h_norm := _root_.one_lt_norm P
+  have h_norm := one_lt_norm P
   --uniformizer of P, this gives the constant c
   rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩
   have hπ_f_gt_zero : 0 < f π := by --TODO easy
@@ -210,15 +219,29 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
     rw [← this]
     congr
     exact IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef P π
-  have absolute_value_eq_one_of_vadic_abv_eq_one {x : K} (hx : x ≠ 0) (h : vadicAbv P x = 1) : f x = 1 := by
-    --not easy,
-    obtain ⟨y, z, rfl, hz⟩ := exists_num_denom_absolute_value_one x hx (le_of_eq h)
-    rw [map_div₀]
+  have absolute_value_eq_one_of_vadic_abv_eq_one_int {x : 𝓞 K} (hx : x ≠ 0) (h : vadicAbv P x = 1) :
+    f x = 1 := by
+    -- use that P is open ball
     sorry
+  have absolute_value_eq_one_of_vadic_abv_eq_one {x : K} (hx : x ≠ 0) (h : vadicAbv P x = 1) : f x = 1 := by
+    obtain ⟨y, z, rfl, hz⟩ := exists_num_denom_absolute_value_one x hx (le_of_eq h)
+    have hz_ne_zero : z ≠ 0 := by
+      by_contra! h
+      rw [h] at hx
+      apply hx
+      simp
+    have hy_ne_zero : y ≠ 0 := by
+      by_contra! h
+      rw [h] at hx
+      apply hx
+      simp
+    rw [map_div₀, hz, div_one] at h
+    rw [map_div₀, absolute_value_eq_one_of_vadic_abv_eq_one_int hy_ne_zero h,
+      absolute_value_eq_one_of_vadic_abv_eq_one_int hz_ne_zero hz, div_one]
   use P
   simp only
   let c := Real.logb (Ideal.absNorm P.asIdeal)⁻¹ (f π)
-  have hcpos : 0 < c := Real.logb_pos_of_base_lt_one (by positivity)
+  have hcpos : 0 < c := Real.logb_pos_of_base_lt_one (inv_pos.mpr (mod_cast Nat.zero_lt_of_lt h_norm))
     (inv_lt_one_of_one_lt₀ <| mod_cast h_norm) hπ_f_gt_zero hπ_f_lt_one
   constructor
   · apply AbsoluteValue.isEquiv_symm
@@ -247,21 +270,17 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
     apply CommGroupWithZero.mul_inv_cancel
     apply zpow_ne_zero
     positivity
-  · intro Q hQ
-    rw [IsDedekindDomain.HeightOneSpectrum.ext_iff, ← Submodule.carrier_inj, ← hP]
-    rw [Set.ext_iff]
-    simp only [AddSubsemigroup.mem_carrier, AddSubmonoid.mem_toSubsemigroup,
+  · --uniqueness
+    intro Q hQ
+    simp only [IsDedekindDomain.HeightOneSpectrum.ext_iff, ← Submodule.carrier_inj, ← hP,
+      Set.ext_iff, AddSubsemigroup.mem_carrier, AddSubmonoid.mem_toSubsemigroup,
       Submodule.mem_toAddSubmonoid, Set.mem_setOf_eq]
     intro x
     obtain ⟨c', hc'pos, heq⟩ := hQ
     rw [funext_iff] at heq
     specialize heq x
-    have : f x = vadicAbv Q x ^ c'⁻¹ := by
-      rw [← heq]
-      refine Eq.symm (Real.rpow_rpow_inv (AbsoluteValue.nonneg f ↑x) (Ne.symm (ne_of_lt hc'pos)))
-    rw [this]
-    rw [Real.rpow_lt_one_iff' (AbsoluteValue.nonneg (vadicAbv Q) ↑x) (inv_pos_of_pos hc'pos)]
-    rw [← NumberField.norm_lt_one_iff_mem, NumberField.FinitePlace.norm_def]
+    rw [← Real.rpow_lt_one_iff' (AbsoluteValue.nonneg f ↑x) hc'pos, heq,
+      ← NumberField.norm_lt_one_iff_mem, NumberField.FinitePlace.norm_def]
 
 
 
