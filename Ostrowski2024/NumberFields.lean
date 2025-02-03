@@ -9,67 +9,64 @@ import Mathlib
 
 -/
 
+
+section preliminaries1
+
+variable {K : Type*} [Field K] {f : AbsoluteValue K ℝ}
+  (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y))
+
+-- TODO: check if needed or easier
+open Finset in
+include nonarch in
+/-- ultrametric inequality with Finset.Sum  -/
+lemma nonarch_sum_sup {α : Type*} {s : Finset α} (hnonempty : s.Nonempty) (l : α → K) :
+    f (∑ i ∈ s, l i) ≤ s.sup' hnonempty fun i => f (l i) := by
+  apply Nonempty.cons_induction (p := fun a hn ↦ f (∑ i ∈ a, l i) ≤ a.sup' hn fun i ↦ f (l i))
+  · simp
+  · intro a s h hs hind
+    simp only [le_sup'_iff, mem_cons, sum_cons, exists_eq_or_imp]
+    rw [← le_sup'_iff hs]
+    have h := nonarch (l a) (∑ i ∈ s, l i)
+    rw [le_max_iff] at h
+    rcases h with h₁ | h₂
+    · exact .inl h₁
+    · exact .inr <| le_trans h₂ hind
+
+end preliminaries1
+
 open NumberField
 
-variable {K : Type*} [Field K] [nf : NumberField K]  (f : AbsoluteValue K ℝ)
+variable {K : Type*} [Field K] [nf : NumberField K] (f : AbsoluteValue K ℝ)
 
 section Nonarchimedean
 
 --The next lemma is a general fact in algebraic number theory.
 --This might be complicated, Conrad uses the class group but we might try with norms or minimal polynomials
-open NumberField in
 lemma exists_num_denom_absolute_value_one (α : K) (h_nezero : α ≠ 0)
     (h_abs : vadicAbv v α ≤ 1) : ∃ x y : 𝓞 K, α = x / y ∧ vadicAbv v y = 1 := by
-    sorry
-
+  sorry
 
 variable (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y))
-
--- TODO: check if needed or easier
-include nonarch in
-/-- ultrametric inequality with Finset.Sum  -/
-lemma nonarch_sum_sup (α : Type*) (s : Finset α) (hnonempty : s.Nonempty) (l : α → K) : f (∑ i ∈ s, l i) ≤
-  s.sup' hnonempty fun i => f (l i) := by
-  let p : (a : Finset α) → Finset.Nonempty a → Prop := fun a hn => f (∑ i ∈ a, l i) ≤ a.sup' hn fun i => f (l i)
-  convert_to p s hnonempty
-  apply Finset.Nonempty.cons_induction
-  · simp only [Finset.le_sup'_iff, Finset.mem_singleton, Finset.sum_singleton, exists_eq_left,
-    le_refl, implies_true, p]
-  · intro a s h hs hind
-    simp only [Finset.le_sup'_iff, Finset.mem_cons, Finset.sum_cons, exists_eq_or_imp, p]
-    rw [← Finset.le_sup'_iff hs]
-    have := nonarch (l a) (∑ i ∈ s, l i)
-    rw [le_max_iff] at this
-    rcases this with h₁ | h₂
-    · exact .inl h₁
-    · exact .inr <| le_trans h₂ hind
 
 open Polynomial minpoly
 
 --TODO: Check and clean
 include nonarch in
-/-- 𝓞 K is contained in the closed unit ball -/
+/-- `𝓞 K` is contained in the closed unit ball -/
 lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
-  by_cases h : x = (0 : K) -- first get rid of the case x = 0
-  rw [h, map_zero f]
-  exact zero_le_one' ℝ
+  by_cases h : x = (0 : K); simp [h] -- first get rid of the case x = 0
   -- now x ≠ 0
   let P := minpoly ℤ x
   -- Equality given by the minimal polynomial of x
   have hminp : x ^ P.natDegree = ∑ i ∈ Finset.range P.natDegree, -((P.coeff i) * x ^ i) := by
     simp only [Finset.sum_neg_distrib, eq_neg_iff_add_eq_zero]
-    let Q := Polynomial.X ^ P.natDegree + ∑ i ∈ Finset.range P.natDegree, Polynomial.C (P.coeff i) * Polynomial.X ^ i
-    have heval : (Polynomial.aeval x) P = 0 := minpoly.aeval ℤ x
-    have hPmonic : P.Monic := (minpoly.monic (NumberField.RingOfIntegers.isIntegral x))
+    have heval : (aeval x) P = 0 := aeval ℤ x
     have hlcoeff1 : (P.coeff P.natDegree) = 1 := by
       simp only [coeff_natDegree]
-      exact hPmonic
-    have : P = Q := Polynomial.Monic.as_sum (minpoly.monic (NumberField.RingOfIntegers.isIntegral x))
-    rw [← heval, Polynomial.aeval_eq_sum_range]
-    simp only [zsmul_eq_mul]
+      exact minpoly.monic <| NumberField.RingOfIntegers.isIntegral x
+    simp only [← heval, aeval_eq_sum_range, zsmul_eq_mul]
     have : x ^ P.natDegree = (P.coeff P.natDegree) * x ^ P.natDegree := by
-      rw [hlcoeff1]
-      simp only [Int.cast_one, one_mul]
+      simp [hlcoeff1]
     rw [this]
     exact Eq.symm (Finset.sum_range_succ_comm (fun x_1 => ↑(P.coeff x_1) * x ^ x_1) P.natDegree)
   have hineq1 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ i := by
@@ -101,7 +98,7 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     push_cast
     simp only [map_intCast, Finset.sum_neg_distrib, map_neg_eq_map, map_pow]
     exact
-      nonarch_sum_sup f nonarch ℕ (Finset.range P.natDegree)
+      nonarch_sum_sup nonarch
         (Eq.refl (Finset.range P.natDegree) ▸ Finset.nonempty_range_iff.mpr hnezerodeg) fun i =>
         ↑(P.coeff i) * ↑x ^ i
   have : f x ≤ 1 := by
@@ -116,58 +113,52 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
 
 include nonarch in
 /-- The open unit ball in 𝓞 K is a non-zero prime ideal of 𝓞 K. -/
-lemma exists_ideal [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
+lemma exists_ideal (hf_nontriv : f.IsNontrivial) :
     ∃ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), {a : (𝓞 K) | f a < 1} = P.asIdeal.carrier := by
-  use
-  { asIdeal := {carrier   := {a : (𝓞 K) | f a < 1}
+  use {
+    asIdeal := {carrier   := {a : (𝓞 K) | f a < 1}
                 add_mem'  := by
                   simp only [Set.mem_setOf_eq, map_add]
-                  exact fun ha hb => lt_of_le_of_lt (nonarch _ _) (max_lt ha hb)
-                zero_mem' := by simp only [Set.mem_setOf_eq, map_zero, zero_lt_one]
+                  exact fun ha hb ↦ lt_of_le_of_lt (nonarch _ _) (max_lt ha hb)
+                zero_mem' := by simp
                 smul_mem' := by
                   simp only [Set.mem_setOf_eq, smul_eq_mul, map_mul]
-                  exact fun c x hx => Right.mul_lt_one_of_le_of_lt_of_nonneg
+                  exact fun c x hx ↦ Right.mul_lt_one_of_le_of_lt_of_nonneg
                     (integers_closed_unit_ball f nonarch c) hx (apply_nonneg f ↑x)
                 }
     isPrime := by
       rw [Ideal.isPrime_iff]
       constructor
       -- P is not 𝓞 K:
-      · rw [Ideal.ne_top_iff_one]
-        simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk,
-          Set.mem_setOf_eq, map_one, lt_self_iff_false, not_false_eq_true]
+      · simp [Ideal.ne_top_iff_one]
       -- x * y ∈ P → x ∈ P ∨ y ∈ P:
       · simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk,
         Set.mem_setOf_eq, map_mul]
         intro x y hxy
-        --easy
-        sorry
+        by_contra! h
+        linarith [one_le_mul_of_one_le_of_one_le h.1 h.2]
     ne_bot  := by
       -- P ≠ 0
-      --should not be hard to finish
       rw [Submodule.ne_bot_iff]
       simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk, Set.mem_setOf_eq,
         ne_eq]
-      rw [AbsoluteValue.isNontrivial_iff_ne_trivial] at hf_nontriv
-      by_contra! h
-      apply hf_nontriv
-      have {c : 𝓞 K} (hc : c ≠ 0) : f c = 1 := by
-        apply le_antisymm (integers_closed_unit_ball f nonarch c)
-        by_contra! h1
-        exact hc (h c h1)
-      ext x
-      by_cases hx : x = 0; simp [hx]
-      obtain ⟨a, b, h3, rfl⟩ := IsFractionRing.div_surjective (A := 𝓞 K) x
-      have h_a_nezero : a ≠ 0 := by
-        by_contra! ha
-        simp [ha, zero_div, not_true_eq_false] at hx
-      have h_b_nezero : b ≠ 0 := by
-        exact (mul_ne_zero_iff_left h_a_nezero).mp fun a_1 => h_a_nezero (h3 a a_1)
-      simp [AbsoluteValue.trivial_apply hx, this h_a_nezero, this h_b_nezero]
+      obtain ⟨a, ha, hfa⟩ := hf_nontriv
+      obtain ⟨c, b, h3, rfl⟩ := IsFractionRing.div_surjective (A := 𝓞 K) a
+      have h_b_nezero : b ≠ 0 := nonZeroDivisors.ne_zero h3
+      by_cases h : f b < 1
+      refine ⟨b, h, h_b_nezero⟩
+      have h_c_nezero : c ≠ 0 := by
+        by_contra! h
+        simp [h] at ha
+      have h_b : f b = 1 := by linarith [(integers_closed_unit_ball f nonarch b)]
+      simp only [map_div₀, h_b, div_one, ne_eq] at hfa
+      have h_c_lt_one : f c < 1 := by
+        linarith [lt_of_le_of_ne (integers_closed_unit_ball f nonarch c) hfa]
+      exact ⟨c, h_c_lt_one, h_c_nezero⟩
   }
 
 include nonarch in
-theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
+theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
     f ≈ vadicAbv P := by
   -- get the ideal P (open unit ball in 𝓞 K)
@@ -175,11 +166,10 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
   have h_norm := one_lt_norm P
   --uniformizer of P, this gives the constant c
   rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩
-  have hπ_f_gt_zero : 0 < f π := by --TODO easy
-    sorry
   have hπ_zero : π ≠ 0 := by
     by_contra! h
-    simp [h] at hπ_f_gt_zero
+    simp [h] at hπ
+  have hπ_f_gt_zero : 0 < f π := by simp [hπ_zero]
   have hπ_f_lt_one : f π < 1 := by
     have : P.intValuationDef π < 1 := by
       rw [hπ]
@@ -202,8 +192,12 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
     exact IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef P π
   have absolute_value_eq_one_of_vadic_abv_eq_one_int {x : 𝓞 K} (hx : x ≠ 0) (h : vadicAbv P x = 1) :
     f x = 1 := by
-    -- use that P is open ball
-    sorry
+    simp [← FinitePlace.norm_def, norm_eq_one_iff_not_mem] at h
+    have : ¬ x ∈ P.asIdeal.carrier := h
+    have : ¬ f x < 1 := by
+      rw [← hP] at this
+      exact this
+    linarith [(integers_closed_unit_ball f nonarch x)]
   have absolute_value_eq_one_of_vadic_abv_eq_one {x : K} (hx : x ≠ 0) (h : vadicAbv P x = 1) : f x = 1 := by
     obtain ⟨y, z, rfl, hz⟩ := exists_num_denom_absolute_value_one x hx (le_of_eq h)
     have hz_ne_zero : z ≠ 0 := by
@@ -262,7 +256,6 @@ theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
     specialize heq x
     rw [← Real.rpow_lt_one_iff' (AbsoluteValue.nonneg f ↑x) hc'pos, heq,
       ← NumberField.norm_lt_one_iff_mem, NumberField.FinitePlace.norm_def]
-
 
 
 
