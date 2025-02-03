@@ -158,31 +158,12 @@ lemma exists_ideal [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
       ext x
       by_cases hx : x = 0; simp [hx]
       obtain ⟨a, b, h3, rfl⟩ := IsFractionRing.div_surjective (A := 𝓞 K) x
-
-      sorry
-
-      --simp_rw [and_comm, ← ne_eq]
-      --obtain ⟨x, h1, h2⟩:= AbsoluteValue.IsNontrivial.exists_abv_lt_one hf_nontriv
-     /-  obtain ⟨a, b, h3, rfl⟩ := IsFractionRing.div_surjective (A := 𝓞 K) x
-      simp only [map_div₀] at h2
-      by_contra! h
-
-      have :  (algebraMap (𝓞 K) K) a = (a : K) := by
-        exact rfl
-
- -/
-
-      /-
-
-      rw [Submodule.ne_bot_iff]
-      by_contra! h
-      simp only [AbsoluteValue.IsNontrivial] at hf_nontriv -/
-     /-  apply hf_nontriv
-      simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk, Set.mem_setOf_eq] at h
-      refine MulRingNorm.ext_iff.mpr ?_
-      simp only [MulRingNorm.apply_one]
-      intro x -/
-
+      have h_a_nezero : a ≠ 0 := by
+        by_contra! ha
+        simp [ha, zero_div, not_true_eq_false] at hx
+      have h_b_nezero : b ≠ 0 := by
+        exact (mul_ne_zero_iff_left h_a_nezero).mp fun a_1 => h_a_nezero (h3 a a_1)
+      simp [AbsoluteValue.trivial_apply hx, this h_a_nezero, this h_b_nezero]
   }
 
 include nonarch in
