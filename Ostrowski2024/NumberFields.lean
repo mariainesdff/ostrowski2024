@@ -19,18 +19,30 @@ variable {K : Type*} [Field K] {f : AbsoluteValue K ℝ}
 open Finset in
 include nonarch in
 /-- ultrametric inequality with Finset.Sum  -/
-lemma nonarch_sum_sup {α : Type*} {s : Finset α} (hnonempty : s.Nonempty) (l : α → K) :
+lemma nonarch_sum_sup {α : Type*} {s : Finset α} (hnonempty : s.Nonempty) {l : α → K} :
     f (∑ i ∈ s, l i) ≤ s.sup' hnonempty fun i => f (l i) := by
   apply Nonempty.cons_induction (p := fun a hn ↦ f (∑ i ∈ a, l i) ≤ a.sup' hn fun i ↦ f (l i))
   · simp
   · intro a s h hs hind
     simp only [le_sup'_iff, mem_cons, sum_cons, exists_eq_or_imp]
     rw [← le_sup'_iff hs]
-    have h := nonarch (l a) (∑ i ∈ s, l i)
-    rw [le_max_iff] at h
+    have h := le_max_iff.mp <| nonarch (l a) (∑ i ∈ s, l i)
     rcases h with h₁ | h₂
     · exact .inl h₁
     · exact .inr <| le_trans h₂ hind
+
+include nonarch in
+lemma nonarch_nat_le_one (x : ℕ) : f x ≤ 1 := by
+  by_cases h : x = 0; simp [h] -- first get rid of the case x = 0
+  have : ∑ i ∈ Finset.range x, (1 : K) = x := by simp
+  rw [← this]
+  apply le_trans <| nonarch_sum_sup nonarch (by simp [h])
+  simp
+
+include nonarch in
+lemma nonarch_int_le_one (x : ℤ) : f x ≤ 1 := by
+  rw [← AbsoluteValue.apply_natAbs_eq]
+  exact nonarch_nat_le_one nonarch x.natAbs
 
 end preliminaries1
 
@@ -59,26 +71,21 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
   let P := minpoly ℤ x
   -- Equality given by the minimal polynomial of x
   have hminp : x ^ P.natDegree = ∑ i ∈ Finset.range P.natDegree, -((P.coeff i) * x ^ i) := by
-    simp only [Finset.sum_neg_distrib, eq_neg_iff_add_eq_zero]
-    have heval : (aeval x) P = 0 := aeval ℤ x
-    have hlcoeff1 : (P.coeff P.natDegree) = 1 := by
-      simp only [coeff_natDegree]
-      exact minpoly.monic <| NumberField.RingOfIntegers.isIntegral x
-    simp only [← heval, aeval_eq_sum_range, zsmul_eq_mul]
     have : x ^ P.natDegree = (P.coeff P.natDegree) * x ^ P.natDegree := by
-      simp [hlcoeff1]
+      nth_rw 1 [← one_mul (x ^ P.natDegree), coeff_natDegree]
+      congr
+      exact_mod_cast (minpoly.monic <| NumberField.RingOfIntegers.isIntegral x).symm
+    simp only [Finset.sum_neg_distrib, eq_neg_iff_add_eq_zero, ← aeval ℤ x, aeval_eq_sum_range,
+      zsmul_eq_mul]
     rw [this]
     exact Eq.symm (Finset.sum_range_succ_comm (fun x_1 => ↑(P.coeff x_1) * x ^ x_1) P.natDegree)
   have hineq1 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ i := by
     intro i hi
     simp_all only [map_neg_eq_map, AbsoluteValue.map_mul, AbsoluteValue.map_pow,
       AbsoluteValue.pos_iff, ne_eq, not_false_eq_true, pow_pos, mul_le_iff_le_one_left]
-    -- use that f is bounded by 1 on ℤ
-
-    --add a lemma in FinitePlaces.lean: already made a PR
-    sorry
+    exact nonarch_int_le_one nonarch (P.coeff i)
   by_contra! hc
-  have hineq2 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ (P.natDegree - 1) := by
+  have hineq2 : ∀ i ∈ Finset.range P.natDegree, f (-(P.coeff i * x ^ i)) ≤ (f x) ^ (P.natDegree - 1) := by
     intro i hi
     specialize hineq1 i hi
     apply le_trans hineq1
@@ -99,8 +106,7 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     simp only [map_intCast, Finset.sum_neg_distrib, map_neg_eq_map, map_pow]
     exact
       nonarch_sum_sup nonarch
-        (Eq.refl (Finset.range P.natDegree) ▸ Finset.nonempty_range_iff.mpr hnezerodeg) fun i =>
-        ↑(P.coeff i) * ↑x ^ i
+        (Eq.refl (Finset.range P.natDegree) ▸ Finset.nonempty_range_iff.mpr hnezerodeg)
   have : f x ≤ 1 := by
     by_contra! h
     apply not_lt_of_le at hineq3
@@ -256,86 +262,5 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     specialize heq x
     rw [← Real.rpow_lt_one_iff' (AbsoluteValue.nonneg f ↑x) hc'pos, heq,
       ← NumberField.norm_lt_one_iff_mem, NumberField.FinitePlace.norm_def]
-
-
-
-
-/-
-include nonarch in
-theorem Ostr_nonarch [DecidableEq K] (hf_nontriv : f.IsNontrivial) :
-    ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
-    f ≈ vadicAbv P := by
-  rcases exists_ideal f nonarch hf_nontriv with ⟨P, hP⟩ -- get the ideal P (open unit ball in 𝓞 K)
-  rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩ --uniformizer of P, this gives the constant c
-  --some properties of π used later
-  have hpi_nezero : π ≠ 0 := by
-    by_contra! h
-    rw [h] at hπ
-    simp only [IsDedekindDomain.HeightOneSpectrum.intValuationDef_zero, Int.reduceNeg, ofAdd_neg,
-      WithZero.coe_inv, zero_eq_inv, WithZero.zero_ne_coe] at hπ
-  have hπ_val : P.intValuationDef π < 1 := by --prob needed in hπ_f_lt_one, or maybe not
-    rw [hπ]
-    exact Batteries.compareOfLessAndEq_eq_lt.mp rfl
-  have hπ_f_gt_zero : 0 < f π := by
-    sorry
-  have hπ_f_lt_one : f π < 1 := by
-    sorry
-  use P
-  --get the prime number p inside P
-  /- let p := IsDedekindDomain.HeightOneSpectrum.prime_in_prime_ideal P
-  --some properties of p
-  have hp_prime_fact : Fact (Nat.Prime p) := IsDedekindDomain.HeightOneSpectrum.prime_in_prime_ideal_is_prime P
-  have hp_prime := hp_prime_fact.elim
-  have hPmem' : ↑p ∈ P.asIdeal := IsDedekindDomain.HeightOneSpectrum.prime_in_prime_ideal_is_in_prime_ideal P
-  have hp_gt_one : 1 < p := by exact Nat.Prime.one_lt hp_prime
-  have h_abv_pi : (vadicAbv P) ↑π = (p : ℝ)⁻¹ := by --this is false, ramification index is needed
-    /- rw [mulRingNorm_Padic_eq_p_pow_valP P π (RingOfIntegers.coe_ne_zero_iff.mpr hpi_nezero)]
-    unfold val_P -- make a lemma val_PDef
-    simp only [neg_neg, p]
-    rw [← zpow_neg_one]
-    congr
-    simp_rw [IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef P π, hπ]
-    simp only [Int.reduceNeg, ofAdd_neg, WithZero.coe_inv, WithZero.unzero_coe, toAdd_inv,
-      toAdd_ofAdd] -/
-    sorry -/
-  -- this is our constant giving the equivalence of MulRingNorm
-  let c := - (Real.logb p (f π)) --not sure about this
-  have hcpos : 0 < c := by
-    simp only [Left.neg_pos_iff, c]
-    exact Real.logb_neg (mod_cast (Nat.Prime.one_lt hp_prime))
-      (map_pos_of_ne_zero f ( RingOfIntegers.coe_ne_zero_iff.mpr hpi_nezero)) hπ_f_lt_one
-  have abv_eq_one_of_Padic_eq_one (x : K) (h_Padic_zero : vadicAbv P x = 1) : f x = 1 := by
-    -- TODO
-    sorry
-  constructor
-  · --existence
-    sorry
-    /- simp only [AbsoluteValue.IsEquiv]
-    apply AbsoluteValue.isEquiv_symm -/
-    /- use c
-    refine ⟨hcpos, ?_⟩
-    ext x
-    by_cases hx : x = 0
-    · simp only [hx, map_zero, le_refl,
-        Real.rpow_eq_zero (Preorder.le_refl 0) (Ne.symm (ne_of_lt hcpos))]
-    · simp only [c, p]
-      rw [mulRingNorm_Padic_eq_p_pow_valP P x hx,
-        ← Real.rpow_intCast_mul (Nat.cast_nonneg' (prime_in_prime_ideal P)), mul_comm,
-        Real.rpow_mul_intCast (Nat.cast_nonneg' (prime_in_prime_ideal P)),
-        Real.rpow_neg (Nat.cast_nonneg' (prime_in_prime_ideal P)),
-        Real.rpow_logb (mod_cast Nat.zero_lt_of_lt hp_gt_one) (mod_cast Nat.Prime.ne_one hp_prime)
-        hπ_f_gt_zero]
-      simp only [zpow_neg, inv_zpow', inv_inv]
-      rw [← mul_inv_eq_one₀ ((_root_.map_ne_zero f).mpr hx),← map_inv₀, ← map_zpow₀, ← map_mul]
-      apply MulRingNorm_eq_one_of_Padic_eq_one
-      simp only [map_mul, map_zpow₀, map_inv₀]
-      rw [mulRingNorm_Padic_eq_p_pow_valP P x hx, h_mulRingNormPadic_pi]
-      simp only [inv_zpow', zpow_neg, inv_inv]
-      rw [inv_mul_eq_one₀]
-      apply zpow_ne_zero
-      exact Ne.symm (NeZero.ne' (p : ℝ)) -/
-  · --uniqueness
-    intro Q hQ
-    sorry -/
 
 end Nonarchimedean
