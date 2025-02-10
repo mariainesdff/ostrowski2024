@@ -62,13 +62,15 @@ variable (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y))
 
 open Polynomial minpoly
 
---TODO: Check and clean
 include nonarch in
 /-- `𝓞 K` is contained in the closed unit ball -/
 lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
   by_cases h : x = (0 : K); simp [h] -- first get rid of the case x = 0
   -- now x ≠ 0
   let P := minpoly ℤ x
+  -- P has positive degree
+  have hnezerodeg : P.natDegree ≠ 0 := by
+    linarith [minpoly.natDegree_pos <| RingOfIntegers.isIntegral x]
   -- Equality given by the minimal polynomial of x
   have hminp : x ^ P.natDegree = ∑ i ∈ Finset.range P.natDegree, -((P.coeff i) * x ^ i) := by
     have : x ^ P.natDegree = (P.coeff P.natDegree) * x ^ P.natDegree := by
@@ -78,61 +80,41 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     simp only [Finset.sum_neg_distrib, eq_neg_iff_add_eq_zero, ← aeval ℤ x, aeval_eq_sum_range,
       zsmul_eq_mul]
     rw [this]
-    exact Eq.symm (Finset.sum_range_succ_comm (fun x_1 => ↑(P.coeff x_1) * x ^ x_1) P.natDegree)
-  have hineq1 : ∀ i ∈ Finset.range P.natDegree, f (-(↑(P.coeff i) * x ^ i)) ≤ (f x) ^ i := by
-    intro i hi
-    simp_all only [map_neg_eq_map, AbsoluteValue.map_mul, AbsoluteValue.map_pow,
-      AbsoluteValue.pos_iff, ne_eq, not_false_eq_true, pow_pos, mul_le_iff_le_one_left]
-    exact nonarch_int_le_one nonarch (P.coeff i)
+    exact (Finset.sum_range_succ_comm (fun x_1 => ↑(P.coeff x_1) * x ^ x_1) P.natDegree).symm
   by_contra! hc
-  have hineq2 : ∀ i ∈ Finset.range P.natDegree, f (-(P.coeff i * x ^ i)) ≤ (f x) ^ (P.natDegree - 1) := by
+  have hineq4 : (f x) ^ P.natDegree ≤ (f x) ^ (P.natDegree - 1) := by
+    nth_rewrite 1 [← map_pow, ← map_pow, hminp]
+    simp only [Finset.sum_neg_distrib, map_neg, map_sum, map_mul, map_intCast, map_pow,
+      map_neg_eq_map]
+    apply le_trans (nonarch_sum_sup nonarch (Finset.nonempty_range_iff.mpr hnezerodeg)) _
+    apply Finset.sup'_le (Finset.nonempty_range_iff.mpr hnezerodeg)
     intro i hi
-    specialize hineq1 i hi
-    apply le_trans hineq1
-    gcongr
-    exact le_of_lt hc
     rw [Finset.mem_range] at hi
-    exact Nat.le_sub_one_of_lt hi
-  have h₀ : (x : K) ^ P.natDegree = ↑(x ^ P.natDegree) := rfl
-  have hnezerodeg : P.natDegree ≠ 0 := by
-    have hx : IsIntegral ℤ x := RingOfIntegers.isIntegral x
-    have := minpoly.natDegree_pos hx
-    linarith
-  have hineq3 : (f x) ^ P.natDegree ≤ (f x) ^ (P.natDegree - 1) := by
-    nth_rewrite 1 [← map_pow, h₀, hminp]
-    apply Finset.sup'_le (Finset.nonempty_range_iff.mpr hnezerodeg) at hineq2
-    apply le_trans _ hineq2
-    push_cast
-    simp only [map_intCast, Finset.sum_neg_distrib, map_neg_eq_map, map_pow]
-    exact
-      nonarch_sum_sup nonarch
-        (Eq.refl (Finset.range P.natDegree) ▸ Finset.nonempty_range_iff.mpr hnezerodeg)
-  have : f x ≤ 1 := by
-    by_contra! h
-    apply not_lt_of_le at hineq3
-    apply hineq3
-    gcongr
-    exact hc
-    exact Nat.sub_one_lt hnezerodeg
-  apply not_lt_of_le at this
-  exact this hc
+    calc
+      f ((↑(P.coeff i) * x ^ i))
+        ≤ (f x) ^ i := by
+        simp [mul_le_iff_le_one_left (pow_pos (f.pos h) i), nonarch_int_le_one nonarch (P.coeff i)]
+      _ ≤ (f x) ^ (P.natDegree - 1) := (pow_le_pow_iff_right₀ hc).mpr <| Nat.le_sub_one_of_lt hi
+  apply not_lt_of_le hineq4
+  gcongr
+  · exact hc
+  · exact Nat.sub_one_lt hnezerodeg
 
 include nonarch in
 /-- The open unit ball in 𝓞 K is a non-zero prime ideal of 𝓞 K. -/
-lemma exists_ideal (hf_nontriv : f.IsNontrivial) :
-    ∃ P : IsDedekindDomain.HeightOneSpectrum (𝓞 K), {a : (𝓞 K) | f a < 1} = P.asIdeal.carrier := by
-  use {
-    asIdeal := {carrier   := {a : (𝓞 K) | f a < 1}
-                add_mem'  := by
+def prime_ideal (hf_nontriv : f.IsNontrivial) : IsDedekindDomain.HeightOneSpectrum (𝓞 K) where
+  asIdeal := {
+    carrier := {a : (𝓞 K) | f a < 1}
+    add_mem' := by
                   simp only [Set.mem_setOf_eq, map_add]
                   exact fun ha hb ↦ lt_of_le_of_lt (nonarch _ _) (max_lt ha hb)
-                zero_mem' := by simp
-                smul_mem' := by
+    zero_mem' := by simp
+    smul_mem' := by
                   simp only [Set.mem_setOf_eq, smul_eq_mul, map_mul]
                   exact fun c x hx ↦ Right.mul_lt_one_of_le_of_lt_of_nonneg
                     (integers_closed_unit_ball f nonarch c) hx (apply_nonneg f ↑x)
-                }
-    isPrime := by
+  }
+  isPrime := by
       rw [Ideal.isPrime_iff]
       constructor
       -- P is not 𝓞 K:
@@ -143,7 +125,7 @@ lemma exists_ideal (hf_nontriv : f.IsNontrivial) :
         intro x y hxy
         by_contra! h
         linarith [one_le_mul_of_one_le_of_one_le h.1 h.2]
-    ne_bot  := by
+  ne_bot := by
       -- P ≠ 0
       rw [Submodule.ne_bot_iff]
       simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk, Set.mem_setOf_eq,
@@ -151,24 +133,23 @@ lemma exists_ideal (hf_nontriv : f.IsNontrivial) :
       obtain ⟨a, ha, hfa⟩ := hf_nontriv
       obtain ⟨c, b, h3, rfl⟩ := IsFractionRing.div_surjective (A := 𝓞 K) a
       have h_b_nezero : b ≠ 0 := nonZeroDivisors.ne_zero h3
-      by_cases h : f b < 1
-      refine ⟨b, h, h_b_nezero⟩
+      by_cases h : f b < 1; exact ⟨b, h, h_b_nezero⟩ --if f b < 1, we are done
       have h_c_nezero : c ≠ 0 := by
         by_contra! h
         simp [h] at ha
-      have h_b : f b = 1 := by linarith [(integers_closed_unit_ball f nonarch b)]
+      have h_b : f b = 1 := by linarith [integers_closed_unit_ball f nonarch b]
       simp only [map_div₀, h_b, div_one, ne_eq] at hfa
       have h_c_lt_one : f c < 1 := by
         linarith [lt_of_le_of_ne (integers_closed_unit_ball f nonarch c) hfa]
       exact ⟨c, h_c_lt_one, h_c_nezero⟩
-  }
 
+--TODO: clean up
 include nonarch in
 theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
     f ≈ vadicAbv P := by
   -- get the ideal P (open unit ball in 𝓞 K)
-  rcases exists_ideal f nonarch hf_nontriv with ⟨P, hP⟩
+  let P := prime_ideal f nonarch hf_nontriv
   have h_norm := one_lt_norm P
   --uniformizer of P, this gives the constant c
   rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩
@@ -183,7 +164,6 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     have : π ∈ P.asIdeal.carrier := by
       rw [IsDedekindDomain.HeightOneSpectrum.intValuation_lt_one_iff_dvd] at this
       simp_all
-    rw [← hP] at this
     exact this
   have hπ_ne_zero : P.valuation (π : K) ≠ 0 := by simp_all
   have hπint_ne_zero : P.intValuationDef π ≠ 0 := by simp_all
@@ -201,7 +181,6 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     simp [← FinitePlace.norm_def, norm_eq_one_iff_not_mem] at h
     have : ¬ x ∈ P.asIdeal.carrier := h
     have : ¬ f x < 1 := by
-      rw [← hP] at this
       exact this
     linarith [(integers_closed_unit_ball f nonarch x)]
   have absolute_value_eq_one_of_vadic_abv_eq_one {x : K} (hx : x ≠ 0) (h : vadicAbv P x = 1) : f x = 1 := by
@@ -253,14 +232,14 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     positivity
   · --uniqueness
     intro Q hQ
-    simp only [IsDedekindDomain.HeightOneSpectrum.ext_iff, ← Submodule.carrier_inj, ← hP,
-      Set.ext_iff, AddSubsemigroup.mem_carrier, AddSubmonoid.mem_toSubsemigroup,
-      Submodule.mem_toAddSubmonoid, Set.mem_setOf_eq]
+    simp only [IsDedekindDomain.HeightOneSpectrum.ext_iff, ← Submodule.carrier_inj, Set.ext_iff,
+      AddSubsemigroup.mem_carrier, AddSubmonoid.mem_toSubsemigroup, Submodule.mem_toAddSubmonoid, c]
     intro x
     obtain ⟨c', hc'pos, heq⟩ := hQ
     rw [funext_iff] at heq
     specialize heq x
-    rw [← Real.rpow_lt_one_iff' (AbsoluteValue.nonneg f ↑x) hc'pos, heq,
+    rw [show x ∈ P.asIdeal ↔ f x < 1 by rfl,
+      ← Real.rpow_lt_one_iff' (AbsoluteValue.nonneg f ↑x) hc'pos, heq,
       ← NumberField.norm_lt_one_iff_mem, NumberField.FinitePlace.norm_def]
 
 end Nonarchimedean
