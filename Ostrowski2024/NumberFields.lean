@@ -204,9 +204,9 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
   have hcpos : 0 < c := Real.logb_pos_of_base_lt_one (inv_pos.mpr (mod_cast Nat.zero_lt_of_lt h_norm))
     (inv_lt_one_of_one_lt₀ <| mod_cast h_norm) hπ_f_gt_zero hπ_f_lt_one
   constructor
-  · apply AbsoluteValue.isEquiv_symm
-    use c
-    refine ⟨hcpos, ?_⟩
+  · --equivalence
+    apply AbsoluteValue.isEquiv_symm
+    refine ⟨c, hcpos, ?_⟩
     ext x
     by_cases hx : x = 0; simp [hx, Real.rpow_eq_zero (le_refl 0) (ne_of_lt hcpos).symm]
     have hx_ne_zero : P.valuation x ≠ 0 := (Valuation.ne_zero_iff P.valuation).mpr hx
@@ -223,12 +223,11 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
       (RingOfIntegers.coe_ne_zero_iff.mpr hπ_zero)) (inv_ne_zero hx)
     rw [map_mul, map_zpow₀, map_inv₀, vadicAbv_def, WithZeroMulInt.toNNReal_neg_apply _ hπ_ne_zero]
     push_cast
-    rw [← zpow_mul]
-    rw [mul_neg, zpow_neg, hπ_abs_val, vadicAbv_def, WithZeroMulInt.toNNReal_neg_apply _ hx_ne_zero]
+    rw [← zpow_mul, mul_neg, zpow_neg, hπ_abs_val, vadicAbv_def,
+      WithZeroMulInt.toNNReal_neg_apply _ hx_ne_zero]
     simp only [Int.reduceNeg, neg_mul, one_mul, zpow_neg, inv_inv, NNReal.coe_zpow,
       NNReal.coe_natCast]
     apply CommGroupWithZero.mul_inv_cancel
-    apply zpow_ne_zero
     positivity
   · --uniqueness
     intro Q hQ
