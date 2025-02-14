@@ -1,4 +1,5 @@
 import Mathlib
+import Ostrowski2024.NonArchimidean
 
 /-!
 # Ostrowski's theorem for number fields
@@ -9,7 +10,7 @@ import Mathlib
 
 -/
 
-
+/-
 section preliminaries1
 
 variable {K : Type*} [Field K] {f : AbsoluteValue K ℝ}
@@ -45,7 +46,7 @@ lemma nonarch_int_le_one (x : ℤ) : f x ≤ 1 := by
   exact nonarch_nat_le_one nonarch x.natAbs
 
 end preliminaries1
-
+ -/
 open NumberField
 
 variable {K : Type*} [Field K] [nf : NumberField K] (f : AbsoluteValue K ℝ)
@@ -86,14 +87,14 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     nth_rewrite 1 [← map_pow, ← map_pow, hminp]
     simp only [Finset.sum_neg_distrib, map_neg, map_sum, map_mul, map_intCast, map_pow,
       map_neg_eq_map]
-    apply le_trans (nonarch_sum_sup nonarch (Finset.nonempty_range_iff.mpr hnezerodeg)) _
+    apply le_trans (AbsoluteValue.nonarch_sum_sup nonarch (Finset.nonempty_range_iff.mpr hnezerodeg)) _
     apply Finset.sup'_le (Finset.nonempty_range_iff.mpr hnezerodeg)
     intro i hi
     rw [Finset.mem_range] at hi
     calc
       f ((↑(P.coeff i) * x ^ i))
         ≤ (f x) ^ i := by
-        simp [mul_le_iff_le_one_left (pow_pos (f.pos h) i), nonarch_int_le_one nonarch (P.coeff i)]
+        simp [mul_le_iff_le_one_left (pow_pos (f.pos h) i), AbsoluteValue.nonarch_int_le_one nonarch (P.coeff i)]
       _ ≤ (f x) ^ (P.natDegree - 1) := (pow_le_pow_iff_right₀ hc).mpr <| Nat.le_sub_one_of_lt hi
   apply not_lt_of_le hineq4
   gcongr
@@ -153,11 +154,12 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
   have h_norm := one_lt_norm P
   --uniformizer of P, this gives the constant c
   rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩
-  have hπ_zero : π ≠ 0 := by
+  have hπ_ne_zero : π ≠ 0 := by
     by_contra! h
     simp [h] at hπ
-  have hπ_f_gt_zero : 0 < f π := by simp [hπ_zero]
-  have hπ_f_lt_one : f π < 1 := by
+  have hπ_zero_le_f : 0 < f π := by simp [hπ_ne_zero]
+  have hπ_f_lt_one : f π < 1 := by --Golf this
+
     have : P.intValuationDef π < 1 := by
       rw [hπ]
       exact Batteries.compareOfLessAndEq_eq_lt.mp rfl
@@ -165,14 +167,14 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
       rw [IsDedekindDomain.HeightOneSpectrum.intValuation_lt_one_iff_dvd] at this
       simp_all
     exact this
-  have hπ_ne_zero : P.valuation (π : K) ≠ 0 := by simp_all
+  have hπ_val_ne_zero : P.valuation (π : K) ≠ 0 := by simp_all
   have hπint_ne_zero : P.intValuationDef π ≠ 0 := by simp_all
   have : Multiplicative.toAdd (WithZero.unzero hπint_ne_zero) = -1 := by
     have : -1 = Multiplicative.toAdd (Multiplicative.ofAdd (-1)) := rfl
     rw [this,
       ← WithZero.unzero_coe (x := Multiplicative.ofAdd (-1)) (by rw [← hπ]; exact hπint_ne_zero)]
     congr
-  have hπ_abs_val: Multiplicative.toAdd (WithZero.unzero hπ_ne_zero) = -1 := by
+  have hπ_abs_val: Multiplicative.toAdd (WithZero.unzero hπ_val_ne_zero) = -1 := by
     rw [← this]
     congr
     exact IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef P π
@@ -202,11 +204,10 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
   simp only
   let c := Real.logb (Ideal.absNorm P.asIdeal)⁻¹ (f π)
   have hcpos : 0 < c := Real.logb_pos_of_base_lt_one (inv_pos.mpr (mod_cast Nat.zero_lt_of_lt h_norm))
-    (inv_lt_one_of_one_lt₀ <| mod_cast h_norm) hπ_f_gt_zero hπ_f_lt_one
+    (inv_lt_one_of_one_lt₀ <| mod_cast h_norm) hπ_zero_le_f hπ_f_lt_one
   constructor
   · --equivalence
-    apply AbsoluteValue.isEquiv_symm
-    refine ⟨c, hcpos, ?_⟩
+    refine AbsoluteValue.isEquiv_symm ⟨c, hcpos, ?_⟩
     ext x
     by_cases hx : x = 0; simp [hx, Real.rpow_eq_zero (le_refl 0) (ne_of_lt hcpos).symm]
     have hx_ne_zero : P.valuation x ≠ 0 := (Valuation.ne_zero_iff P.valuation).mpr hx
@@ -215,13 +216,13 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     push_cast
     rw [← neg_neg <| Multiplicative.toAdd (WithZero.unzero hx_ne_zero), ← inv_zpow',
       ← Real.rpow_intCast_mul (by simp), mul_comm, Real.rpow_mul (by simp),
-      Real.rpow_logb (by positivity) (inv_ne_one.mpr <| ne_of_gt (mod_cast h_norm)) hπ_f_gt_zero,
+      Real.rpow_logb (by positivity) (inv_ne_one.mpr <| ne_of_gt (mod_cast h_norm)) hπ_zero_le_f,
       ← mul_inv_eq_one₀ <| (AbsoluteValue.ne_zero_iff f).mpr hx, ← map_inv₀, Real.rpow_intCast,
       ← map_zpow₀, ← map_mul]
     apply absolute_value_eq_one_of_vadic_abv_eq_one
       <| mul_ne_zero (zpow_ne_zero (-Multiplicative.toAdd (WithZero.unzero hx_ne_zero))
-      (RingOfIntegers.coe_ne_zero_iff.mpr hπ_zero)) (inv_ne_zero hx)
-    rw [map_mul, map_zpow₀, map_inv₀, vadicAbv_def, WithZeroMulInt.toNNReal_neg_apply _ hπ_ne_zero]
+      (RingOfIntegers.coe_ne_zero_iff.mpr hπ_ne_zero)) (inv_ne_zero hx)
+    rw [map_mul, map_zpow₀, map_inv₀, vadicAbv_def, WithZeroMulInt.toNNReal_neg_apply _ hπ_val_ne_zero]
     push_cast
     rw [← zpow_mul, mul_neg, zpow_neg, hπ_abs_val, vadicAbv_def,
       WithZeroMulInt.toNNReal_neg_apply _ hx_ne_zero]
