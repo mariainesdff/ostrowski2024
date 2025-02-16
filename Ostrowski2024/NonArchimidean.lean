@@ -2,9 +2,9 @@ import Mathlib
 --PR to Mathlib?
 namespace AbsoluteValue
 
-section Nonarchimidean
+section Nonarchimedean
 
-variable {R : Type*}  {S : Type*}
+variable {R : Type*} {S : Type*}
 
 def IsNonarchimidean [Semiring R] [LinearOrderedSemiring S] (f : AbsoluteValue R S) : Prop :=
   ∀ x y : R, f (x + y) ≤ max (f x) (f y)
@@ -29,13 +29,12 @@ lemma nonarch_nat_le_one [Semiring R] [Nontrivial R] [LinearOrderedRing S] [IsDo
   | zero => simp
   | succ n hn =>
     push_cast
-    apply le_trans <| nonarch n 1
-    simp [hn]
+    exact le_trans (nonarch n 1) (max_le hn <| le_of_eq f.map_one)
 
 lemma nonarch_int_le_one [Nontrivial R] [Ring R] [LinearOrderedCommRing S] [NoZeroDivisors S] {f : AbsoluteValue R S} (nonarch : IsNonarchimidean f) (x : ℤ)  : f x ≤ 1 := by
   rw [← AbsoluteValue.apply_natAbs_eq]
   exact nonarch_nat_le_one nonarch x.natAbs
 
-end Nonarchimidean
+end Nonarchimedean
 
 end AbsoluteValue
