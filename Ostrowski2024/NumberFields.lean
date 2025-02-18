@@ -55,6 +55,7 @@ section Nonarchimedean
 
 --The next lemma is a general fact in algebraic number theory.
 --This might be complicated, Conrad uses the class group but we might try with norms or minimal polynomials
+-- Here https://feog.github.io/antchap6.pdf is a proof without class group
 lemma exists_num_denom_absolute_value_one (α : K) (h_nezero : α ≠ 0)
     (h_abs : vadicAbv v α ≤ 1) : ∃ x y : 𝓞 K, α = x / y ∧ vadicAbv v y = 1 := by
   sorry
@@ -87,6 +88,12 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     nth_rewrite 1 [← map_pow, ← map_pow, hminp]
     simp only [Finset.sum_neg_distrib, map_neg, map_sum, map_mul, map_intCast, map_pow,
       map_neg_eq_map]
+    /- rw [Finset.sum_range]
+    simp_rw [← List.sum_ofFn]
+    apply le_trans (AbsoluteValue.nonarch_sum_sup' nonarch)
+    simp only [Option.getD, List.map_ofFn]
+    split; swap; simp
+     -/
     apply le_trans (AbsoluteValue.nonarch_sum_sup nonarch (Finset.nonempty_range_iff.mpr hnezerodeg)) _
     apply Finset.sup'_le (Finset.nonempty_range_iff.mpr hnezerodeg)
     intro i hi

@@ -24,6 +24,14 @@ lemma nonarch_sum_sup [Semiring R] [LinearOrderedSemiring S] {f : AbsoluteValue 
     · exact .inl h₁
     · exact .inr <| le_trans h₂ hind
 
+lemma nonarch_sum_sup' [Semiring R] [LinearOrderedSemiring S] {f : AbsoluteValue R S}
+    (nonarch : IsNonarchimidean f) {l : List R}
+    --(hnonempty : s.Nonempty) {l : α → R}
+    :
+    f (l.sum) ≤ Option.getD ((l.map (fun i => f (i))).max?) 0 := by
+  sorry
+
+
 lemma nonarch_nat_le_one [Semiring R] [Nontrivial R] [LinearOrderedRing S] [IsDomain S] {f : AbsoluteValue R S} (nonarch : IsNonarchimidean f) (n : ℕ) : f n ≤ 1 := by
   induction n with
   | zero => simp
