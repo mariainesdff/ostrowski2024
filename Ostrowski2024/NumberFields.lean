@@ -1,5 +1,5 @@
 import Mathlib
-import Ostrowski2024.NonArchimidean
+import Ostrowski2024.NonArchimedean
 
 /-!
 # Ostrowski's theorem for number fields
