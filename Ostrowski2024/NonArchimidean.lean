@@ -6,13 +6,13 @@ section Nonarchimedean
 
 variable {R : Type*} {S : Type*}
 
-def IsNonarchimidean [Semiring R] [LinearOrderedSemiring S] (f : AbsoluteValue R S) : Prop :=
+def IsNonarchimedean [Semiring R] [LinearOrderedSemiring S] (f : AbsoluteValue R S) : Prop :=
   ∀ x y : R, f (x + y) ≤ max (f x) (f y)
 
 open Finset in
 /-- ultrametric inequality with Finset.Sum  -/
 lemma nonarch_sum_sup [Semiring R] [LinearOrderedSemiring S] {f : AbsoluteValue R S}
-    (nonarch : IsNonarchimidean f) {α : Type*} {s : Finset α} (hnonempty : s.Nonempty) {l : α → R} :
+    (nonarch : IsNonarchimedean f) {α : Type*} {s : Finset α} (hnonempty : s.Nonempty) {l : α → R} :
     f (∑ i ∈ s, l i) ≤ s.sup' hnonempty fun i => f (l i) := by
   apply Nonempty.cons_induction (p := fun a hn ↦ f (∑ i ∈ a, l i) ≤ a.sup' hn fun i ↦ f (l i))
   · simp
@@ -24,17 +24,19 @@ lemma nonarch_sum_sup [Semiring R] [LinearOrderedSemiring S] {f : AbsoluteValue 
     · exact .inl h₁
     · exact .inr <| le_trans h₂ hind
 
-lemma nonarch_nat_le_one [Semiring R] [Nontrivial R] [LinearOrderedRing S] [IsDomain S] {f : AbsoluteValue R S} (nonarch : IsNonarchimidean f) (n : ℕ) : f n ≤ 1 := by
+lemma nonarch_nat_le_one [Semiring R] [Nontrivial R] [LinearOrderedRing S] {f : AbsoluteValue R S} (nonarch : IsNonarchimedean f) (n : ℕ) : f n ≤ 1 := by
   induction n with
   | zero => simp
   | succ n hn =>
     push_cast
     exact le_trans (nonarch n 1) (max_le hn <| le_of_eq f.map_one)
 
-lemma nonarch_int_le_one [Nontrivial R] [Ring R] [LinearOrderedCommRing S] [NoZeroDivisors S] {f : AbsoluteValue R S} (nonarch : IsNonarchimidean f) (x : ℤ)  : f x ≤ 1 := by
+lemma nonarch_int_le_one [Nontrivial R] [Ring R] [LinearOrderedCommRing S] {f : AbsoluteValue R S} (nonarch : IsNonarchimedean f) (x : ℤ)  : f x ≤ 1 := by
   rw [← AbsoluteValue.apply_natAbs_eq]
   exact nonarch_nat_le_one nonarch x.natAbs
 
 end Nonarchimedean
 
 end AbsoluteValue
+
+--#min_imports
