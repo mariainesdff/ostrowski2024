@@ -1,5 +1,5 @@
 import Mathlib
-import Ostrowski2024.NonArchimedean
+--import Ostrowski2024.NonArchimedean
 
 /-!
 # Ostrowski's theorem for number fields
@@ -47,17 +47,19 @@ lemma nonarch_int_le_one (x : ℤ) : f x ≤ 1 := by
 
 end preliminaries1
  -/
-open NumberField
+open IsDedekindDomain HeightOneSpectrum WithZeroMulInt NumberField RingOfIntegers
 
 variable {K : Type*} [Field K] [nf : NumberField K] (f : AbsoluteValue K ℝ)
 
 section Nonarchimedean
 
+open NumberField.RingOfIntegers.HeightOneSpectrum
+
 --The next lemma is a general fact in algebraic number theory.
 --This might be complicated, Conrad uses the class group but we might try with norms or minimal polynomials
 -- Here https://feog.github.io/antchap6.pdf is a proof without class group
-lemma exists_num_denom_absolute_value_one (α : K) (h_nezero : α ≠ 0)
-    (h_abs : vadicAbv v α ≤ 1) : ∃ x y : 𝓞 K, α = x / y ∧ vadicAbv v y = 1 := by
+lemma exists_num_denom_absolute_value_one (α : K) (h_nezero : α ≠ 0) {v : HeightOneSpectrum (RingOfIntegers K)}
+    (h_abs : adicAbv v α ≤ 1) : ∃ x y : 𝓞 K, α = x / y ∧ adicAbv v y = 1 := by
   sorry
 
 variable (nonarch : ∀ x y : K, f (x + y) ≤ max (f x) (f y))
@@ -94,14 +96,15 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
     simp only [Option.getD, List.map_ofFn]
     split; swap; simp
      -/
-    apply le_trans (AbsoluteValue.nonarch_sum_sup nonarch (Finset.nonempty_range_iff.mpr hnezerodeg)) _
+    apply le_trans ( IsNonarchimedean.apply_sum_le_sup_of_isNonarchimedean nonarch  (Finset.nonempty_range_iff.mpr hnezerodeg))
     apply Finset.sup'_le (Finset.nonempty_range_iff.mpr hnezerodeg)
     intro i hi
     rw [Finset.mem_range] at hi
     calc
       f ((↑(P.coeff i) * x ^ i))
         ≤ (f x) ^ i := by
-        simp [mul_le_iff_le_one_left (pow_pos (f.pos h) i), AbsoluteValue.nonarch_int_le_one nonarch (P.coeff i)]
+        simp [mul_le_iff_le_one_left (pow_pos (f.pos h) i),
+          IsNonarchimedean.apply_intCast_le_one_of_isNonarchimedean nonarch]
       _ ≤ (f x) ^ (P.natDegree - 1) := (pow_le_pow_iff_right₀ hc).mpr <| Nat.le_sub_one_of_lt hi
   apply not_lt_of_le hineq4
   gcongr
@@ -119,8 +122,8 @@ def prime_ideal (hf_nontriv : f.IsNontrivial) : IsDedekindDomain.HeightOneSpectr
     zero_mem' := by simp
     smul_mem' := by
                   simp only [Set.mem_setOf_eq, smul_eq_mul, map_mul]
-                  exact fun c x hx ↦ Right.mul_lt_one_of_le_of_lt_of_nonneg
-                    (integers_closed_unit_ball f nonarch c) hx (apply_nonneg f ↑x)
+                  exact fun c x hx ↦ mul_lt_one_of_nonneg_of_lt_one_right
+                    (integers_closed_unit_ball f nonarch c) (apply_nonneg f ↑x) hx
   }
   isPrime := by
       rw [Ideal.isPrime_iff]
@@ -155,10 +158,10 @@ def prime_ideal (hf_nontriv : f.IsNontrivial) : IsDedekindDomain.HeightOneSpectr
 include nonarch in
 theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
-    f ≈ vadicAbv P := by
+    f ≈ adicAbv P := by
   -- get the ideal P (open unit ball in 𝓞 K)
   let P := prime_ideal f nonarch hf_nontriv
-  have h_norm := one_lt_norm P
+  have h_norm := one_lt_absNorm P
   --uniformizer of P, this gives the constant c
   rcases IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer P with ⟨π, hπ⟩
   --Some useful facts about π
@@ -172,10 +175,10 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
       Submodule.mem_toAddSubmonoid, ← Ideal.dvd_span_singleton,
       ← IsDedekindDomain.HeightOneSpectrum.intValuation_lt_one_iff_dvd, hπ]
     norm_cast
-  have hπ_val_ne_zero : P.valuation (π : K) ≠ 0 := by simp_all
+  have hπ_val_ne_zero : P.valuation K (π : K) ≠ 0 := by simp_all
   have hπ_toAdd: Multiplicative.toAdd (WithZero.unzero hπ_val_ne_zero) = -1 := by
     simp_all [IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef P π]
-  have absolute_value_eq_one_of_vadic_abv_eq_one {x : K} (hx : x ≠ 0) (h : vadicAbv P x = 1) :
+  have absolute_value_eq_one_of_vadic_abv_eq_one {x : K} (hx : x ≠ 0) (h : adicAbv P x = 1) :
     f x = 1 := by
     obtain ⟨y, z, rfl, hz⟩ := exists_num_denom_absolute_value_one x hx (le_of_eq h)
     have : y ≠ 0 ∧ z ≠ 0 := by
@@ -184,9 +187,9 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
       by_cases h'' : y = 0
       · simp_all [h'']
       · simp_all [h' h'']
-    have absolute_value_eq_one_of_vadic_abv_eq_one_int {x : 𝓞 K} (hx : x ≠ 0) (h : vadicAbv P x = 1) :
+    have absolute_value_eq_one_of_vadic_abv_eq_one_int {x : 𝓞 K} (hx : x ≠ 0) (h : adicAbv P x = 1) :
       f x = 1 := by
-      rw [← FinitePlace.norm_def, norm_eq_one_iff_not_mem] at h
+      rw [← FinitePlace.norm_def, FinitePlace.norm_eq_one_iff_not_mem] at h
       have : 1 ≤ f x := le_of_not_lt h
       linarith [integers_closed_unit_ball f nonarch x]
     simp_all [absolute_value_eq_one_of_vadic_abv_eq_one_int]
@@ -201,8 +204,8 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     refine AbsoluteValue.isEquiv_symm ⟨c, hcpos, ?_⟩
     ext x
     by_cases hx : x = 0; simp [hx, Real.rpow_eq_zero (le_refl 0) (ne_of_lt hcpos).symm]
-    have hx_val_ne_zero : P.valuation x ≠ 0 := (Valuation.ne_zero_iff P.valuation).mpr hx
-    simp only [vadicAbv, AbsoluteValue.coe_mk, MulHom.coe_mk,
+    have hx_val_ne_zero : P.valuation K x ≠ 0 := (Valuation.ne_zero_iff (P.valuation K)).mpr hx
+    simp only [adicAbv, AbsoluteValue.coe_mk, MulHom.coe_mk,
       WithZeroMulInt.toNNReal_neg_apply _ hx_val_ne_zero, NNReal.coe_zpow, NNReal.coe_natCast]
     --simplify LHS
     rw [← neg_neg <| Multiplicative.toAdd (WithZero.unzero hx_val_ne_zero), ← inv_zpow',
@@ -213,9 +216,9 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
       ← map_zpow₀, ← map_mul]
     apply absolute_value_eq_one_of_vadic_abv_eq_one <|
       mul_ne_zero (zpow_ne_zero _ (RingOfIntegers.coe_ne_zero_iff.mpr hπ_ne_zero)) (inv_ne_zero hx)
-    simp [vadicAbv_def, WithZeroMulInt.toNNReal_neg_apply _ hπ_val_ne_zero,
+    simp [adicAbv_def, WithZeroMulInt.toNNReal_neg_apply _ hπ_val_ne_zero,
       WithZeroMulInt.toNNReal_neg_apply _ hx_val_ne_zero, hπ_toAdd, ← zpow_neg, ← zpow_mul,
-      ← zpow_add₀ (a := (Ideal.absNorm P.asIdeal : ℝ)) (mod_cast Nat.not_eq_zero_of_lt h_norm)]
+      ← zpow_add₀ (a := (Ideal.absNorm P.asIdeal : ℝ)) (mod_cast Nat.ne_zero_of_lt h_norm)]
   · --uniqueness
     intro Q hQ
     simp only [IsDedekindDomain.HeightOneSpectrum.ext_iff, ← Submodule.carrier_inj, Set.ext_iff,
@@ -226,6 +229,6 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     specialize heq x
     rw [show x ∈ P.asIdeal ↔ f x < 1 by rfl,
       ← Real.rpow_lt_one_iff' (AbsoluteValue.nonneg f ↑x) hc'pos, heq,
-      ← NumberField.norm_lt_one_iff_mem, NumberField.FinitePlace.norm_def]
+      ← NumberField.FinitePlace.norm_lt_one_iff_mem, NumberField.FinitePlace.norm_def]
 
 end Nonarchimedean
