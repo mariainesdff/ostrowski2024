@@ -106,7 +106,7 @@ lemma integers_closed_unit_ball (x : 𝓞 K) : f x ≤ 1 := by
         simp [mul_le_iff_le_one_left (pow_pos (f.pos h) i),
           IsNonarchimedean.apply_intCast_le_one_of_isNonarchimedean nonarch]
       _ ≤ (f x) ^ (P.natDegree - 1) := (pow_le_pow_iff_right₀ hc).mpr <| Nat.le_sub_one_of_lt hi
-  apply not_lt_of_le hineq4
+  apply not_lt_of_ge hineq4
   gcongr
   · exact hc
   · exact Nat.sub_one_lt hnezerodeg
@@ -155,10 +155,11 @@ def prime_ideal (hf_nontriv : f.IsNontrivial) : IsDedekindDomain.HeightOneSpectr
       exact ⟨c, h_c_lt_one, h_c_nezero⟩
 
 --TODO: clean up
+open AbsoluteValue in
 include nonarch in
 theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     ∃! P : IsDedekindDomain.HeightOneSpectrum (𝓞 K),
-    f ≈ adicAbv P := by
+    f.IsEquiv (adicAbv P) := by
   -- get the ideal P (open unit ball in 𝓞 K)
   let P := prime_ideal f nonarch hf_nontriv
   have h_norm := one_lt_absNorm P
@@ -167,7 +168,10 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
   --Some useful facts about π
   have hπ_ne_zero : π ≠ 0 := by
     by_contra! h
-    simp [h] at hπ
+    rw [h] at hπ
+    simp at hπ
+    have := @WithZero.exp_ne_zero ℤ 1
+    contradiction
   have hπ_zero_le_f : 0 < f π := by simp [hπ_ne_zero]
   have hπ_f_lt_one : f π < 1 := by
     convert_to  π ∈ P.asIdeal.carrier
@@ -177,7 +181,7 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     norm_cast
   have hπ_val_ne_zero : P.valuation K (π : K) ≠ 0 := by simp_all
   have hπ_toAdd: Multiplicative.toAdd (WithZero.unzero hπ_val_ne_zero) = -1 := by
-    simp_all [IsDedekindDomain.HeightOneSpectrum.valuation_eq_intValuationDef P π]
+    simp_all [IsDedekindDomain.HeightOneSpectrum.valuation_of_algebraMap P π]
   have absolute_value_eq_one_of_vadic_abv_eq_one {x : K} (hx : x ≠ 0) (h : adicAbv P x = 1) :
     f x = 1 := by
     obtain ⟨y, z, rfl, hz⟩ := exists_num_denom_absolute_value_one x hx (le_of_eq h)
@@ -185,14 +189,14 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
       by_contra! h'
       apply hx
       by_cases h'' : y = 0
-      · simp_all [h'']
+      · simp_all
       · simp_all [h' h'']
     have absolute_value_eq_one_of_vadic_abv_eq_one_int {x : 𝓞 K} (hx : x ≠ 0) (h : adicAbv P x = 1) :
       f x = 1 := by
-      rw [← FinitePlace.norm_def, FinitePlace.norm_eq_one_iff_not_mem] at h
-      have : 1 ≤ f x := le_of_not_lt h
+      rw [← FinitePlace.norm_def, NumberField.FinitePlace.norm_eq_one_iff_notMem] at h
+      have : 1 ≤ f x := le_of_not_gt h
       linarith [integers_closed_unit_ball f nonarch x]
-    simp_all [absolute_value_eq_one_of_vadic_abv_eq_one_int]
+    simp_all
   use P
   -- the exponent such that (vadicAbv P x) ^ c = f x
   let c := Real.logb (Ideal.absNorm P.asIdeal)⁻¹ (f π)
@@ -201,12 +205,15 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     (inv_lt_one_of_one_lt₀ <| mod_cast h_norm) hπ_zero_le_f hπ_f_lt_one
   constructor
   · --equivalence
-    refine AbsoluteValue.isEquiv_symm ⟨c, hcpos, ?_⟩
+    simp
+    apply AbsoluteValue.IsEquiv.symm
+    rw [isEquiv_iff_exists_rpow_eq]
+    use c, hcpos
     ext x
     by_cases hx : x = 0; simp [hx, Real.rpow_eq_zero (le_refl 0) (ne_of_lt hcpos).symm]
     have hx_val_ne_zero : P.valuation K x ≠ 0 := (Valuation.ne_zero_iff (P.valuation K)).mpr hx
-    simp only [adicAbv, AbsoluteValue.coe_mk, MulHom.coe_mk,
-      WithZeroMulInt.toNNReal_neg_apply _ hx_val_ne_zero, NNReal.coe_zpow, NNReal.coe_natCast]
+    simp [adicAbv_def]
+    simp only [WithZeroMulInt.toNNReal_neg_apply _ hx_val_ne_zero, NNReal.coe_zpow, NNReal.coe_natCast]
     --simplify LHS
     rw [← neg_neg <| Multiplicative.toAdd (WithZero.unzero hx_val_ne_zero), ← inv_zpow',
       ← Real.rpow_intCast_mul (by simp), mul_comm, Real.rpow_mul (by simp),
@@ -221,9 +228,9 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
       ← zpow_add₀ (a := (Ideal.absNorm P.asIdeal : ℝ)) (mod_cast Nat.ne_zero_of_lt h_norm)]
   · --uniqueness
     intro Q hQ
-    simp only [IsDedekindDomain.HeightOneSpectrum.ext_iff, ← Submodule.carrier_inj, Set.ext_iff,
-      AddSubsemigroup.mem_carrier, AddSubmonoid.mem_toSubsemigroup, Submodule.mem_toAddSubmonoid]
+    simp [IsDedekindDomain.HeightOneSpectrum.ext_iff, ← SetLike.coe_set_eq, Set.ext_iff]
     intro x
+    rw [isEquiv_iff_exists_rpow_eq] at hQ
     obtain ⟨c', hc'pos, heq⟩ := hQ
     rw [funext_iff] at heq
     specialize heq x
