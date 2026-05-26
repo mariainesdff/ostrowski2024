@@ -129,7 +129,7 @@ def prime_ideal (hf_nontriv : f.IsNontrivial) : IsDedekindDomain.HeightOneSpectr
       rw [Ideal.isPrime_iff]
       constructor
       -- P is not 𝓞 K:
-      · simp [Ideal.ne_top_iff_one]
+      · simp [-ne_eq, -AddSubsemigroup.mk_eq_top, Ideal.ne_top_iff_one]
       -- x * y ∈ P → x ∈ P ∨ y ∈ P:
       · simp only [Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk,
         Set.mem_setOf_eq, map_mul]
