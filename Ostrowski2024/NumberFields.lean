@@ -224,11 +224,11 @@ theorem Ostr_nonarch (hf_nontriv : f.IsNontrivial) :
     contradiction
   have hπ_zero_le_f : 0 < f π := by simp [hπ_ne_zero]
   have hπ_f_lt_one : f π < 1 := by
-    convert_to  π ∈ P.asIdeal.carrier
-    simp only [AddSubsemigroup.mem_carrier, AddSubmonoid.mem_toSubsemigroup,
-      Submodule.mem_toAddSubmonoid, ← Ideal.dvd_span_singleton,
-      ← IsDedekindDomain.HeightOneSpectrum.intValuation_lt_one_iff_dvd, hπ]
-    norm_cast
+    exact (show (π : 𝓞 K) ∈ P.asIdeal ↔ f (π : K) < 1 from Iff.rfl).1 <|
+      (IsDedekindDomain.HeightOneSpectrum.intValuation_lt_one_iff_mem P π).1 <| by
+        rw [hπ]
+        rw [← WithZero.exp_zero, WithZero.exp_lt_exp]
+        norm_num
   have hπ_val_ne_zero : P.valuation K (π : K) ≠ 0 := by simp_all
   have hπ_toAdd: Multiplicative.toAdd (WithZero.unzero hπ_val_ne_zero) = -1 := by
     simp_all [IsDedekindDomain.HeightOneSpectrum.valuation_of_algebraMap P π, P]
